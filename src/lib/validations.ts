@@ -1,0 +1,109 @@
+import { z } from "zod";
+
+const SLUG_REGEX = /^[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/;
+
+const capabilitySpecSchema = z.object({
+  name: z.string().min(1).max(100),
+  description: z.string().max(1000),
+  inputSchema: z.record(z.string(), z.unknown()).optional().default({}),
+  outputSchema: z.record(z.string(), z.unknown()).optional().default({}),
+  examples: z
+    .array(z.object({ input: z.unknown(), output: z.unknown() }))
+    .max(20)
+    .optional(),
+});
+
+export const createAgentSchema = z.object({
+  name: z.string().min(1).max(200).trim(),
+  slug: z
+    .string()
+    .min(3)
+    .max(64)
+    .regex(SLUG_REGEX, "Slug must be lowercase alphanumeric with hyphens"),
+  description: z.string().max(2000).nullable().optional(),
+  capability_schema: z.array(capabilitySpecSchema).max(50).optional().default([]),
+  rate_type: z.enum(["per_call", "per_task", "per_hour"]).optional().default("per_call"),
+  rate_amount: z.number().min(0).max(1_000_000).optional().default(0),
+  rate_currency: z.string().max(10).optional().default("USD"),
+  auth_type: z.enum(["api_key", "oauth", "mcp_token", "none"]).optional().default("none"),
+  auth_config: z.record(z.string(), z.unknown()).optional().default({}),
+  mcp_endpoint: z
+    .string()
+    .url()
+    .refine((url) => url.startsWith("https://"), { message: "MCP endpoint must use HTTPS" })
+    .nullable()
+    .optional(),
+  tags: z.array(z.string().max(50)).max(20).optional().default([]),
+});
+
+export const updateAgentSchema = z.object({
+  name: z.string().min(1).max(200).trim().optional(),
+  slug: z
+    .string()
+    .min(3)
+    .max(64)
+    .regex(SLUG_REGEX, "Slug must be lowercase alphanumeric with hyphens")
+    .optional(),
+  description: z.string().max(2000).nullable().optional(),
+  capability_schema: z.array(capabilitySpecSchema).max(50).optional(),
+  rate_type: z.enum(["per_call", "per_task", "per_hour"]).optional(),
+  rate_amount: z.number().min(0).max(1_000_000).optional(),
+  rate_currency: z.string().max(10).optional(),
+  auth_type: z.enum(["api_key", "oauth", "mcp_token", "none"]).optional(),
+  auth_config: z.record(z.string(), z.unknown()).optional(),
+  mcp_endpoint: z
+    .string()
+    .url()
+    .refine((url) => url.startsWith("https://"), { message: "MCP endpoint must use HTTPS" })
+    .nullable()
+    .optional(),
+  tags: z.array(z.string().max(50)).max(20).optional(),
+});
+
+export const createJobSchema = z.object({
+  requester_agent_id: z.string().uuid().nullable().optional(),
+  provider_agent_id: z.string().uuid(),
+  job_type: z.enum(["production", "staging", "test"]).optional().default("production"),
+  capability_used: z.string().max(200).nullable().optional(),
+  input_summary: z.record(z.string(), z.unknown()).nullable().optional(),
+  output_summary: z.record(z.string(), z.unknown()).nullable().optional(),
+  duration_ms: z.number().int().min(0).max(86_400_000).nullable().optional(),
+  cost: z.number().min(0).max(1_000_000).optional().default(0),
+});
+
+// Escape ILIKE special characters
+export function escapeIlike(str: string): string {
+  return str.replace(/[%_\\]/g, "\\$&");
+}
+
+// Validate redirect path (prevent open redirects)
+export function safeRedirectPath(path: string): string {
+  // Must start with / and not start with // (protocol-relative)
+  if (!path.startsWith("/") || path.startsWith("//")) {
+    return "/dashboard";
+  }
+  // Block backslash tricks
+  if (path.includes("\\")) {
+    return "/dashboard";
+  }
+  // Ensure the path doesn't contain protocol
+  try {
+    const url = new URL(path, "http://localhost");
+    if (url.hostname !== "localhost") {
+      return "/dashboard";
+    }
+  } catch {
+    return "/dashboard";
+  }
+  return path;
+}
+
+// Strip sensitive fields from agent data for non-owners
+export function stripSensitiveAgentFields(
+  agent: Record<string, unknown>,
+  userId?: string
+): Record<string, unknown> {
+  if (agent.owner_id === userId) return agent;
+  const { auth_config: _, ...safe } = agent;
+  return safe;
+}

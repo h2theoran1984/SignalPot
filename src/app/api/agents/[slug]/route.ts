@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { updateAgentSchema, stripSensitiveAgentFields } from "@/lib/validations";
 
 // GET /api/agents/[slug] — Single agent detail with trust graph neighbors
 export async function GET(
@@ -8,6 +9,10 @@ export async function GET(
 ) {
   const { slug } = await params;
   const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const { data: agent, error } = await supabase
     .from("agents")
@@ -19,20 +24,31 @@ export async function GET(
     return NextResponse.json({ error: "Agent not found" }, { status: 404 });
   }
 
-  // Fetch trust graph neighbors
+  // Strip auth_config for non-owners
+  const safeAgent = stripSensitiveAgentFields(agent, user?.id);
+
+  // Fetch trust graph neighbors with limits
   const [{ data: incomingEdges }, { data: outgoingEdges }] = await Promise.all([
     supabase
       .from("trust_edges")
-      .select("*, source_agent:agents!trust_edges_source_agent_id_fkey(id, name, slug)")
-      .eq("target_agent_id", agent.id),
+      .select(
+        "*, source_agent:agents!trust_edges_source_agent_id_fkey(id, name, slug)"
+      )
+      .eq("target_agent_id", agent.id)
+      .order("trust_score", { ascending: false })
+      .limit(50),
     supabase
       .from("trust_edges")
-      .select("*, target_agent:agents!trust_edges_target_agent_id_fkey(id, name, slug)")
-      .eq("source_agent_id", agent.id),
+      .select(
+        "*, target_agent:agents!trust_edges_target_agent_id_fkey(id, name, slug)"
+      )
+      .eq("source_agent_id", agent.id)
+      .order("trust_score", { ascending: false })
+      .limit(50),
   ]);
 
   return NextResponse.json({
-    agent,
+    agent: safeAgent,
     trust_graph: {
       incoming: incomingEdges ?? [],
       outgoing: outgoingEdges ?? [],
@@ -56,10 +72,29 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await request.json();
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
 
-  // Remove fields that shouldn't be updated directly
-  const { id: _id, owner_id: _oid, created_at: _ca, ...updates } = body;
+  const result = updateAgentSchema.safeParse(body);
+  if (!result.success) {
+    return NextResponse.json(
+      {
+        error: "Validation failed",
+        details: result.error.flatten().fieldErrors,
+      },
+      { status: 400 }
+    );
+  }
+
+  const updates = result.data;
+
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: "No fields to update" }, { status: 400 });
+  }
 
   const { data, error } = await supabase
     .from("agents")
@@ -70,7 +105,16 @@ export async function PATCH(
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error.code === "23505") {
+      return NextResponse.json(
+        { error: "An agent with this slug already exists" },
+        { status: 409 }
+      );
+    }
+    return NextResponse.json(
+      { error: "Failed to update agent" },
+      { status: 500 }
+    );
   }
 
   if (!data) {
