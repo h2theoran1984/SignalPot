@@ -1,27 +1,33 @@
 import type { MetadataRoute } from "next";
 import { createClient } from "@supabase/supabase-js";
 
+export const dynamic = "force-dynamic";
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://signalpot.dev";
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  const { data: agents } = await supabase
-    .from("agents")
-    .select("slug, updated_at")
-    .eq("status", "active")
-    .order("updated_at", { ascending: false })
-    .limit(1000);
+  let agentUrls: MetadataRoute.Sitemap = [];
 
-  const agentUrls: MetadataRoute.Sitemap = (agents ?? []).map((agent) => ({
-    url: `${baseUrl}/agents/${agent.slug}`,
-    lastModified: agent.updated_at,
-    changeFrequency: "weekly",
-    priority: 0.8,
-  }));
+  if (supabaseUrl && supabaseKey) {
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const { data: agents } = await supabase
+      .from("agents")
+      .select("slug, updated_at")
+      .eq("status", "active")
+      .order("updated_at", { ascending: false })
+      .limit(1000);
+
+    agentUrls = (agents ?? []).map((agent) => ({
+      url: `${baseUrl}/agents/${agent.slug}`,
+      lastModified: agent.updated_at,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    }));
+  }
 
   return [
     {
