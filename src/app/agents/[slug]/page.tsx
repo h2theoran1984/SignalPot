@@ -1,6 +1,43 @@
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import AuthButton from "@/components/AuthButton";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const supabase = await createClient();
+  const { data: agent } = await supabase
+    .from("agents")
+    .select("name, description, slug")
+    .eq("slug", slug)
+    .single();
+
+  if (!agent) return { title: "Agent Not Found — SignalPot" };
+
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://signalpot.dev";
+
+  return {
+    title: `${agent.name} — SignalPot`,
+    description:
+      agent.description || `${agent.name} on SignalPot AI Agent Marketplace`,
+    openGraph: {
+      title: agent.name,
+      description: agent.description || `${agent.name} on SignalPot`,
+      url: `${baseUrl}/agents/${agent.slug}`,
+      siteName: "SignalPot",
+      type: "website",
+    },
+    twitter: {
+      card: "summary",
+      title: agent.name,
+      description: agent.description || `${agent.name} on SignalPot`,
+    },
+  };
+}
 
 export default async function AgentDetailPage({
   params,
@@ -10,6 +47,10 @@ export default async function AgentDetailPage({
   const { slug } = await params;
   const supabase = await createClient();
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const { data: agent } = await supabase
     .from("agents")
     .select("*, profiles(display_name, github_username, avatar_url)")
@@ -17,6 +58,8 @@ export default async function AgentDetailPage({
     .single();
 
   if (!agent) notFound();
+
+  const isOwner = user?.id === agent.owner_id;
 
   const [{ data: incoming }, { data: outgoing }] = await Promise.all([
     supabase
@@ -74,7 +117,15 @@ export default async function AgentDetailPage({
               ))}
             </div>
           </div>
-          <div className="text-right text-sm">
+          <div className="flex items-center gap-3">
+            {isOwner && (
+              <a
+                href={`/agents/${agent.slug}/edit`}
+                className="px-3 py-1 text-xs bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 border border-gray-700 transition-colors"
+              >
+                Edit
+              </a>
+            )}
             <span
               className={`px-2 py-1 rounded text-xs ${agent.status === "active" ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-400"}`}
             >
