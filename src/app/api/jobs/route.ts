@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthContext, hasScope } from "@/lib/auth";
 import { createJobSchema } from "@/lib/validations";
 
 // POST /api/jobs — Record a job (always starts as pending, never verified)
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
+  const auth = await getAuthContext(request);
+  if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!hasScope(auth, "jobs:write")) {
+    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
   }
 
   let body: unknown;
@@ -32,13 +32,13 @@ export async function POST(request: Request) {
 
   // Verify the requester_agent_id belongs to the current user (if provided)
   if (input.requester_agent_id) {
-    const { data: reqAgent } = await supabase
+    const { data: reqAgent } = await auth.supabase
       .from("agents")
       .select("owner_id")
       .eq("id", input.requester_agent_id)
       .single();
 
-    if (!reqAgent || reqAgent.owner_id !== user.id) {
+    if (!reqAgent || reqAgent.owner_id !== auth.profileId) {
       return NextResponse.json(
         { error: "requester_agent_id must belong to you" },
         { status: 403 }
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
   }
 
   // Verify the provider agent exists
-  const { data: providerAgent } = await supabase
+  const { data: providerAgent } = await auth.supabase
     .from("agents")
     .select("id")
     .eq("id", input.provider_agent_id)
@@ -62,12 +62,12 @@ export async function POST(request: Request) {
 
   // Jobs always start as "pending" and unverified.
   // Only the provider can mark them "completed" via PATCH (RLS enforced).
-  const { data, error } = await supabase
+  const { data, error } = await auth.supabase
     .from("jobs")
     .insert({
       requester_agent_id: input.requester_agent_id ?? null,
       provider_agent_id: input.provider_agent_id,
-      requester_profile_id: user.id,
+      requester_profile_id: auth.profileId,
       job_type: input.job_type,
       capability_used: input.capability_used ?? null,
       input_summary: input.input_summary ?? null,

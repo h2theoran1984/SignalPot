@@ -71,6 +71,30 @@ export const createJobSchema = z.object({
   cost: z.number().min(0).max(1_000_000).optional().default(0),
 });
 
+export const updateJobSchema = z.object({
+  status: z.enum(["running", "completed", "failed"]).optional(),
+  output_summary: z.record(z.string(), z.unknown()).nullable().optional(),
+  duration_ms: z.number().int().min(0).max(86_400_000).nullable().optional(),
+  cost: z.number().min(0).max(1_000_000).optional(),
+});
+
+const VALID_SCOPES = [
+  "agents:read", "agents:write",
+  "jobs:read", "jobs:write",
+  "trust:read",
+] as const;
+
+export const createApiKeySchema = z.object({
+  name: z.string().min(1).max(100).trim().optional().default("Default"),
+  scopes: z
+    .array(z.enum(VALID_SCOPES))
+    .min(1)
+    .max(VALID_SCOPES.length)
+    .optional()
+    .default([...VALID_SCOPES]),
+  rate_limit_rpm: z.number().int().min(1).max(1000).optional().default(60),
+});
+
 // Escape ILIKE special characters
 export function escapeIlike(str: string): string {
   return str.replace(/[%_\\]/g, "\\$&");

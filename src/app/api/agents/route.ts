@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthContext, hasScope } from "@/lib/auth";
 import {
   createAgentSchema,
   escapeIlike,
@@ -110,13 +111,13 @@ export async function GET(request: Request) {
 
 // POST /api/agents — Register new agent (auth required)
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
+  const auth = await getAuthContext(request);
+  if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!hasScope(auth, "agents:write")) {
+    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
   }
 
   let body: unknown;
@@ -137,10 +138,10 @@ export async function POST(request: Request) {
   const input = result.data;
 
   // Check agent limit per user (max 50)
-  const { count } = await supabase
+  const { count } = await auth.supabase
     .from("agents")
     .select("id", { count: "exact", head: true })
-    .eq("owner_id", user.id);
+    .eq("owner_id", auth.profileId);
 
   if (count !== null && count >= 50) {
     return NextResponse.json(
@@ -149,10 +150,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await auth.supabase
     .from("agents")
     .insert({
-      owner_id: user.id,
+      owner_id: auth.profileId,
       name: input.name,
       slug: input.slug,
       description: input.description ?? null,

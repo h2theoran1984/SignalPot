@@ -67,3 +67,16 @@ export interface Profile {
   created_at: string;
   updated_at: string;
 }
+
+export interface ApiKey {
+  id: string;
+  profile_id: string;
+  name: string;
+  key_prefix: string;
+  scopes: string[];
+  rate_limit_rpm: number;
+  last_used_at: string | null;
+  expires_at: string | null;
+  revoked: boolean;
+  created_at: string;
+}

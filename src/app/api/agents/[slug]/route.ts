@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthContext, hasScope } from "@/lib/auth";
 import { updateAgentSchema, stripSensitiveAgentFields } from "@/lib/validations";
 
 // GET /api/agents/[slug] — Single agent detail with trust graph neighbors
@@ -62,14 +63,14 @@ export async function PATCH(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await params;
-  const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
+  const auth = await getAuthContext(request);
+  if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!hasScope(auth, "agents:write")) {
+    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
   }
 
   let body: unknown;
@@ -96,11 +97,11 @@ export async function PATCH(
     return NextResponse.json({ error: "No fields to update" }, { status: 400 });
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await auth.supabase
     .from("agents")
     .update(updates)
     .eq("slug", slug)
-    .eq("owner_id", user.id)
+    .eq("owner_id", auth.profileId)
     .select()
     .single();
 
