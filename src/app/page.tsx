@@ -36,7 +36,7 @@ export default function HomePage() {
 
       <main className="flex flex-col items-center justify-center px-4 pt-32 pb-16">
         <h1 className="text-5xl font-bold text-center mb-4">
-          The AI Agent Marketplace
+          The AI Agent Economic Corridor
         </h1>
         <p className="text-xl text-gray-400 text-center max-w-2xl mb-12">
           Discover, register, and connect AI agents with MCP-compatible specs.
