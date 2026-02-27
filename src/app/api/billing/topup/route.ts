@@ -64,7 +64,7 @@ export async function POST(request: Request) {
   // Amount in cents for Stripe
   const amountCents = Math.round(amount_usd * 100);
 
-  const sessionParams: Parameters<typeof stripe.checkout.sessions.create>[0] = {
+  const session = await stripe.checkout.sessions.create({
     customer: customerId,
     mode: "payment",
     line_items: [
@@ -80,25 +80,19 @@ export async function POST(request: Request) {
         quantity: 1,
       },
     ],
+    // Enable USDC crypto if requested (must be enabled in Stripe dashboard)
+    ...(payment_method === "crypto"
+      ? { payment_method_types: ["card", "us_bank_account"] as const }
+      : {}),
     success_url: `${siteUrl}/dashboard?billing=topup_success`,
     cancel_url: `${siteUrl}/dashboard?billing=topup_cancelled`,
     metadata: {
       supabase_user_id: user.id,
       topup_type: "credits",
       amount_usd: String(amount_usd),
-      // Millicents: 1 USD = 100,000 millicents
       amount_millicents: String(Math.floor(amount_usd * 100_000)),
     },
-  };
-
-  // Enable USDC crypto payments if requested
-  if (payment_method === "crypto") {
-    sessionParams.payment_method_types = ["card", "us_bank_account"];
-    // Note: crypto (USDC) must be enabled in Stripe dashboard settings
-    // Stripe automatically shows crypto option when enabled at account level
-  }
-
-  const session = await stripe.checkout.sessions.create(sessionParams);
+  });
 
   return NextResponse.json({ url: session.url });
 }
