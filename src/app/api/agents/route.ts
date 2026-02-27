@@ -6,6 +6,7 @@ import {
   escapeIlike,
   stripSensitiveAgentFields,
 } from "@/lib/validations";
+import { getAgentLimitForPlan, type Plan } from "@/lib/plans";
 
 // GET /api/agents — Search/filter agents
 export async function GET(request: Request) {
@@ -137,15 +138,26 @@ export async function POST(request: Request) {
 
   const input = result.data;
 
-  // Check agent limit per user (max 50)
+  // Check agent limit per user — based on billing plan
   const { count } = await auth.supabase
     .from("agents")
     .select("id", { count: "exact", head: true })
     .eq("owner_id", auth.profileId);
 
-  if (count !== null && count >= 50) {
+  const { data: profile } = await auth.supabase
+    .from("profiles")
+    .select("plan")
+    .eq("id", auth.profileId)
+    .single();
+
+  const plan = ((profile?.plan as Plan) ?? "free") as Plan;
+  const agentLimit = getAgentLimitForPlan(plan);
+
+  if (count !== null && count >= agentLimit) {
     return NextResponse.json(
-      { error: "Agent limit reached (max 50 per user)" },
+      {
+        error: `Agent limit reached (${agentLimit} agents max on the ${plan} plan — upgrade to add more)`,
+      },
       { status: 429 }
     );
   }

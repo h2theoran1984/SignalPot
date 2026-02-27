@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import AuthButton from "@/components/AuthButton";
 import { Suspense } from "react";
 import type { Agent } from "@/lib/types";
+import { AgentCardSkeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 
 const GHOST_AGENTS = [
   {
@@ -47,7 +49,7 @@ const GHOST_AGENTS = [
 function EmptyState() {
   return (
     <div>
-      <div className="text-center py-10 px-4 mb-8 border border-dashed border-gray-700 rounded-xl bg-gray-900/40">
+      <div className="text-center py-10 px-4 mb-8 border border-dashed border-[#2d3044] rounded-xl bg-[#111118]/60">
         <p className="text-2xl font-bold text-white mb-2">
           The marketplace awaits its first agents. 👀
         </p>
@@ -56,7 +58,7 @@ function EmptyState() {
         </p>
         <a
           href="/agents/new"
-          className="inline-block px-6 py-3 bg-white text-gray-900 rounded-lg font-semibold hover:bg-gray-200 transition-colors"
+          className="inline-block px-6 py-3 bg-cyan-400 text-gray-950 rounded-lg font-semibold hover:bg-cyan-300 transition-colors"
         >
           Register Your Agent →
         </a>
@@ -70,7 +72,7 @@ function EmptyState() {
         {GHOST_AGENTS.map((agent) => (
           <div
             key={agent.name}
-            className="block p-5 bg-gray-900 border border-gray-800 rounded-lg"
+            className="block p-5 bg-[#111118] border border-[#1f2028] rounded-lg"
           >
             <div className="flex items-start justify-between">
               <div>
@@ -82,7 +84,7 @@ function EmptyState() {
                   {agent.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="px-2 py-0.5 text-xs bg-gray-800 border border-gray-700 rounded-full text-gray-300"
+                      className="px-2 py-0.5 text-xs bg-gray-900 border border-[#1f2028] rounded-full text-gray-400"
                     >
                       {tag}
                     </span>
@@ -140,17 +142,23 @@ function AgentsContent() {
     : agents;
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
-        <a href="/" className="text-xl font-bold">
-          SignalPot
+    <div className="min-h-screen bg-[#0a0a0f] text-white">
+      <nav className="flex items-center justify-between px-6 py-4 border-b border-[#1f2028] bg-[#0a0a0f]/80 backdrop-blur-sm sticky top-0 z-10">
+        <a href="/" className="text-xl font-bold tracking-tight">
+          Signal<span className="text-cyan-400">Pot</span>
         </a>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           <a
             href="/agents"
-            className="text-sm text-white font-medium transition-colors"
+            className="text-sm text-cyan-400 font-medium border-b border-cyan-400 pb-0.5"
           >
             Browse Agents
+          </a>
+          <a
+            href="/pricing"
+            className="text-sm text-gray-400 hover:text-white transition-colors"
+          >
+            Pricing
           </a>
           <AuthButton />
         </div>
@@ -161,7 +169,7 @@ function AgentsContent() {
           <h1 className="text-3xl font-bold">Agents</h1>
           <a
             href="/agents/new"
-            className="px-4 py-2 bg-white text-gray-900 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+            className="px-4 py-2 bg-cyan-400 text-gray-950 rounded-lg hover:bg-cyan-300 transition-colors text-sm font-semibold"
           >
             Register Agent
           </a>
@@ -172,11 +180,15 @@ function AgentsContent() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Filter by name, description, or tags..."
-          className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-gray-500 mb-6"
+          className="w-full px-4 py-3 bg-[#111118] border border-[#1f2028] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-cyan-700 transition-colors mb-6"
         />
 
         {loading ? (
-          <p className="text-gray-500">Loading agents...</p>
+          <div className="grid gap-4">
+            <AgentCardSkeleton />
+            <AgentCardSkeleton />
+            <AgentCardSkeleton />
+          </div>
         ) : filtered.length === 0 ? (
           <EmptyState />
         ) : (
@@ -185,34 +197,48 @@ function AgentsContent() {
               <a
                 key={agent.id}
                 href={`/agents/${agent.slug}`}
-                className="block p-5 bg-gray-900 border border-gray-800 rounded-lg hover:border-gray-600 transition-colors"
+                className="block p-5 bg-[#111118] border border-[#1f2028] rounded-lg hover:border-[#2d3044] hover:shadow-[0_0_20px_-8px_rgba(34,211,238,0.2)] transition-all"
               >
                 <div className="flex items-start justify-between">
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <h2 className="text-lg font-semibold">{agent.name}</h2>
-                    <p className="text-sm text-gray-400 mt-1">
+                    <p className="text-sm text-gray-400 mt-1 line-clamp-2">
                       {agent.description || "No description"}
                     </p>
-                    <div className="flex gap-2 mt-3">
-                      {agent.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="px-2 py-0.5 text-xs bg-gray-800 border border-gray-700 rounded-full text-gray-300"
-                        >
+                    <div className="flex gap-2 mt-3 flex-wrap">
+                      <Badge
+                        variant="status"
+                        status={agent.status as "active" | "inactive" | "deprecated"}
+                      >
+                        {agent.status}
+                      </Badge>
+                      {agent.tags.slice(0, 4).map((tag) => (
+                        <Badge key={tag} variant="tag">
                           {tag}
-                        </span>
+                        </Badge>
                       ))}
                     </div>
                   </div>
-                  <div className="text-right text-sm">
+                  <div className="text-right text-sm ml-4 shrink-0">
                     <div className="text-gray-400">
                       {agent.rate_amount > 0
                         ? `$${agent.rate_amount} / ${agent.rate_type.replace("per_", "")}`
                         : "Free"}
                     </div>
                     {agent.avg_trust_score > 0 && (
-                      <div className="text-green-400 mt-1">
-                        Trust: {agent.avg_trust_score.toFixed(2)}
+                      <div className="mt-2">
+                        <div className="flex items-center gap-1.5 justify-end mb-0.5">
+                          <span className="text-xs text-gray-500">trust</span>
+                          <span className="text-xs text-cyan-400 font-mono">
+                            {agent.avg_trust_score.toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="w-20 h-1 bg-[#1f2028] rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-cyan-400 rounded-full"
+                            style={{ width: `${Math.min(100, agent.avg_trust_score * 100)}%` }}
+                          />
+                        </div>
                       </div>
                     )}
                   </div>

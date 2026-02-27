@@ -14,3 +14,13 @@ export const PLAN_PRICES: Record<Exclude<Plan, 'free'>, number> = {
   pro: 9,
   team: 49,
 };
+
+export const AGENT_LIMITS = {
+  free: 5,
+  pro: 25,
+  team: 100,
+} as const;
+
+export function getAgentLimitForPlan(plan: Plan): number {
+  return AGENT_LIMITS[plan];
+}

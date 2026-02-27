@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import AuthButton from "@/components/AuthButton";
+import { Badge } from "@/components/ui/badge";
 
 export async function generateMetadata({
   params,
@@ -85,12 +86,12 @@ export default async function AgentDetailPage({
     : [];
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
-        <a href="/" className="text-xl font-bold">
-          SignalPot
+    <div className="min-h-screen bg-[#0a0a0f] text-white">
+      <nav className="flex items-center justify-between px-6 py-4 border-b border-[#1f2028] bg-[#0a0a0f]/80 backdrop-blur-sm sticky top-0 z-10">
+        <a href="/" className="text-xl font-bold tracking-tight">
+          Signal<span className="text-cyan-400">Pot</span>
         </a>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           <a
             href="/agents"
             className="text-sm text-gray-400 hover:text-white transition-colors"
@@ -105,70 +106,65 @@ export default async function AgentDetailPage({
         <div className="flex items-start justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold">{agent.name}</h1>
-            <p className="text-gray-400 mt-1">{agent.description}</p>
-            <div className="flex gap-2 mt-3">
+            <p className="text-sm font-mono text-gray-500 mt-0.5">/{agent.slug}</p>
+            <p className="text-gray-400 mt-2">{agent.description}</p>
+            <div className="flex gap-2 mt-3 flex-wrap">
+              <Badge
+                variant="status"
+                status={agent.status as "active" | "inactive" | "deprecated"}
+              >
+                {agent.status}
+              </Badge>
               {agent.tags?.map((tag: string) => (
-                <span
-                  key={tag}
-                  className="px-2 py-0.5 text-xs bg-gray-800 border border-gray-700 rounded-full text-gray-300"
-                >
-                  {tag}
-                </span>
+                <Badge key={tag} variant="tag">{tag}</Badge>
               ))}
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            {isOwner && (
-              <a
-                href={`/agents/${agent.slug}/edit`}
-                className="px-3 py-1 text-xs bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 border border-gray-700 transition-colors"
-              >
-                Edit
-              </a>
-            )}
-            <span
-              className={`px-2 py-1 rounded text-xs ${agent.status === "active" ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-400"}`}
+          {isOwner && (
+            <a
+              href={`/agents/${agent.slug}/edit`}
+              className="px-3 py-1.5 text-xs bg-[#111118] text-gray-300 rounded-lg hover:bg-[#1f2028] border border-[#1f2028] hover:border-[#2d3044] transition-colors"
             >
-              {agent.status}
-            </span>
-          </div>
+              Edit
+            </a>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
-            <div className="text-xs text-gray-500 uppercase">Pricing</div>
-            <div className="text-lg font-semibold mt-1">
+          <div className="p-4 bg-[#111118] border border-[#1f2028] rounded-lg border-l-2 border-l-cyan-400">
+            <div className="text-xs text-gray-500 uppercase tracking-widest mb-1">Pricing</div>
+            <div className="text-lg font-semibold font-mono">
               {agent.rate_amount > 0
                 ? `$${agent.rate_amount} / ${agent.rate_type.replace("per_", "")}`
                 : "Free"}
             </div>
           </div>
-          <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
-            <div className="text-xs text-gray-500 uppercase">Avg Latency</div>
-            <div className="text-lg font-semibold mt-1">
-              {agent.avg_latency_ms}ms
+          <div className="p-4 bg-[#111118] border border-[#1f2028] rounded-lg border-l-2 border-l-cyan-400">
+            <div className="text-xs text-gray-500 uppercase tracking-widest mb-1">Avg Latency</div>
+            <div className="text-lg font-semibold font-mono">
+              {agent.avg_latency_ms ?? "—"}ms
             </div>
           </div>
-          <div className="p-4 bg-gray-900 border border-gray-800 rounded-lg">
-            <div className="text-xs text-gray-500 uppercase">Uptime</div>
-            <div className="text-lg font-semibold mt-1">
-              {agent.uptime_pct}%
+          <div className="p-4 bg-[#111118] border border-[#1f2028] rounded-lg border-l-2 border-l-cyan-400">
+            <div className="text-xs text-gray-500 uppercase tracking-widest mb-1">Uptime</div>
+            <div className="text-lg font-semibold font-mono">
+              {agent.uptime_pct ?? "—"}%
             </div>
           </div>
         </div>
 
         {agent.mcp_endpoint && (
-          <div className="mb-8 p-4 bg-gray-900 border border-gray-800 rounded-lg">
-            <div className="text-xs text-gray-500 uppercase mb-1">
+          <div className="mb-8 p-4 bg-[#111118] border border-[#1f2028] rounded-lg">
+            <div className="text-xs text-gray-500 uppercase tracking-widest mb-2">
               MCP Endpoint
             </div>
-            <code className="text-sm text-green-400">
+            <code className="text-sm text-cyan-400 font-mono break-all">
               {agent.mcp_endpoint}
             </code>
             <div className="mt-2">
               <a
                 href={`/api/agents/${agent.slug}/mcp`}
-                className="text-xs text-gray-400 hover:text-white underline"
+                className="text-xs text-gray-500 hover:text-gray-300 underline transition-colors"
               >
                 View MCP spec (JSON)
               </a>
@@ -187,9 +183,9 @@ export default async function AgentDetailPage({
                 ) => (
                   <div
                     key={i}
-                    className="p-4 bg-gray-900 border border-gray-800 rounded-lg"
+                    className="p-4 bg-[#111118] border border-[#1f2028] rounded-lg border-l-2 border-l-cyan-800"
                   >
-                    <h3 className="font-medium">{cap.name}</h3>
+                    <h3 className="font-medium font-mono text-cyan-400">{cap.name}</h3>
                     <p className="text-sm text-gray-400 mt-1">
                       {cap.description}
                     </p>
@@ -223,12 +219,12 @@ export default async function AgentDetailPage({
                       <a
                         key={edge.id}
                         href={`/agents/${edge.source_agent.slug}`}
-                        className="flex items-center justify-between p-3 bg-gray-900 border border-gray-800 rounded hover:border-gray-600 transition-colors"
+                        className="flex items-center justify-between p-3 bg-[#111118] border border-[#1f2028] rounded hover:border-[#2d3044] transition-colors"
                       >
                         <span className="text-sm">
                           {edge.source_agent.name}
                         </span>
-                        <span className="text-xs text-green-400">
+                        <span className="text-xs text-cyan-400 font-mono">
                           {edge.trust_score.toFixed(2)} ({edge.total_jobs} jobs)
                         </span>
                       </a>
@@ -251,12 +247,12 @@ export default async function AgentDetailPage({
                       <a
                         key={edge.id}
                         href={`/agents/${edge.target_agent.slug}`}
-                        className="flex items-center justify-between p-3 bg-gray-900 border border-gray-800 rounded hover:border-gray-600 transition-colors"
+                        className="flex items-center justify-between p-3 bg-[#111118] border border-[#1f2028] rounded hover:border-[#2d3044] transition-colors"
                       >
                         <span className="text-sm">
                           {edge.target_agent.name}
                         </span>
-                        <span className="text-xs text-green-400">
+                        <span className="text-xs text-cyan-400 font-mono">
                           {edge.trust_score.toFixed(2)} ({edge.total_jobs} jobs)
                         </span>
                       </a>
@@ -269,9 +265,9 @@ export default async function AgentDetailPage({
         </div>
 
         {agent.profiles && (
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-gray-600">
             Registered by{" "}
-            <span className="text-gray-300">
+            <span className="text-gray-400">
               {agent.profiles.display_name ??
                 agent.profiles.github_username ??
                 "Unknown"}

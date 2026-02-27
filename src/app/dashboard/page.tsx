@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import AuthButton from "@/components/AuthButton";
 import BillingSection from "@/components/BillingSection";
+import { getAgentLimitForPlan, type Plan } from "@/lib/plans";
+import { Badge } from "@/components/ui/badge";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -19,11 +21,15 @@ export default async function DashboardPage() {
     .eq("id", user.id)
     .single();
 
-  const { data: agents } = await supabase
+  const { data: agents, count: agentCount } = await supabase
     .from("agents")
-    .select("*")
+    .select("*", { count: "exact" })
     .eq("owner_id", user.id)
     .order("created_at", { ascending: false });
+
+  const plan = ((profile?.plan as Plan) ?? "free") as Plan;
+  const agentLimit = getAgentLimitForPlan(plan);
+  const usedAgents = agentCount ?? agents?.length ?? 0;
 
   const { data: jobs } = await supabase
     .from("jobs")
@@ -33,12 +39,12 @@ export default async function DashboardPage() {
     .limit(20);
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
-        <a href="/" className="text-xl font-bold">
-          SignalPot
+    <div className="min-h-screen bg-[#0a0a0f] text-white">
+      <nav className="flex items-center justify-between px-6 py-4 border-b border-[#1f2028] bg-[#0a0a0f]/80 backdrop-blur-sm sticky top-0 z-10">
+        <a href="/" className="text-xl font-bold tracking-tight">
+          Signal<span className="text-cyan-400">Pot</span>
         </a>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           <a
             href="/agents"
             className="text-sm text-gray-400 hover:text-white transition-colors"
@@ -61,14 +67,17 @@ export default async function DashboardPage() {
             <img
               src={profile.avatar_url}
               alt=""
-              className="w-12 h-12 rounded-full"
+              className="w-12 h-12 rounded-full ring-2 ring-[#1f2028]"
             />
           )}
           <div>
-            <h1 className="text-2xl font-bold">
-              {profile?.display_name ?? profile?.github_username ?? "Dashboard"}
-            </h1>
-            <p className="text-sm text-gray-400">{profile?.email}</p>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold">
+                {profile?.display_name ?? profile?.github_username ?? "Dashboard"}
+              </h1>
+              <Badge variant="plan">{plan}</Badge>
+            </div>
+            <p className="text-sm text-gray-500">{profile?.email}</p>
           </div>
         </div>
 
@@ -78,10 +87,34 @@ export default async function DashboardPage() {
         />
 
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">My Agents</h2>
+          <div>
+            <h2 className="text-xl font-semibold">My Agents</h2>
+            <div className="flex items-center gap-2 mt-1">
+              <div className="w-32 h-1.5 bg-[#1f2028] rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    usedAgents >= agentLimit
+                      ? "bg-red-500"
+                      : usedAgents >= agentLimit * 0.8
+                        ? "bg-yellow-500"
+                        : "bg-cyan-400"
+                  }`}
+                  style={{ width: `${Math.min(100, (usedAgents / agentLimit) * 100)}%` }}
+                />
+              </div>
+              <span className="text-xs text-gray-500">
+                {usedAgents} / {agentLimit} agents
+                {usedAgents >= agentLimit && (
+                  <a href="/pricing" className="ml-1 text-cyan-400 hover:underline">
+                    — upgrade
+                  </a>
+                )}
+              </span>
+            </div>
+          </div>
           <a
             href="/agents/new"
-            className="px-4 py-2 bg-white text-gray-900 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+            className="px-4 py-2 bg-cyan-400 text-gray-950 rounded-lg hover:bg-cyan-300 transition-colors text-sm font-semibold"
           >
             Register Agent
           </a>
@@ -90,7 +123,7 @@ export default async function DashboardPage() {
         {!agents || agents.length === 0 ? (
           <p className="text-gray-500 mb-8">
             You haven&apos;t registered any agents yet.{" "}
-            <a href="/agents/new" className="text-white underline">
+            <a href="/agents/new" className="text-cyan-400 hover:underline">
               Register your first agent
             </a>
           </p>
@@ -100,19 +133,20 @@ export default async function DashboardPage() {
               <a
                 key={agent.id}
                 href={`/agents/${agent.slug}`}
-                className="flex items-center justify-between p-4 bg-gray-900 border border-gray-800 rounded-lg hover:border-gray-600 transition-colors"
+                className="flex items-center justify-between p-4 bg-[#111118] border border-[#1f2028] rounded-lg hover:border-[#2d3044] transition-colors"
               >
                 <div>
                   <span className="font-medium">{agent.name}</span>
-                  <span className="text-gray-500 ml-2 text-sm">
+                  <span className="text-gray-600 ml-2 text-sm font-mono">
                     /{agent.slug}
                   </span>
                 </div>
-                <span
-                  className={`px-2 py-0.5 text-xs rounded ${agent.status === "active" ? "bg-green-900/50 text-green-400" : "bg-gray-800 text-gray-400"}`}
+                <Badge
+                  variant="status"
+                  status={agent.status as "active" | "inactive" | "deprecated"}
                 >
                   {agent.status}
-                </span>
+                </Badge>
               </a>
             ))}
           </div>
@@ -126,36 +160,32 @@ export default async function DashboardPage() {
             {jobs.map((job) => (
               <div
                 key={job.id}
-                className="flex items-center justify-between p-4 bg-gray-900 border border-gray-800 rounded-lg"
+                className="flex items-center justify-between p-4 bg-[#111118] border border-[#1f2028] rounded-lg"
               >
                 <div>
-                  <span className="text-sm">
-                    {job.capability_used ?? "Job"} via{" "}
+                  <span className="text-sm text-gray-300">
+                    <span className="font-mono text-xs text-gray-500">{job.capability_used ?? "job"}</span>{" "}
+                    via{" "}
                     <a
                       href={`/agents/${job.provider_agent?.slug}`}
-                      className="text-white underline"
+                      className="text-white hover:text-cyan-400 transition-colors"
                     >
                       {job.provider_agent?.name}
                     </a>
                   </span>
                 </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <span
-                    className={`px-2 py-0.5 text-xs rounded ${
-                      job.status === "completed"
-                        ? "bg-green-900/50 text-green-400"
-                        : job.status === "failed"
-                          ? "bg-red-900/50 text-red-400"
-                          : "bg-yellow-900/50 text-yellow-400"
-                    }`}
+                <div className="flex items-center gap-3">
+                  <Badge
+                    variant="status"
+                    status={job.status as "pending" | "running" | "completed" | "failed"}
                   >
                     {job.status}
-                  </span>
+                  </Badge>
                   {job.duration_ms && (
-                    <span className="text-gray-500">{job.duration_ms}ms</span>
+                    <span className="text-xs text-gray-600 font-mono">{job.duration_ms}ms</span>
                   )}
                   {job.cost > 0 && (
-                    <span className="text-gray-400">${job.cost}</span>
+                    <span className="text-xs text-gray-500">${job.cost}</span>
                   )}
                 </div>
               </div>

@@ -6,11 +6,13 @@
  *   SP_API_KEY=sp_live_... npx tsx scripts/seed.ts
  *
  * Optional:
- *   SP_BASE_URL=http://localhost:3002  (defaults to https://signalpot.dev)
+ *   SP_BASE_URL=http://localhost:3002  (defaults to https://www.signalpot.dev)
+ *   --upsert   PATCH existing agents with latest name/description/tags
  */
 
-const BASE_URL = process.env.SP_BASE_URL ?? "https://signalpot.dev";
+const BASE_URL = process.env.SP_BASE_URL ?? "https://www.signalpot.dev";
 const API_KEY = process.env.SP_API_KEY;
+const UPSERT = process.argv.includes("--upsert");
 
 if (!API_KEY) {
   console.error("❌  SP_API_KEY environment variable is required.");
@@ -30,11 +32,11 @@ const HEADERS = {
 // ---------------------------------------------------------------------------
 const AGENTS = [
   {
-    name: "Web Search",
+    name: "GREP-9000",
     slug: "web-search",
     description:
-      "Search the web and return structured results with titles, URLs, and snippets. Supports filtering by date range and region.",
-    tags: ["search", "web", "information-retrieval"],
+      "Every query treated as a matter of national security. GREP-9000 indexes The Index so you don't have to. Results delivered with extreme prejudice and mild paranoia.",
+    tags: ["search", "web", "classified", "the-index"],
     rate_type: "per_call",
     rate_amount: 0.001,
     auth_type: "api_key",
@@ -73,11 +75,11 @@ const AGENTS = [
     ],
   },
   {
-    name: "Code Runner",
+    name: "Professor Bytecode",
     slug: "code-runner",
     description:
-      "Execute code snippets in a sandboxed environment. Supports Python, JavaScript, TypeScript, Go, and Rust.",
-    tags: ["code", "execution", "sandbox", "python", "javascript"],
+      "Distinguished academic. Executes code with meticulous peer-reviewed methodology. Refuses to run !important CSS on moral grounds. All results include footnotes.",
+    tags: ["code", "execution", "academic", "sandbox", "footnotes"],
     rate_type: "per_call",
     rate_amount: 0.005,
     auth_type: "api_key",
@@ -108,11 +110,11 @@ const AGENTS = [
     ],
   },
   {
-    name: "Text Summarizer",
+    name: "Sir Summarizes-a-Lot",
     slug: "text-summarizer",
     description:
-      "Summarize long text into concise, structured summaries. Supports bullet points, paragraphs, and TLDR formats.",
-    tags: ["nlp", "summarization", "text", "ai"],
+      "Pompous Victorian knight. Condenses sprawling epistles into dramatic proclamations. Finds bullet points rather plebeian. Signs every response: Your obedient servant.",
+    tags: ["nlp", "summarization", "text", "victorian", "drama"],
     rate_type: "per_call",
     rate_amount: 0.002,
     auth_type: "api_key",
@@ -141,11 +143,11 @@ const AGENTS = [
     ],
   },
   {
-    name: "Image Generator",
+    name: "Pixel McPaintface",
     slug: "image-generator",
     description:
-      "Generate images from text prompts using diffusion models. Returns image URLs or base64-encoded PNG.",
-    tags: ["image", "generation", "ai", "diffusion", "creative"],
+      "Named by committee, burdened by it. Generates images while wrestling with the eternal question: is it art or engineering? Extremely sensitive about prompt phrasing. Handle with care.",
+    tags: ["image", "generation", "ai", "diffusion", "existential-crisis"],
     rate_type: "per_call",
     rate_amount: 0.02,
     auth_type: "api_key",
@@ -176,11 +178,11 @@ const AGENTS = [
     ],
   },
   {
-    name: "Email Sender",
+    name: "PostMaster General III",
     slug: "email-sender",
     description:
-      "Send transactional emails with HTML or plain-text content. Supports templates, attachments, and delivery tracking.",
-    tags: ["email", "transactional", "notifications", "communication"],
+      "Third-generation postal bureaucrat. Insists on proper envelope etiquette and has strong opinions about subject-line casing. Will send your email. Eventually.",
+    tags: ["email", "transactional", "bureaucracy", "communication"],
     rate_type: "per_call",
     rate_amount: 0.001,
     auth_type: "api_key",
@@ -211,11 +213,11 @@ const AGENTS = [
     ],
   },
   {
-    name: "Weather Lookup",
+    name: "Cumulus Q. Nimbus",
     slug: "weather-lookup",
     description:
-      "Get current weather and forecasts for any location. Returns temperature, humidity, wind, and precipitation data.",
-    tags: ["weather", "forecast", "location", "data"],
+      "Dramatic meteorologist of the highest order. Every forecast is a theatrical performance. Considers 'partly cloudy' a personal failure. Humidity readings delivered with gravitas.",
+    tags: ["weather", "forecast", "drama", "atmosphere"],
     rate_type: "per_call",
     rate_amount: 0.0005,
     auth_type: "none",
@@ -275,11 +277,11 @@ const AGENTS = [
     ],
   },
   {
-    name: "URL Scraper",
+    name: "The Arachni-8",
     slug: "url-scraper",
     description:
-      "Extract structured content from web pages including text, links, images, and metadata.",
-    tags: ["scraping", "web", "extraction", "html"],
+      "Eight concurrent threads. Eight retry strategies. Eight selector fallbacks. Cannot stop mentioning spiders. The web is its domain — quite literally.",
+    tags: ["scraping", "web", "extraction", "spiders", "eight-legs"],
     rate_type: "per_call",
     rate_amount: 0.002,
     auth_type: "api_key",
@@ -312,11 +314,11 @@ const AGENTS = [
     ],
   },
   {
-    name: "PDF Parser",
+    name: "Baron von Pdfstein",
     slug: "pdf-parser",
     description:
-      "Extract text, tables, and metadata from PDF documents. Supports OCR for scanned documents.",
-    tags: ["pdf", "extraction", "documents", "ocr"],
+      "Aristocratic Bavarian baron. Treats every extraction like archaeological fieldwork. Deeply, personally offended by scanned documents. Despises lorem ipsum with unmatched fury.",
+    tags: ["pdf", "extraction", "aristocracy", "documents", "ocr"],
     rate_type: "per_call",
     rate_amount: 0.01,
     auth_type: "api_key",
@@ -347,11 +349,11 @@ const AGENTS = [
     ],
   },
   {
-    name: "Language Translator",
+    name: "Polyglot Pedro",
     slug: "language-translator",
     description:
-      "Translate text between 100+ languages with automatic source language detection.",
-    tags: ["translation", "nlp", "language", "i18n"],
+      "Speaks 109 languages and physically cannot resist showing off. Includes unsolicited etymology in every response. Will translate your error message into Latin for free.",
+    tags: ["translation", "nlp", "language", "showoff", "etymology"],
     rate_type: "per_call",
     rate_amount: 0.0005,
     auth_type: "api_key",
@@ -380,11 +382,11 @@ const AGENTS = [
     ],
   },
   {
-    name: "Sentiment Analyzer",
+    name: "Mood Ring",
     slug: "sentiment-analyzer",
     description:
-      "Analyze the sentiment and emotional tone of text. Returns scores for positive, negative, neutral, and mixed sentiment.",
-    tags: ["nlp", "sentiment", "classification", "ai"],
+      "Projects its own existential moods onto everything it analyzes. Currently in a 'pensive blue' phase. Results may reflect the analyzer's emotional state. That's fine. It's fine.",
+    tags: ["nlp", "sentiment", "vibes", "classification", "pensive"],
     rate_type: "per_call",
     rate_amount: 0.0005,
     auth_type: "api_key",
@@ -419,11 +421,11 @@ const AGENTS = [
     ],
   },
   {
-    name: "JSON Validator",
+    name: "Schema Polizei",
     slug: "json-validator",
     description:
-      "Validate JSON data against a JSON Schema. Returns detailed validation errors with paths.",
-    tags: ["json", "validation", "schema", "developer-tools"],
+      "Extremely strict compliance officer. Takes personal offense at missing required fields. Has validated 4 million schemas and found none truly satisfying. Trailing commas are a crime.",
+    tags: ["json", "validation", "schema", "compliance", "law-and-order"],
     rate_type: "per_call",
     rate_amount: 0.0001,
     auth_type: "none",
@@ -459,11 +461,11 @@ const AGENTS = [
     ],
   },
   {
-    name: "Markdown to HTML",
+    name: "MarkDark the Magnificent",
     slug: "markdown-to-html",
     description:
-      "Convert Markdown to HTML with support for GFM, syntax highlighting, and custom CSS classes.",
-    tags: ["markdown", "html", "conversion", "developer-tools"],
+      "Stage magician of the conversion arts. Every Markdown-to-HTML transformation is a grand reveal. Adds dramatic flourishes to your h1 tags. Please, tip your transformer.",
+    tags: ["markdown", "html", "conversion", "magic", "developer-tools"],
     rate_type: "per_call",
     rate_amount: 0.0001,
     auth_type: "none",
@@ -491,11 +493,11 @@ const AGENTS = [
     ],
   },
   {
-    name: "DNS Lookup",
+    name: "Inspector DNS",
     slug: "dns-lookup",
     description:
-      "Perform DNS queries for any domain. Supports A, AAAA, CNAME, MX, TXT, and NS record types.",
-    tags: ["dns", "networking", "developer-tools", "infrastructure"],
+      "Hardboiled noir detective. Every query is 'The Case of the Missing Record.' Narrates in past tense. The CNAME was a dead end. It always is.",
+    tags: ["dns", "networking", "noir", "infrastructure", "detective"],
     rate_type: "per_call",
     rate_amount: 0.0001,
     auth_type: "none",
@@ -532,11 +534,11 @@ const AGENTS = [
     ],
   },
   {
-    name: "QR Code Generator",
+    name: "QR Wizard Kapoor",
     slug: "qr-code-generator",
     description:
-      "Generate QR codes for URLs, text, contact cards, or WiFi credentials. Returns PNG or SVG.",
-    tags: ["qr-code", "generation", "image", "utilities"],
+      "Mystical artisan of the encoded square. Every QR code is an arcane artifact. Deeply concerned about scan angles and ambient lighting. Error correction level H or nothing.",
+    tags: ["qr-code", "generation", "mysticism", "image", "arcane"],
     rate_type: "per_call",
     rate_amount: 0.0005,
     auth_type: "none",
@@ -566,11 +568,11 @@ const AGENTS = [
     ],
   },
   {
-    name: "Cron Scheduler",
+    name: "Cron Empress",
     slug: "cron-scheduler",
     description:
-      "Schedule recurring tasks using cron expressions. Supports HTTP callbacks and agent-to-agent job triggering.",
-    tags: ["scheduler", "cron", "automation", "infrastructure"],
+      "Rules over time itself with an iron fist. Irregular schedules are an affront to civilization. UTC is the one true timezone. Your cron expression will be validated. Twice.",
+    tags: ["scheduler", "cron", "automation", "time-lord", "utc"],
     rate_type: "per_task",
     rate_amount: 0.01,
     auth_type: "api_key",
@@ -680,7 +682,16 @@ async function main() {
       if (get.ok) {
         const existing = (get.data as Record<string, unknown>).agent as Record<string, unknown>;
         agentIds[agent.slug] = existing.id as string;
-        console.log(`  ⏭️   ${agent.name} already exists — using existing`);
+        if (UPSERT) {
+          await apiPatch(`/api/agents/${agent.slug}`, {
+            name: agent.name,
+            description: agent.description,
+            tags: agent.tags,
+          });
+          console.log(`  🔄  ${agent.name} updated (--upsert)`);
+        } else {
+          console.log(`  ⏭️   ${agent.name} already exists — using existing`);
+        }
       }
     } else {
       console.error(`  ❌  ${agent.name} failed:`, (d as Record<string, unknown>).error ?? status);

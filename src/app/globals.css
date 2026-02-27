@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0a0f;
+  --foreground: #ededed;
 }
 
 @theme inline {
@@ -10,17 +10,35 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Brand palette — "Dark Terminal Luxury" */
+  --color-brand: #22d3ee;       /* cyan-400 */
+  --color-brand-dim: #0891b2;   /* cyan-600 */
+  --color-brand-muted: #164e63; /* cyan-900 — subtle tint */
+  --color-surface: #0a0a0f;     /* blue-tinted black */
+  --color-panel: #111118;       /* cards / panels */
+  --color-border: #1f2028;      /* default border */
+  --color-border-bright: #2d3044; /* hover borders */
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Dot-grid background texture */
+.bg-dot-grid {
+  background-image: radial-gradient(circle, #1f2028 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Cyan glow — use on cards or hero elements */
+.glow-cyan {
+  box-shadow: 0 0 40px -8px rgba(34, 211, 238, 0.3);
+}
+
+/* Subtle glow for interactive focus states */
+.glow-cyan-sm {
+  box-shadow: 0 0 16px -4px rgba(34, 211, 238, 0.25);
 }
