@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import AuthButton from "@/components/AuthButton";
 import BillingSection from "@/components/BillingSection";
+import ApiKeysSection from "@/components/ApiKeysSection";
 import { getAgentLimitForPlan, type Plan } from "@/lib/plans";
 import { Badge } from "@/components/ui/badge";
 
@@ -85,6 +86,8 @@ export default async function DashboardPage() {
           plan={profile?.plan ?? "free"}
           creditBalanceMillicents={profile?.credit_balance_millicents ?? 0}
         />
+
+        <ApiKeysSection />
 
         <div className="flex items-center justify-between mb-4">
           <div>
