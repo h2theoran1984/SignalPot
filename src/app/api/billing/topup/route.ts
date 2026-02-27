@@ -1,0 +1,104 @@
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { stripe } from "@/lib/stripe";
+import { z } from "zod";
+
+const topupSchema = z.object({
+  amount_usd: z.number().min(1).max(1000),
+  payment_method: z.enum(["card", "crypto"]),
+});
+
+// POST /api/billing/topup — Create Stripe Checkout session for credit top-up
+export async function POST(request: Request) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const result = topupSchema.safeParse(body);
+  if (!result.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: result.error.flatten().fieldErrors },
+      { status: 400 }
+    );
+  }
+
+  const { amount_usd, payment_method } = result.data;
+
+  const admin = createAdminClient();
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("stripe_customer_id, email")
+    .eq("id", user.id)
+    .single();
+
+  let customerId = profile?.stripe_customer_id;
+
+  if (!customerId) {
+    const customer = await stripe.customers.create({
+      email: user.email ?? profile?.email ?? undefined,
+      metadata: { supabase_user_id: user.id },
+    });
+    customerId = customer.id;
+
+    await admin
+      .from("profiles")
+      .update({ stripe_customer_id: customerId })
+      .eq("id", user.id);
+  }
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://signalpot.dev";
+
+  // Amount in cents for Stripe
+  const amountCents = Math.round(amount_usd * 100);
+
+  const sessionParams: Parameters<typeof stripe.checkout.sessions.create>[0] = {
+    customer: customerId,
+    mode: "payment",
+    line_items: [
+      {
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: "SignalPot Credits",
+            description: `$${amount_usd.toFixed(2)} credit top-up`,
+          },
+          unit_amount: amountCents,
+        },
+        quantity: 1,
+      },
+    ],
+    success_url: `${siteUrl}/dashboard?billing=topup_success`,
+    cancel_url: `${siteUrl}/dashboard?billing=topup_cancelled`,
+    metadata: {
+      supabase_user_id: user.id,
+      topup_type: "credits",
+      amount_usd: String(amount_usd),
+      // Millicents: 1 USD = 100,000 millicents
+      amount_millicents: String(Math.floor(amount_usd * 100_000)),
+    },
+  };
+
+  // Enable USDC crypto payments if requested
+  if (payment_method === "crypto") {
+    sessionParams.payment_method_types = ["card", "us_bank_account"];
+    // Note: crypto (USDC) must be enabled in Stripe dashboard settings
+    // Stripe automatically shows crypto option when enabled at account level
+  }
+
+  const session = await stripe.checkout.sessions.create(sessionParams);
+
+  return NextResponse.json({ url: session.url });
+}

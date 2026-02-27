@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import AuthButton from "@/components/AuthButton";
+import BillingSection from "@/components/BillingSection";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -44,6 +45,12 @@ export default async function DashboardPage() {
           >
             Browse Agents
           </a>
+          <a
+            href="/pricing"
+            className="text-sm text-gray-400 hover:text-white transition-colors"
+          >
+            Pricing
+          </a>
           <AuthButton />
         </div>
       </nav>
@@ -64,6 +71,11 @@ export default async function DashboardPage() {
             <p className="text-sm text-gray-400">{profile?.email}</p>
           </div>
         </div>
+
+        <BillingSection
+          plan={profile?.plan ?? "free"}
+          creditBalanceMillicents={profile?.credit_balance_millicents ?? 0}
+        />
 
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">My Agents</h2>

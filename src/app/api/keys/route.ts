@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateApiKey } from "@/lib/api-keys";
 import { createApiKeySchema } from "@/lib/validations";
+import { getRpmForPlan, type Plan } from "@/lib/plans";
 
 // GET /api/keys — List current user's API keys (session auth only)
 export async function GET() {
@@ -70,6 +71,16 @@ export async function POST(request: Request) {
     );
   }
 
+  // Determine RPM from the user's plan (overrides any client-supplied value)
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("plan")
+    .eq("id", user.id)
+    .single();
+
+  const plan = (profile?.plan ?? "free") as Plan;
+  const rateLimit = getRpmForPlan(plan);
+
   const { key, hash, prefix } = generateApiKey();
 
   const { data, error } = await supabase
@@ -80,7 +91,7 @@ export async function POST(request: Request) {
       key_hash: hash,
       key_prefix: prefix,
       scopes: result.data.scopes,
-      rate_limit_rpm: result.data.rate_limit_rpm,
+      rate_limit_rpm: rateLimit,
     })
     .select("id, name, key_prefix, scopes, rate_limit_rpm, created_at")
     .single();
