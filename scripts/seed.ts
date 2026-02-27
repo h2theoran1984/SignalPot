@@ -676,8 +676,8 @@ async function main() {
     if (ok) {
       agentIds[agent.slug] = d.id as string;
       console.log(`  ✅  ${agent.name} (${agent.slug})`);
-    } else if (status === 409) {
-      // Already exists — fetch its ID
+    } else if (status === 409 || (status === 429 && UPSERT)) {
+      // Already exists (409) or at limit but upserting (429) — fetch its ID and patch
       const get = await apiGet(`/api/agents/${agent.slug}`);
       if (get.ok) {
         const existing = (get.data as Record<string, unknown>).agent as Record<string, unknown>;
