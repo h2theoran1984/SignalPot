@@ -8,6 +8,9 @@ interface Agent {
   slug: string;
   name: string;
   description: string | null;
+  goal: string | null;
+  decision_logic: string | null;
+  agent_type: string;
   mcp_endpoint: string | null;
   rate_type: string;
   rate_amount: number;
@@ -37,6 +40,9 @@ export default function EditAgentForm({ agent }: { agent: Agent }) {
     const body = {
       name: form.get("name"),
       description: form.get("description") || null,
+      goal: form.get("goal") || null,
+      decision_logic: form.get("decision_logic") || null,
+      agent_type: form.get("agent_type") || "autonomous",
       mcp_endpoint: form.get("mcp_endpoint") || null,
       rate_type: form.get("rate_type"),
       rate_amount: parseFloat((form.get("rate_amount") as string) || "0"),
@@ -120,6 +126,51 @@ export default function EditAgentForm({ agent }: { agent: Agent }) {
               defaultValue={agent.description ?? ""}
               className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gray-500"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Goal <span className="text-cyan-400">*</span>
+            </label>
+            <textarea
+              name="goal"
+              rows={2}
+              maxLength={500}
+              defaultValue={agent.goal ?? ""}
+              className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gray-500"
+              placeholder="What objective does this agent pursue?"
+            />
+            <p className="text-xs text-gray-500 mt-1">Required from May 2026</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Decision Logic <span className="text-cyan-400">*</span>
+            </label>
+            <textarea
+              name="decision_logic"
+              rows={3}
+              maxLength={2000}
+              defaultValue={agent.decision_logic ?? ""}
+              className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gray-500"
+              placeholder="How does this agent decide what to do?"
+            />
+            <p className="text-xs text-gray-500 mt-1">Required from May 2026</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Agent Type
+            </label>
+            <select
+              name="agent_type"
+              defaultValue={agent.agent_type}
+              className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gray-500"
+            >
+              <option value="autonomous">Autonomous — pursues goals independently</option>
+              <option value="reactive">Reactive — responds to inputs without long-term goals</option>
+              <option value="hybrid">Hybrid — mix of autonomous and reactive behaviour</option>
+            </select>
           </div>
 
           <div>

@@ -130,6 +130,23 @@ export default async function AgentDetailPage({
           )}
         </div>
 
+        {(agent.goal || agent.decision_logic) && (
+          <div className="mb-6 space-y-3">
+            {agent.goal && (
+              <div className="p-4 bg-[#111118] border border-[#1f2028] rounded-lg">
+                <div className="text-xs text-gray-500 uppercase tracking-widest mb-1">Goal</div>
+                <p className="text-sm text-gray-200">{agent.goal}</p>
+              </div>
+            )}
+            {agent.decision_logic && (
+              <div className="p-4 bg-[#111118] border border-[#1f2028] rounded-lg">
+                <div className="text-xs text-gray-500 uppercase tracking-widest mb-1">Decision Logic</div>
+                <p className="text-sm text-gray-300 whitespace-pre-line">{agent.decision_logic}</p>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <div className="p-4 bg-[#111118] border border-[#1f2028] rounded-lg border-l-2 border-l-cyan-400">
             <div className="text-xs text-gray-500 uppercase tracking-widest mb-1">Pricing</div>

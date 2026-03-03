@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getAuthContext, checkPublicRateLimit } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { updateJobSchema } from "@/lib/validations";
+import { inngest } from "@/lib/inngest/client";
 
 // GET /api/jobs/[id] — Get a job by ID
 export async function GET(
@@ -124,26 +124,15 @@ export async function PATCH(
     );
   }
 
-  // On completion, atomically settle the platform fee via service_role RPC
+  // On completion, fire an async Inngest event to settle the platform fee.
+  // This moves settlement off the synchronous request path — faster response,
+  // with retry logic handled by Inngest if the RPC fails.
   if (updates.status === "completed") {
     const feePct = parseInt(process.env.PLATFORM_FEE_PCT ?? "10", 10);
-    const admin = createAdminClient();
-    const { error: settleError } = await admin.rpc("settle_job_payment", {
-      p_job_id: id,
-      p_platform_fee_pct: feePct,
+    await inngest.send({
+      name: "job/completed",
+      data: { job_id: id, platform_fee_pct: feePct },
     });
-
-    if (settleError) {
-      // INSUFFICIENT_BALANCE is the only expected business error
-      if (settleError.message?.includes("INSUFFICIENT_BALANCE")) {
-        return NextResponse.json(
-          { error: "Insufficient credit balance to complete this job" },
-          { status: 402 }
-        );
-      }
-      // Log other errors but don't block the status update (job is already marked completed)
-      console.error("settle_job_payment error:", settleError);
-    }
   }
 
   return NextResponse.json(data);

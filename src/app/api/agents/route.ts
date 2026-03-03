@@ -5,6 +5,7 @@ import {
   createAgentSchema,
   escapeIlike,
   stripSensitiveAgentFields,
+  agentIdentityRequired,
 } from "@/lib/validations";
 import { getAgentLimitForPlan, type Plan } from "@/lib/plans";
 
@@ -138,6 +139,17 @@ export async function POST(request: Request) {
 
   const input = result.data;
 
+  // Grace period enforcement for agent identity fields
+  if (agentIdentityRequired() && (!input.goal || !input.decision_logic)) {
+    return NextResponse.json(
+      { error: "Agents must include 'goal' and 'decision_logic' fields to be listed on SignalPot" },
+      { status: 400 }
+    );
+  }
+  if (!input.goal || !input.decision_logic) {
+    console.warn(`[agents] Registration without goal/decision_logic — slug: ${input.slug}`);
+  }
+
   // Check agent limit per user — based on billing plan
   const { count } = await auth.supabase
     .from("agents")
@@ -169,6 +181,9 @@ export async function POST(request: Request) {
       name: input.name,
       slug: input.slug,
       description: input.description ?? null,
+      goal: input.goal ?? null,
+      decision_logic: input.decision_logic ?? null,
+      agent_type: input.agent_type,
       capability_schema: input.capability_schema,
       rate_type: input.rate_type,
       rate_amount: input.rate_amount,

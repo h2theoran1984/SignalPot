@@ -13,6 +13,13 @@ const capabilitySpecSchema = z.object({
     .optional(),
 });
 
+// Grace period: goal and decision_logic are optional now but will be required after enforcement date.
+// Registration API logs a warning when these are missing.
+export const AGENT_IDENTITY_ENFORCE_DATE = new Date("2026-05-01");
+export function agentIdentityRequired(): boolean {
+  return new Date() >= AGENT_IDENTITY_ENFORCE_DATE;
+}
+
 export const createAgentSchema = z.object({
   name: z.string().min(1).max(200).trim(),
   slug: z
@@ -21,6 +28,10 @@ export const createAgentSchema = z.object({
     .max(64)
     .regex(SLUG_REGEX, "Slug must be lowercase alphanumeric with hyphens"),
   description: z.string().max(2000).nullable().optional(),
+  // Agent identity fields (required after AGENT_IDENTITY_ENFORCE_DATE)
+  goal: z.string().min(10).max(500).nullable().optional(),
+  decision_logic: z.string().min(20).max(2000).nullable().optional(),
+  agent_type: z.enum(["autonomous", "reactive", "hybrid"]).optional().default("autonomous"),
   capability_schema: z.array(capabilitySpecSchema).max(50).optional().default([]),
   rate_type: z.enum(["per_call", "per_task", "per_hour"]).optional().default("per_call"),
   rate_amount: z.number().min(0).max(1_000_000).optional().default(0),
@@ -45,6 +56,9 @@ export const updateAgentSchema = z.object({
     .regex(SLUG_REGEX, "Slug must be lowercase alphanumeric with hyphens")
     .optional(),
   description: z.string().max(2000).nullable().optional(),
+  goal: z.string().min(10).max(500).nullable().optional(),
+  decision_logic: z.string().min(20).max(2000).nullable().optional(),
+  agent_type: z.enum(["autonomous", "reactive", "hybrid"]).optional(),
   capability_schema: z.array(capabilitySpecSchema).max(50).optional(),
   rate_type: z.enum(["per_call", "per_task", "per_hour"]).optional(),
   rate_amount: z.number().min(0).max(1_000_000).optional(),
