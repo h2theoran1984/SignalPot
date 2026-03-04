@@ -57,7 +57,7 @@ export async function POST(
   const supabase = await createClient();
   const { data: agent } = await supabase
     .from("agents")
-    .select("id, status")
+    .select("id, status, slug")
     .eq("slug", slug)
     .single();
 
@@ -73,7 +73,7 @@ export async function POST(
   }
 
   // Dispatch to the appropriate handler
-  const response = await dispatchA2ARpc(rpcRequest, agent.id, auth.profileId);
+  const response = await dispatchA2ARpc(rpcRequest, agent.id, auth.profileId, agent.slug);
 
   return NextResponse.json(response, { status: 200, headers: CORS });
 }

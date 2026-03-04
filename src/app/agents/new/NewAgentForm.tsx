@@ -198,6 +198,14 @@ export default function NewAgentForm() {
                 className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gray-500"
               />
               <p className="mt-1 text-xs text-zinc-500">Minimum $0.001 per call (platform fee applies)</p>
+              <a
+                href="/agents/pricing-tool"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-blue-400 hover:text-blue-300 underline mt-1 inline-block"
+              >
+                Need help setting your price? →
+              </a>
             </div>
           </div>
 

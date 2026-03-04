@@ -3,6 +3,8 @@ import { getAuthContext, checkPublicRateLimit } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { updateJobSchema } from "@/lib/validations";
 import { inngest } from "@/lib/inngest/client";
+import { wrapResponse } from "@/lib/envelope";
+import { validateOutput } from "@/lib/schema-validator";
 
 // GET /api/jobs/[id] — Get a job by ID
 export async function GET(
@@ -69,10 +71,11 @@ export async function PATCH(
 
   const updates = result.data;
 
-  // Fetch the job and verify the user owns the provider agent
+  // Fetch the job and verify the user owns the provider agent.
+  // Also pull the agent's slug and capability_schema for output validation.
   const { data: job } = await auth.supabase
     .from("jobs")
-    .select("*, provider_agent:agents!jobs_provider_agent_id_fkey(owner_id)")
+    .select("*, provider_agent:agents!jobs_provider_agent_id_fkey(owner_id, slug, capability_schema)")
     .eq("id", id)
     .single();
 
@@ -106,8 +109,55 @@ export async function PATCH(
 
   // Build the update payload
   const updatePayload: Record<string, unknown> = { ...updates };
+
   if (updates.status === "completed") {
     updatePayload.completed_at = new Date().toISOString();
+
+    // --- Output schema validation (9b) ---
+    // Find the outputSchema for the capability used in this job.
+    const capabilitySchema = (
+      job.provider_agent?.capability_schema as Array<Record<string, unknown>>
+    ) ?? [];
+    const capabilityUsed = job.capability_used as string | null;
+
+    let outputSchema: Record<string, unknown> | null = null;
+    if (capabilityUsed && capabilitySchema.length > 0) {
+      const matchedCap = capabilitySchema.find(
+        (cap) => cap.name === capabilityUsed
+      );
+      if (matchedCap?.outputSchema) {
+        outputSchema = matchedCap.outputSchema as Record<string, unknown>;
+      }
+    }
+
+    const validationResult = validateOutput(outputSchema, updates.output_summary ?? null);
+    updatePayload.verified = validationResult.valid;
+
+    if (!validationResult.valid) {
+      console.warn(
+        `[jobs/${id}] Output validation failed:`,
+        validationResult.errors
+      );
+    }
+
+    // --- Response envelope (9a) ---
+    const providerSlug = (job.provider_agent?.slug as string) ?? job.provider_agent_id as string;
+    const durationMs = (updates.duration_ms ?? job.duration_ms ?? 0) as number;
+
+    const responseEnvelope = wrapResponse({
+      jobId: id,
+      providerSlug,
+      durationMs,
+      output: updates.output_summary ?? null,
+      verified: validationResult.valid,
+      validationErrors: validationResult.errors,
+    });
+
+    // Store the response envelope under a reserved key in output_summary.
+    updatePayload.output_summary = {
+      ...(updates.output_summary ?? {}),
+      _envelope: responseEnvelope,
+    };
   }
 
   const { data, error } = await auth.supabase

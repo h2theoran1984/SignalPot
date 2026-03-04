@@ -2,6 +2,7 @@
 // Maps A2A protocol methods onto SignalPot's existing jobs infrastructure
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { wrapRequest } from "@/lib/envelope";
 import {
   A2AErrorCodes,
   type AgentCard,
@@ -105,7 +106,8 @@ async function handleMessageSend(
   id: string | number,
   params: unknown,
   providerAgentId: string,
-  requesterId: string
+  requesterId: string,
+  providerSlug: string
 ): Promise<JSONRPCResponse<Task | Message>> {
   const p = params as MessageSendParams;
   if (!p?.message) {
@@ -121,13 +123,15 @@ async function handleMessageSend(
     if (part.kind === "data") Object.assign(inputSummary, part.data);
   }
 
+  const capabilityUsed = (p.metadata?.capability_used as string) ?? null;
+
   const { data: job, error } = await supabase
     .from("jobs")
     .insert({
       provider_agent_id: providerAgentId,
       requester_profile_id: requesterId,
       job_type: "production",
-      capability_used: p.metadata?.capability_used as string ?? null,
+      capability_used: capabilityUsed,
       input_summary: Object.keys(inputSummary).length ? inputSummary : null,
       status: "pending",
       cost: 0,
@@ -139,6 +143,26 @@ async function handleMessageSend(
   if (error || !job) {
     return rpcError(id, A2AErrorCodes.InternalError, "Failed to create task");
   }
+
+  // Build and store the request envelope in input_summary for auditing.
+  // We merge it under a reserved "_envelope" key so it doesn't overwrite caller data.
+  const requestEnvelope = wrapRequest({
+    jobId: job.id as string,
+    callerId: requesterId,
+    providerSlug,
+    capability: capabilityUsed,
+    input: Object.keys(inputSummary).length ? inputSummary : null,
+  });
+
+  const enrichedInputSummary = {
+    ...inputSummary,
+    _envelope: requestEnvelope,
+  };
+
+  await supabase
+    .from("jobs")
+    .update({ input_summary: enrichedInputSummary })
+    .eq("id", job.id);
 
   return success(id, jobToTask(job));
 }
@@ -218,13 +242,14 @@ async function handleTasksCancel(
 export async function dispatchA2ARpc(
   request: JSONRPCRequest,
   providerAgentId: string,
-  requesterId: string
+  requesterId: string,
+  providerSlug?: string
 ): Promise<JSONRPCResponse> {
   const { id, method, params } = request;
 
   switch (method) {
     case "message/send":
-      return handleMessageSend(id, params, providerAgentId, requesterId);
+      return handleMessageSend(id, params, providerAgentId, requesterId, providerSlug ?? providerAgentId);
 
     case "tasks/get":
       return handleTasksGet(id, params);
