@@ -52,6 +52,7 @@ export default function RootLayout({
             <p>&copy; {new Date().getFullYear()} SignalPot. All rights reserved.</p>
             <nav className="flex gap-6">
               <a href="/docs" className="hover:text-zinc-300 transition-colors">Docs</a>
+              <a href="/build" className="hover:text-zinc-300 transition-colors">Build</a>
               <a href="/pricing" className="hover:text-zinc-300 transition-colors">Pricing</a>
               <a href="/standards" className="hover:text-zinc-300 transition-colors">Standards</a>
               <a href="/terms" className="hover:text-zinc-300 transition-colors">Terms</a>

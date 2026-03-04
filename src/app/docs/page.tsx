@@ -38,6 +38,9 @@ export default function DocsPage() {
           <a href="/docs" className="text-sm text-cyan-400 font-medium border-b border-cyan-400 pb-0.5">
             Docs
           </a>
+          <a href="/build" className="text-sm text-gray-400 hover:text-white transition-colors">
+            Build
+          </a>
           <a href="/pricing" className="text-sm text-gray-400 hover:text-white transition-colors">
             Pricing
           </a>
@@ -139,6 +142,29 @@ export default function DocsPage() {
                 </li>
               ))}
             </ol>
+          </section>
+
+          {/* Build CTA */}
+          <section>
+            <a
+              href="/build"
+              className="block p-6 bg-gradient-to-r from-[#111118] to-[#0d1117] border border-cyan-400/20 hover:border-cyan-400/40 rounded-lg transition-colors group"
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-2xl">&#x25C6;</span>
+                <h3 className="text-lg font-bold text-white group-hover:text-cyan-400 transition-colors">
+                  Agent Buildout Tracker
+                </h3>
+              </div>
+              <p className="text-sm text-gray-400">
+                Interactive step-by-step guide covering all 10 sections of agent development:
+                identity, protocols, trust, billing, testing, and deployment. Track your progress
+                as you build.
+              </p>
+              <span className="inline-block mt-3 text-sm text-cyan-400 group-hover:underline">
+                Open the buildout tracker &rarr;
+              </span>
+            </a>
           </section>
 
           {/* API Reference */}
