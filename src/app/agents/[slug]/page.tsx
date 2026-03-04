@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import AuthButton from "@/components/AuthButton";
+import AgentPlayground from "@/components/AgentPlayground";
 import { Badge } from "@/components/ui/badge";
 
 export async function generateMetadata({
@@ -234,6 +235,14 @@ export default async function AgentDetailPage({
               )}
             </div>
           </div>
+        )}
+
+        {capabilities.length > 0 && agent.mcp_endpoint && (
+          <AgentPlayground
+            agentSlug={agent.slug}
+            capabilities={capabilities}
+            rateAmount={Number(agent.rate_amount) || 0}
+          />
         )}
 
         <div className="mb-8">

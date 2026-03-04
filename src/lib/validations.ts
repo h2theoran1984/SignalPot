@@ -146,6 +146,20 @@ export const createApiKeySchema = z.object({
   rate_limit_rpm: z.number().int().min(1).max(1000).optional().default(60),
 });
 
+export const proxyCallSchema = z.object({
+  capability: z.string().min(1).max(200),
+  input: z.record(z.string(), z.unknown()).refine(
+    (val) => JSON.stringify(val).length <= 10_240,
+    { message: "Input payload must be 10KB or less" }
+  ),
+  session_token: z.string().uuid().optional(),
+  idempotency_key: z.string().min(8).max(128),
+});
+
+export const anonTopupSchema = z.object({
+  amount_usd: z.number().min(1).max(5),
+});
+
 // Escape ILIKE special characters
 export function escapeIlike(str: string): string {
   return str.replace(/[%_\\]/g, "\\$&");

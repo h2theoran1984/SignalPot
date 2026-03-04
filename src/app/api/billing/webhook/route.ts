@@ -44,6 +44,27 @@ export async function POST(request: Request) {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
+
+        // Handle anonymous credit purchases (no user ID needed)
+        if (session.metadata?.topup_type === "anonymous_credits") {
+          const amountMillicents = (session.amount_total ?? 0) * 1000;
+          if (amountMillicents > 0) {
+            // Safety net: create session if token retrieval endpoint hasn't yet.
+            // The UNIQUE constraint on stripe_session_id prevents duplicates.
+            await admin
+              .from("anonymous_sessions")
+              .upsert(
+                {
+                  stripe_session_id: session.id,
+                  credit_balance_millicents: amountMillicents,
+                  ip_address: "0.0.0.0", // Webhook doesn't have caller IP
+                },
+                { onConflict: "stripe_session_id", ignoreDuplicates: true }
+              );
+          }
+          break;
+        }
+
         const userId = session.metadata?.supabase_user_id;
 
         if (!userId) break;
