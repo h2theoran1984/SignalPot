@@ -26,9 +26,21 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
         {children}
+        <footer className="border-t border-zinc-800 mt-auto">
+          <div className="max-w-5xl mx-auto px-4 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-zinc-500">
+            <p>&copy; {new Date().getFullYear()} SignalPot. All rights reserved.</p>
+            <nav className="flex gap-6">
+              <a href="/docs" className="hover:text-zinc-300 transition-colors">Docs</a>
+              <a href="/pricing" className="hover:text-zinc-300 transition-colors">Pricing</a>
+              <a href="/standards" className="hover:text-zinc-300 transition-colors">Standards</a>
+              <a href="/terms" className="hover:text-zinc-300 transition-colors">Terms</a>
+              <a href="/privacy" className="hover:text-zinc-300 transition-colors">Privacy</a>
+            </nav>
+          </div>
+        </footer>
       </body>
     </html>
   );
