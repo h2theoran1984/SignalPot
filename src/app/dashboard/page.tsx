@@ -157,12 +157,20 @@ export default async function DashboardPage() {
 
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">Recent Jobs</h2>
-          <a
-            href="/disputes"
-            className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
-          >
-            My Disputes →
-          </a>
+          <div className="flex items-center gap-4">
+            <a
+              href="/dashboard/statements"
+              className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+            >
+              Statements →
+            </a>
+            <a
+              href="/disputes"
+              className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+            >
+              My Disputes →
+            </a>
+          </div>
         </div>
         {!jobs || jobs.length === 0 ? (
           <p className="text-gray-500">No job history yet.</p>
