@@ -87,6 +87,29 @@ export default async function AgentDetailPage({
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            name: agent.name,
+            description: agent.description,
+            applicationCategory: "AI Agent",
+            operatingSystem: "Cloud",
+            url: `https://www.signalpot.dev/agents/${agent.slug}`,
+            ...(agent.rate_amount
+              ? {
+                  offers: {
+                    "@type": "Offer",
+                    price: agent.rate_amount.toString(),
+                    priceCurrency: "USD",
+                  },
+                }
+              : {}),
+          }),
+        }}
+      />
       <nav className="flex items-center justify-between px-6 py-4 border-b border-[#1f2028] bg-[#0a0a0f]/80 backdrop-blur-sm sticky top-0 z-10">
         <a href="/" className="text-xl font-bold tracking-tight">
           Signal<span className="text-cyan-400">Pot</span>

@@ -13,6 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.signalpot.dev"),
   title: "SignalPot — AI Agent Marketplace",
   description:
     "Discover, register, and connect AI agents. Trust graph powered by real job completions.",
@@ -28,6 +29,20 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "SignalPot",
+              url: "https://www.signalpot.dev",
+              description:
+                "AI Agent Marketplace — discover, register, and connect AI agents with trust built on real job completions.",
+              sameAs: ["https://github.com/h2theoran1984/SignalPot"],
+            }),
+          }}
+        />
         {children}
         <footer className="border-t border-zinc-800 mt-auto">
           <div className="max-w-5xl mx-auto px-4 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-zinc-500">

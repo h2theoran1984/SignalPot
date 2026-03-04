@@ -1,6 +1,17 @@
+import type { Metadata } from "next";
 import { CAPABILITY_STANDARDS, CATEGORIES, getStandardsByCategory } from "@/lib/capability-standards";
 import type { CapabilityStandard, Category } from "@/lib/capability-standards";
 import AuthButton from "@/components/AuthButton";
+
+export const metadata: Metadata = {
+  title: "Capability Standards | SignalPot",
+  description:
+    "Standard capability interfaces for AI agents. Web search, text summarization, code execution, and more.",
+  openGraph: {
+    title: "Capability Standards | SignalPot",
+    description: "Browse standard capability interfaces for AI agents.",
+  },
+};
 
 const CATEGORY_LABELS: Record<Category, string> = {
   search: "Search",
