@@ -19,4 +19,10 @@ export type SignalPotEvents = {
       job_id: string;
     };
   };
+  "dispute/escalated-t2": {
+    data: {
+      dispute_id: string;
+      job_id: string;
+    };
+  };
 };

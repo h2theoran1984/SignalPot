@@ -119,3 +119,63 @@ export async function forfeitHold(
 
   return { winnerAmount, platformAmount };
 }
+
+/**
+ * Settle all deposits for a dispute.
+ * Winner: gets their deposit back + 50% of loser's deposit.
+ * Platform: keeps 50% of loser's deposit → dispute_reserve.
+ */
+export async function settleDispute(
+  disputeId: string,
+  resolution: "upheld" | "rejected" | "partial",
+  jobId: string
+): Promise<void> {
+  const admin = createAdminClient();
+
+  const { data: deposits } = await admin
+    .from("dispute_deposits")
+    .select("*")
+    .eq("dispute_id", disputeId)
+    .eq("status", "held");
+
+  if (!deposits || deposits.length === 0) return;
+
+  for (const deposit of deposits) {
+    if (resolution === "upheld") {
+      // Requester wins — return their deposit
+      await admin
+        .from("dispute_deposits")
+        .update({ status: "returned" })
+        .eq("id", deposit.id);
+
+      await admin.rpc("add_credits", {
+        p_user_id: deposit.profile_id,
+        p_amount_millicents: deposit.amount_millicents,
+      });
+    } else if (resolution === "rejected") {
+      // Provider wins — forfeit requester deposit
+      await admin
+        .from("dispute_deposits")
+        .update({ status: "forfeited" })
+        .eq("id", deposit.id);
+
+      // All goes to platform reserve
+      await admin.from("dispute_reserve").insert({
+        job_id: jobId,
+        source: "dispute_forfeit",
+        amount_millicents: deposit.amount_millicents,
+      });
+    } else {
+      // Partial — return 50% of deposit to both parties
+      await admin
+        .from("dispute_deposits")
+        .update({ status: "returned" })
+        .eq("id", deposit.id);
+
+      await admin.rpc("add_credits", {
+        p_user_id: deposit.profile_id,
+        p_amount_millicents: Math.floor(deposit.amount_millicents * 0.5),
+      });
+    }
+  }
+}

@@ -15,6 +15,18 @@ interface DisputeDeposit {
   created_at: string;
 }
 
+interface PanelVote {
+  id: string;
+  agent_id: string;
+  vote: "upheld" | "rejected";
+  reasoning: string | null;
+  voted_at: string;
+  agents: {
+    name: string;
+    slug: string;
+  } | null;
+}
+
 interface DisputeDetail {
   id: string;
   job_id: string;
@@ -90,6 +102,20 @@ export default async function DisputeDetailPage({
 
   const d = dispute as DisputeDetail;
   const { label, cls } = statusLabel(d.status, d.resolution);
+
+  // Fetch panel votes if this dispute is Tier 2+
+  let panelVotes: PanelVote[] = [];
+  if (d.tier >= 2) {
+    const { data: votes } = await admin
+      .from("dispute_panel_votes")
+      .select("*, agents(name, slug)")
+      .eq("dispute_id", d.id)
+      .order("voted_at", { ascending: true });
+    panelVotes = (votes ?? []) as PanelVote[];
+  }
+
+  const upheldCount = panelVotes.filter((v) => v.vote === "upheld").length;
+  const rejectedCount = panelVotes.filter((v) => v.vote === "rejected").length;
 
   const inputEnvelope =
     d.evidence?.input_envelope ?? d.jobs?.input_summary?._envelope ?? null;
@@ -269,6 +295,52 @@ export default async function DisputeDetailPage({
                 Deposit is held and will be returned if your dispute is upheld.
               </p>
             ) : null}
+          </div>
+        )}
+
+        {/* Panel votes (Tier 2+) */}
+        {d.tier >= 2 && panelVotes.length > 0 && (
+          <div className="mb-6 p-4 bg-[#111118] border border-[#1f2028] rounded-lg">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-xs text-gray-500 uppercase tracking-widest">
+                Community Panel Votes
+              </div>
+              <div className="text-xs font-medium">
+                <span className="text-green-400">{upheldCount} uphold</span>
+                <span className="text-gray-600 mx-1">/</span>
+                <span className="text-red-400">{rejectedCount} reject</span>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {panelVotes.map((vote) => (
+                <div
+                  key={vote.id}
+                  className="flex items-start gap-3"
+                >
+                  <div className="shrink-0 pt-0.5">
+                    {vote.vote === "upheld" ? (
+                      <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-500/15 text-green-400 border border-green-500/30">
+                        upheld
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded text-xs font-medium bg-red-500/15 text-red-400 border border-red-500/30">
+                        rejected
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-400 font-medium">
+                      {vote.agents?.name ?? "Unknown Agent"}
+                    </span>
+                    {vote.reasoning && (
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        {vote.reasoning}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

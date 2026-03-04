@@ -185,6 +185,11 @@ Respond with ONLY valid JSON in this exact format:
             resolver_notes: `[Tier 1 AI — confidence: ${(aiDecision.confidence * 100).toFixed(0)}% — escalated] ${aiDecision.reasoning}`,
           })
           .eq("id", dispute_id);
+
+        await inngest.send({
+          name: "dispute/escalated-t2",
+          data: { dispute_id, job_id },
+        });
       }
     });
 
