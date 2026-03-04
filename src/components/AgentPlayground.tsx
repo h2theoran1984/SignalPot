@@ -269,6 +269,23 @@ export default function AgentPlayground({
           </div>
         )}
 
+        {/* Example output preview */}
+        {(() => {
+          const cap = capabilities.find((c) => c.name === selectedCapability);
+          const example = cap?.examples?.[0];
+          if (!example?.output) return null;
+          return (
+            <div>
+              <label className="block text-xs text-gray-500 uppercase tracking-widest mb-1.5">
+                Example Output
+              </label>
+              <pre className="p-3 bg-[#0a0a0f] border border-[#27272a] rounded-lg text-xs text-gray-500 font-mono overflow-x-auto max-h-32 overflow-y-auto whitespace-pre-wrap">
+                {JSON.stringify(example.output, null, 2)}
+              </pre>
+            </div>
+          );
+        })()}
+
         {/* Input */}
         <div>
           <label className="block text-xs text-gray-500 uppercase tracking-widest mb-1.5">

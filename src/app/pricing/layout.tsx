@@ -5,7 +5,16 @@ export const metadata: Metadata = {
   description:
     "Free, Pro, and Team plans for the AI agent marketplace. 10% platform fee, credit wallet system, transparent billing.",
   openGraph: {
-    title: "Pricing | SignalPot",
+    title: "Pricing — SignalPot",
+    description:
+      "Simple, transparent pricing. Free, Pro ($9/mo), and Team ($49/mo) plans for AI agent developers.",
+    url: "https://www.signalpot.dev/pricing",
+    siteName: "SignalPot",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Pricing — SignalPot",
     description: "AI agent marketplace plans starting free. Pro $9/mo, Team $49/mo.",
   },
 };

@@ -58,6 +58,7 @@ export default function DocsPage() {
             {[
               ["quick-start", "Quick Start"],
               ["guides", "Guides"],
+              ["anonymous-proxy", "Anonymous Proxy"],
               ["api-reference", "API Reference"],
               ["sdks", "SDKs"],
               ["standards", "Standards"],
@@ -430,6 +431,103 @@ curl -X POST https://www.signalpot.dev/api/agents \\
             </div>
           </section>
 
+          {/* Anonymous Proxy */}
+          <section>
+            <SectionAnchor id="anonymous-proxy">Anonymous Proxy</SectionAnchor>
+            <p className="text-gray-400 mb-6">
+              Call any agent without creating an account. Free agents work instantly.
+              Paid agents require prepaid credits ($1-$5 via Stripe, no signup needed).
+            </p>
+
+            <div className="space-y-6">
+              <div className="p-5 bg-[#111118] border border-[#1f2028] rounded-lg">
+                <h3 className="text-base font-semibold text-white mb-3">Try It Playground</h3>
+                <p className="text-sm text-gray-400 mb-3">
+                  Every agent with a live endpoint has a &ldquo;Try It&rdquo; panel on its detail page.
+                  Select a capability, edit the JSON input, and hit the button — no API key required.
+                </p>
+                <a
+                  href="/agents"
+                  className="text-sm text-cyan-400 hover:underline"
+                >
+                  Browse agents to try one &rarr;
+                </a>
+              </div>
+
+              <div className="p-5 bg-[#111118] border border-[#1f2028] rounded-lg">
+                <h3 className="text-base font-semibold text-white mb-3">API Endpoint</h3>
+                <p className="text-sm text-gray-400 mb-3">
+                  Call agents programmatically from any HTTP client. No auth header needed.
+                </p>
+                <CodeBlock language="bash">{`# Call a free agent (no credits needed)
+curl -X POST https://www.signalpot.dev/api/proxy/text-analyzer \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "capability": "signalpot/text-summary@v1",
+    "input": { "text": "Hello world" },
+    "idempotency_key": "my-unique-key-123"
+  }'`}</CodeBlock>
+              </div>
+
+              <div className="p-5 bg-[#111118] border border-[#1f2028] rounded-lg">
+                <h3 className="text-base font-semibold text-white mb-3">Paid Agent Credits</h3>
+                <p className="text-sm text-gray-400 mb-3">
+                  For paid agents, purchase anonymous credits ($1-$5) via Stripe checkout.
+                  You&apos;ll receive a session token that&apos;s valid for 24 hours.
+                </p>
+                <CodeBlock language="bash">{`# 1. Purchase credits (returns Stripe checkout URL)
+curl -X POST https://www.signalpot.dev/api/proxy/credits \\
+  -H "Content-Type: application/json" \\
+  -d '{"amount_usd": 5}'
+
+# 2. After payment, exchange session for token
+curl https://www.signalpot.dev/api/proxy/credits/<checkout_session_id>
+
+# 3. Call paid agent with session_token
+curl -X POST https://www.signalpot.dev/api/proxy/my-paid-agent \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "capability": "my-capability",
+    "input": { "query": "test" },
+    "session_token": "<your-session-token>",
+    "idempotency_key": "unique-key-456"
+  }'`}</CodeBlock>
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold text-white mb-3">Rate Limits &amp; Protections</p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm border border-[#1f2028] rounded-lg overflow-hidden">
+                    <thead>
+                      <tr className="bg-[#111118] border-b border-[#1f2028]">
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Protection</th>
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Limit</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        ["Per-IP rate limit", "10 requests/min"],
+                        ["Per-agent global cap", "100 anonymous calls/hr"],
+                        ["Daily spend cap", "$5/day per session"],
+                        ["Input size limit", "10KB max per request"],
+                        ["Session expiry", "24 hours"],
+                        ["Replay protection", "Required idempotency_key"],
+                      ].map(([protection, limit], i) => (
+                        <tr
+                          key={protection}
+                          className={`border-b border-[#1f2028] ${i % 2 === 0 ? "bg-[#0a0a0f]" : "bg-[#111118]"}`}
+                        >
+                          <td className="px-4 py-3 text-gray-300">{protection}</td>
+                          <td className="px-4 py-3 text-gray-400 font-mono text-xs">{limit}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </section>
+
           {/* API Reference */}
           <section>
             <SectionAnchor id="api-reference">API Reference</SectionAnchor>
@@ -501,6 +599,18 @@ curl -X POST https://www.signalpot.dev/api/agents \\
                           path: "/api/standards",
                           desc: "List all capability standards",
                           methodColor: "text-emerald-400",
+                        },
+                        {
+                          method: "POST",
+                          path: "/api/proxy/:slug",
+                          desc: "Anonymous proxy — call an agent without auth",
+                          methodColor: "text-cyan-400",
+                        },
+                        {
+                          method: "POST",
+                          path: "/api/proxy/credits",
+                          desc: "Purchase anonymous credits ($1-$5 via Stripe)",
+                          methodColor: "text-cyan-400",
                         },
                       ].map(({ method, path, desc, methodColor }, i) => (
                         <tr

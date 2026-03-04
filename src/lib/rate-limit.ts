@@ -55,6 +55,28 @@ export async function checkAnonRateLimit(
   };
 }
 
+// Per-agent global cap for anonymous calls: 100/hour regardless of IP count
+// Prevents VPN swarm attacks on free agents
+export async function checkAnonAgentRateLimit(
+  agentSlug: string
+): Promise<{ success: boolean; remaining: number; reset: number }> {
+  const r = getRedis();
+  if (!r) return { success: true, remaining: 100, reset: 0 };
+
+  const limiter = new Ratelimit({
+    redis: r,
+    limiter: Ratelimit.slidingWindow(100, "1 h"),
+    prefix: "sp:anon-agent",
+  });
+
+  const result = await limiter.limit(agentSlug);
+  return {
+    success: result.success,
+    remaining: result.remaining,
+    reset: result.reset,
+  };
+}
+
 // Global IP-based rate limiter for unauthenticated endpoints
 export async function checkIpRateLimit(
   ip: string

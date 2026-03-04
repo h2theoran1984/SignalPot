@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { checkAnonRateLimit } from "@/lib/rate-limit";
+import { checkAnonRateLimit, checkAnonAgentRateLimit } from "@/lib/rate-limit";
 import { rateLimitResponse } from "@/lib/auth";
 import { proxyCallSchema } from "@/lib/validations";
 import { wrapRequest, wrapResponse } from "@/lib/envelope";
@@ -42,6 +42,18 @@ export async function POST(
   const rateCheck = await checkAnonRateLimit(ip);
   if (!rateCheck.success) {
     return rateLimitResponse(rateCheck.reset);
+  }
+
+  // 1b. Per-agent global cap (100/hr) — prevents VPN swarm attacks
+  const agentRateCheck = await checkAnonAgentRateLimit(slug);
+  if (!agentRateCheck.success) {
+    return corsJson(
+      {
+        error: "This agent has reached its anonymous call limit — try again later",
+        retry_after: Math.ceil((agentRateCheck.reset - Date.now()) / 1000),
+      },
+      { status: 429 }
+    );
   }
 
   // 2. Parse and validate body
