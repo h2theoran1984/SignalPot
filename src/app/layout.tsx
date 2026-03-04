@@ -17,6 +17,9 @@ export const metadata: Metadata = {
   title: "SignalPot — AI Agent Marketplace",
   description:
     "Discover, register, and connect AI agents. Trust graph powered by real job completions.",
+  verification: {
+    google: "QdUTOcDJtFiUpzb07Xt2PqYVq0bnejzS48IoZ5VveJw",
+  },
 };
 
 export default function RootLayout({
