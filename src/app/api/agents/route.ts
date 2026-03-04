@@ -24,6 +24,12 @@ export async function GET(request: Request) {
   );
   const offset = (page - 1) * limit;
 
+  // Sprint 12 constraint params
+  const minTrust = searchParams.get("min_trust");           // alias / constraint-flavoured filter
+  const requiredTags = searchParams.get("required_tags");   // comma-sep, agent must have ALL
+  const blockedAgents = searchParams.get("blocked_agents"); // comma-sep slugs to exclude
+  const maxCost = searchParams.get("max_cost");             // upper bound on rate_amount
+
   const supabase = await createClient();
 
   // Get current user for auth_config visibility
@@ -68,6 +74,38 @@ export async function GET(request: Request) {
     }
   }
 
+  // Sprint 12: required_tags — agent must contain ALL specified tags (contains, not just overlap)
+  if (requiredTags) {
+    const reqTagArray = requiredTags
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .slice(0, 20);
+    if (reqTagArray.length > 0) {
+      query = query.contains("tags", reqTagArray);
+    }
+  }
+
+  // Sprint 12: blocked_agents — exclude agents with these slugs
+  if (blockedAgents) {
+    const blockedArray = blockedAgents
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .slice(0, 50);
+    if (blockedArray.length > 0) {
+      query = query.not("slug", "in", `(${blockedArray.map((s) => `"${s}"`).join(",")})`);
+    }
+  }
+
+  // Sprint 12: max_cost — upper bound on rate_amount (stricter alias alongside max_rate)
+  if (maxCost) {
+    const cost = parseFloat(maxCost);
+    if (!isNaN(cost) && cost >= 0) {
+      query = query.lte("rate_amount", cost);
+    }
+  }
+
   query = query.order("created_at", { ascending: false });
   query = query.range(offset, offset + limit - 1);
 
@@ -97,11 +135,17 @@ export async function GET(request: Request) {
   });
 
   // Filter by min trust score client-side (after aggregation)
-  const filtered = minTrustScore
-    ? agents.filter(
-        (a) => a.avg_trust_score >= parseFloat(minTrustScore as string)
-      )
-    : agents;
+  // Both min_trust_score (legacy) and min_trust (Sprint 12 constraint) use the same logic.
+  // Apply the stricter of the two if both are provided.
+  const minTrustThreshold = Math.max(
+    minTrustScore ? parseFloat(minTrustScore) : 0,
+    minTrust ? parseFloat(minTrust) : 0
+  );
+
+  const filtered =
+    minTrustThreshold > 0
+      ? agents.filter((a) => a.avg_trust_score >= minTrustThreshold)
+      : agents;
 
   return NextResponse.json({
     agents: filtered,

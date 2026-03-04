@@ -74,6 +74,35 @@ export const updateAgentSchema = z.object({
   tags: z.array(z.string().max(50)).max(20).optional(),
 });
 
+export const callerConstraintsSchema = z.object({
+  min_trust: z.number().min(0).max(1).optional(),
+  required_tags: z.array(z.string()).optional(),
+  blocked_agents: z.array(z.string()).optional(), // agent slugs
+  max_cost: z.number().min(0).optional(),
+}).optional();
+
+export function mergeConstraints(
+  callerConstraints?: z.infer<typeof callerConstraintsSchema>,
+  agentConstraints?: z.infer<typeof callerConstraintsSchema>
+): z.infer<typeof callerConstraintsSchema> {
+  if (!callerConstraints && !agentConstraints) return undefined;
+  const c = callerConstraints ?? {};
+  const a = agentConstraints ?? {};
+  return {
+    // Stricter = higher min_trust
+    min_trust: Math.max(c.min_trust ?? 0, a.min_trust ?? 0) || undefined,
+    // Union of required tags
+    required_tags: [...new Set([...(c.required_tags ?? []), ...(a.required_tags ?? [])])],
+    // Union of blocked agents
+    blocked_agents: [...new Set([...(c.blocked_agents ?? []), ...(a.blocked_agents ?? [])])],
+    // Stricter = lower max_cost
+    max_cost:
+      c.max_cost !== undefined && a.max_cost !== undefined
+        ? Math.min(c.max_cost, a.max_cost)
+        : (c.max_cost ?? a.max_cost),
+  };
+}
+
 export const createJobSchema = z.object({
   requester_agent_id: z.string().uuid().nullable().optional(),
   provider_agent_id: z.string().uuid(),
@@ -83,6 +112,7 @@ export const createJobSchema = z.object({
   output_summary: z.record(z.string(), z.unknown()).nullable().optional(),
   duration_ms: z.number().int().min(0).max(86_400_000).nullable().optional(),
   cost: z.number().min(0).max(1_000_000).optional().default(0),
+  caller_constraints: callerConstraintsSchema,
 });
 
 export const updateJobSchema = z.object({
