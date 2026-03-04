@@ -26,6 +26,20 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient();
 
+  // Idempotency: skip events we've already processed
+  const { data: existing } = await admin
+    .from("webhook_events")
+    .select("event_id")
+    .eq("event_id", event.id)
+    .maybeSingle();
+
+  if (existing) {
+    return NextResponse.json({ received: true, deduplicated: true });
+  }
+
+  // Record event ID before processing to prevent concurrent duplicates
+  await admin.from("webhook_events").insert({ event_id: event.id });
+
   try {
     switch (event.type) {
       case "checkout.session.completed": {
@@ -37,7 +51,7 @@ export async function POST(request: Request) {
         if (session.mode === "subscription") {
           // Subscription checkout — update plan + store Stripe IDs
           const plan = session.metadata?.plan as "pro" | "team" | undefined;
-          if (!plan) break;
+          if (!plan || !["pro", "team"].includes(plan)) break;
 
           await admin
             .from("profiles")
@@ -49,13 +63,15 @@ export async function POST(request: Request) {
             .eq("id", userId);
 
         } else if (session.mode === "payment") {
-          // Credit top-up checkout
-          const amountMillicents = session.metadata?.amount_millicents;
-          if (!amountMillicents) break;
+          // Credit top-up checkout — use Stripe's authoritative amount, not metadata
+          const amountTotalCents = session.amount_total;
+          if (!amountTotalCents || amountTotalCents <= 0) break;
+
+          const amountMillicents = amountTotalCents * 1000;
 
           const { error } = await admin.rpc("add_credits", {
             p_user_id: userId,
-            p_amount_millicents: parseInt(amountMillicents, 10),
+            p_amount_millicents: amountMillicents,
           });
 
           if (error) {

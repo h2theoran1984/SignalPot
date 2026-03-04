@@ -90,11 +90,13 @@ export async function GET(request: Request) {
   if (blockedAgents) {
     const blockedArray = blockedAgents
       .split(",")
-      .map((s) => s.trim())
+      .map((s) => s.trim().toLowerCase().replace(/[^a-z0-9-]/g, ""))
       .filter(Boolean)
       .slice(0, 50);
     if (blockedArray.length > 0) {
-      query = query.not("slug", "in", `(${blockedArray.map((s) => `"${s}"`).join(",")})`);
+      for (const slug of blockedArray) {
+        query = query.neq("slug", slug);
+      }
     }
   }
 
