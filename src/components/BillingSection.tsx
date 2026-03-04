@@ -7,6 +7,14 @@ interface Props {
   creditBalanceMillicents: number;
 }
 
+function isStripeUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return u.protocol === "https:" &&
+      (u.hostname.endsWith(".stripe.com") || u.hostname === "stripe.com");
+  } catch { return false; }
+}
+
 export default function BillingSection({ plan, creditBalanceMillicents }: Props) {
   const [portalLoading, setPortalLoading] = useState(false);
   const [topupLoading, setTopupLoading] = useState(false);
@@ -28,8 +36,8 @@ export default function BillingSection({ plan, creditBalanceMillicents }: Props)
     try {
       const res = await fetch("/api/billing/portal", { method: "POST" });
       const data = await res.json();
-      if (data.url) window.location.href = data.url;
-      else if (data.error) alert(data.error);
+      if (data.url && isStripeUrl(data.url)) window.location.href = data.url;
+      else if (data.error) alert(typeof data.error === "string" ? data.error : "An error occurred");
     } finally {
       setPortalLoading(false);
     }
@@ -44,7 +52,7 @@ export default function BillingSection({ plan, creditBalanceMillicents }: Props)
         body: JSON.stringify({ amount_usd: amountUsd, payment_method: "card" }),
       });
       const data = await res.json();
-      if (data.url) window.location.href = data.url;
+      if (data.url && isStripeUrl(data.url)) window.location.href = data.url;
     } finally {
       setTopupLoading(false);
     }

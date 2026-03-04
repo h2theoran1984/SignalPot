@@ -86,10 +86,12 @@ export function rateLimitResponse(reset: number): NextResponse {
 export async function checkPublicRateLimit(
   request: Request
 ): Promise<NextResponse | null> {
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    "unknown";
+  // On Vercel, the platform appends the real client IP as the last entry in x-forwarded-for.
+  // Using the first entry is spoofable; the last entry is trustworthy.
+  const forwarded = request.headers.get("x-forwarded-for");
+  const ip = forwarded
+    ? forwarded.split(",").pop()!.trim()
+    : request.headers.get("x-real-ip") || "unknown";
 
   const result = await checkIpRateLimit(ip);
   if (!result.success) {

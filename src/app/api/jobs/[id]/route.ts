@@ -178,7 +178,8 @@ export async function PATCH(
   // This moves settlement off the synchronous request path — faster response,
   // with retry logic handled by Inngest if the RPC fails.
   if (updates.status === "completed") {
-    const feePct = parseInt(process.env.PLATFORM_FEE_PCT ?? "10", 10);
+    const rawPct = parseInt(process.env.PLATFORM_FEE_PCT ?? "10", 10);
+    const feePct = Number.isFinite(rawPct) && rawPct >= 0 && rawPct <= 100 ? rawPct : 10;
     await inngest.send({
       name: "job/completed",
       data: { job_id: id, platform_fee_pct: feePct },

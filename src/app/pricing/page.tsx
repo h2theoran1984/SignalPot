@@ -52,6 +52,14 @@ const plans = [
   },
 ];
 
+function isStripeUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return u.protocol === "https:" &&
+      (u.hostname.endsWith(".stripe.com") || u.hostname === "stripe.com");
+  } catch { return false; }
+}
+
 export default function PricingPage() {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
@@ -72,7 +80,7 @@ export default function PricingPage() {
         return;
       }
       const data = await res.json();
-      if (data.url) window.location.href = data.url;
+      if (data.url && isStripeUrl(data.url)) window.location.href = data.url;
     } catch {
       // ignore
     } finally {
@@ -93,7 +101,7 @@ export default function PricingPage() {
         return;
       }
       const data = await res.json();
-      if (data.url) window.location.href = data.url;
+      if (data.url && isStripeUrl(data.url)) window.location.href = data.url;
     } catch {
       // ignore
     } finally {

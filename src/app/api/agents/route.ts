@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getAuthContext, hasScope } from "@/lib/auth";
+import { getAuthContext, hasScope, checkPublicRateLimit } from "@/lib/auth";
 import {
   createAgentSchema,
   escapeIlike,
@@ -11,6 +11,9 @@ import { getAgentLimitForPlan, type Plan } from "@/lib/plans";
 
 // GET /api/agents — Search/filter agents
 export async function GET(request: Request) {
+  const rateLimited = await checkPublicRateLimit(request);
+  if (rateLimited) return rateLimited;
+
   const { searchParams } = new URL(request.url);
   const capability = searchParams.get("capability");
   const tags = searchParams.get("tags");
@@ -69,7 +72,7 @@ export async function GET(request: Request) {
 
   if (maxRate) {
     const rate = parseFloat(maxRate);
-    if (!isNaN(rate) && rate >= 0) {
+    if (Number.isFinite(rate) && rate >= 0) {
       query = query.lte("rate_amount", rate);
     }
   }
@@ -103,7 +106,7 @@ export async function GET(request: Request) {
   // Sprint 12: max_cost — upper bound on rate_amount (stricter alias alongside max_rate)
   if (maxCost) {
     const cost = parseFloat(maxCost);
-    if (!isNaN(cost) && cost >= 0) {
+    if (Number.isFinite(cost) && cost >= 0) {
       query = query.lte("rate_amount", cost);
     }
   }
@@ -139,9 +142,11 @@ export async function GET(request: Request) {
   // Filter by min trust score client-side (after aggregation)
   // Both min_trust_score (legacy) and min_trust (Sprint 12 constraint) use the same logic.
   // Apply the stricter of the two if both are provided.
+  const parsedMinTrustScore = minTrustScore ? parseFloat(minTrustScore) : 0;
+  const parsedMinTrust = minTrust ? parseFloat(minTrust) : 0;
   const minTrustThreshold = Math.max(
-    minTrustScore ? parseFloat(minTrustScore) : 0,
-    minTrust ? parseFloat(minTrust) : 0
+    Number.isFinite(parsedMinTrustScore) ? parsedMinTrustScore : 0,
+    Number.isFinite(parsedMinTrust) ? parsedMinTrust : 0
   );
 
   const filtered =

@@ -40,12 +40,13 @@ export async function verifyApiKey(key: string): Promise<{
   if (data.revoked) return null;
   if (data.expires_at && new Date(data.expires_at) < new Date()) return null;
 
-  // Update last_used_at (fire-and-forget)
-  supabase
-    .from("api_keys")
-    .update({ last_used_at: new Date().toISOString() })
-    .eq("key_hash", hash)
-    .then(() => {});
+  // Update last_used_at (fire-and-forget with error handling)
+  Promise.resolve(
+    supabase
+      .from("api_keys")
+      .update({ last_used_at: new Date().toISOString() })
+      .eq("key_hash", hash)
+  ).catch((err) => console.error("Failed to update last_used_at:", err));
 
   return {
     profileId: data.profile_id,

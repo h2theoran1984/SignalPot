@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { generateApiKey } from "@/lib/api-keys";
 import { createApiKeySchema } from "@/lib/validations";
 import { getRpmForPlan, type Plan } from "@/lib/plans";
+import { checkPublicRateLimit } from "@/lib/auth";
 
 // GET /api/keys — List current user's API keys (session auth only)
 export async function GET() {
@@ -33,6 +34,9 @@ export async function GET() {
 
 // POST /api/keys — Generate a new API key (session auth only)
 export async function POST(request: Request) {
+  const rateLimited = await checkPublicRateLimit(request);
+  if (rateLimited) return rateLimited;
+
   const supabase = await createClient();
   const {
     data: { user },

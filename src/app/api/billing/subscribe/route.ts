@@ -66,11 +66,24 @@ export async function POST(request: Request) {
     });
     customerId = customer.id;
 
-    // Store the customer ID immediately so concurrent requests don't create duplicates
-    await admin
+    // Atomic upsert: only set if still null (prevents race with concurrent requests)
+    const { data: updated } = await admin
       .from("profiles")
       .update({ stripe_customer_id: customerId })
-      .eq("id", user.id);
+      .eq("id", user.id)
+      .is("stripe_customer_id", null)
+      .select("stripe_customer_id")
+      .single();
+
+    // If another request already set a customer ID, use that one instead
+    if (!updated) {
+      const { data: existing } = await admin
+        .from("profiles")
+        .select("stripe_customer_id")
+        .eq("id", user.id)
+        .single();
+      customerId = existing!.stripe_customer_id;
+    }
   }
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://signalpot.dev";

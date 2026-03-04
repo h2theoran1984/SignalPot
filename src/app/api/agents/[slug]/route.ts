@@ -120,7 +120,7 @@ export async function PATCH(
 
   if (!data) {
     return NextResponse.json(
-      { error: "Agent not found or you are not the owner" },
+      { error: "Agent not found" },
       { status: 404 }
     );
   }

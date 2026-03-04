@@ -115,6 +115,13 @@ export const createJobSchema = z.object({
   caller_constraints: callerConstraintsSchema,
 });
 
+export const updateDisputeSchema = z.object({
+  status: z.enum(["open", "reviewing", "resolved", "appealed"]),
+  resolution: z.enum(["upheld", "rejected", "partial"]).optional(),
+  resolver_notes: z.string().max(2000).optional(),
+  tier: z.number().int().min(1).max(3).optional(),
+});
+
 export const updateJobSchema = z.object({
   status: z.enum(["running", "completed", "failed"]).optional(),
   output_summary: z.record(z.string(), z.unknown()).nullable().optional(),
