@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 
 const sections = [
   {
@@ -111,6 +111,93 @@ interface Section {
   classification: string;
 }
 
+/* ── Form data types ── */
+
+interface CapabilityEntry {
+  id: string;
+  name: string;
+  displayName: string;
+  description: string;
+}
+
+interface ChecklistItem {
+  id: string;
+  label: string;
+  checked: boolean;
+}
+
+interface AgentFormData {
+  name: string;
+  slug: string;
+  description: string;
+  goal: string;
+  decisionLogic: string;
+  agentType: "autonomous" | "reactive" | "hybrid";
+  tags: string;
+  endpointUrl: string;
+  mcpEndpoint: string;
+  protocolSupport: { a2a: boolean; mcp: boolean; rest: boolean };
+  authType: "none" | "bearer" | "api_key" | "oauth2";
+  authNotes: string;
+  coreLogicNotes: string;
+  coreLogicChecklist: ChecklistItem[];
+  capabilities: CapabilityEntry[];
+  observabilityNotes: string;
+  loggingEnabled: boolean;
+  rateType: "free" | "per_call" | "per_task" | "per_hour" | "per_token";
+  rateAmount: string;
+  errorHandlingNotes: string;
+  errorHandlingChecklist: ChecklistItem[];
+  deploymentNotes: string;
+  deploymentChecklist: ChecklistItem[];
+  testingNotes: string;
+  testingChecklist: ChecklistItem[];
+}
+
+const DEFAULT_FORM_DATA: AgentFormData = {
+  name: "", slug: "", description: "", goal: "", decisionLogic: "",
+  agentType: "reactive", tags: "",
+  endpointUrl: "", mcpEndpoint: "",
+  protocolSupport: { a2a: true, mcp: true, rest: false },
+  authType: "none", authNotes: "",
+  coreLogicNotes: "",
+  coreLogicChecklist: [
+    { id: "cl4-1", label: "Internal tools implemented", checked: false },
+    { id: "cl4-2", label: "Capability handlers working", checked: false },
+    { id: "cl4-3", label: "Scheduler / autonomous loop running", checked: false },
+    { id: "cl4-4", label: "Hiring flow tested", checked: false },
+  ],
+  capabilities: [],
+  observabilityNotes: "", loggingEnabled: true,
+  rateType: "free", rateAmount: "0",
+  errorHandlingNotes: "",
+  errorHandlingChecklist: [
+    { id: "cl8-1", label: "Error categories mapped", checked: false },
+    { id: "cl8-2", label: "Retry logic with backoff", checked: false },
+    { id: "cl8-3", label: "Circuit breakers per dependency", checked: false },
+    { id: "cl8-4", label: "Fallback chains configured", checked: false },
+    { id: "cl8-5", label: "Health endpoint responding", checked: false },
+  ],
+  deploymentNotes: "",
+  deploymentChecklist: [
+    { id: "cl9-1", label: "Version set in config", checked: false },
+    { id: "cl9-2", label: "MCP endpoint reachable", checked: false },
+    { id: "cl9-3", label: "Health endpoint responsive", checked: false },
+    { id: "cl9-4", label: "A2A Agent Card serving", checked: false },
+    { id: "cl9-5", label: "CI/CD pipeline configured", checked: false },
+  ],
+  testingNotes: "",
+  testingChecklist: [
+    { id: "cl10-1", label: "Unit tests passing", checked: false },
+    { id: "cl10-2", label: "Integration tests with sandbox", checked: false },
+    { id: "cl10-3", label: "Platform test harness passed", checked: false },
+    { id: "cl10-4", label: "10+ sandbox transactions", checked: false },
+    { id: "cl10-5", label: "24h uptime verified", checked: false },
+  ],
+};
+
+/* ── Shared styles ── */
+
 const statusColors: Record<SectionStatus, { bg: string; border: string; text: string; glow: string }> = {
   completed: { bg: "#0a2e1a", border: "#22c55e", text: "#4ade80", glow: "0 0 20px rgba(34,197,94,0.3)" },
   active: { bg: "#1a1a0a", border: "#eab308", text: "#facc15", glow: "0 0 20px rgba(234,179,8,0.3)" },
@@ -120,11 +207,60 @@ const statusColors: Record<SectionStatus, { bg: string; border: string; text: st
 const criticalPath = [1, 2, 3, 4, 5, 6, 7];
 const classColors: Record<string, string> = { "REQUIRED": "#ef4444", "REQUIRED / OPTIONAL": "#f59e0b", "DEVELOPER OWNED": "#3b82f6" };
 
+const inputStyle: React.CSSProperties = {
+  width: "100%", padding: "8px 12px", background: "#1a1a1f", border: "1px solid #27272a",
+  borderRadius: 6, color: "#e4e4e7", fontSize: 12, fontFamily: "inherit", outline: "none",
+};
+const textareaStyle: React.CSSProperties = { ...inputStyle, resize: "vertical" as const, minHeight: 60 };
+const selectStyle: React.CSSProperties = {
+  ...inputStyle, cursor: "pointer", appearance: "none" as const,
+  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
+  backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center", paddingRight: 32,
+};
+const labelStyle: React.CSSProperties = { fontSize: 10, color: "#71717a", letterSpacing: 2, textTransform: "uppercase" as const, marginBottom: 4, display: "block" };
+const fg: React.CSSProperties = { marginBottom: 12 };
+const chkLabel: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#a1a1aa", cursor: "pointer", marginBottom: 6 };
+const formBox: React.CSSProperties = { background: "#0c0c0f", borderRadius: 8, padding: 12, border: "1px solid #1e1e24", marginBottom: 12 };
+const formBoxTitle: React.CSSProperties = { fontSize: 10, color: "#52525b", letterSpacing: 2, marginBottom: 10, textTransform: "uppercase" as const };
+
+/* ── Component ── */
+
 export default function AgentBuildoutTracker() {
   const [data, setData] = useState<Section[]>(sections);
   const [selected, setSelected] = useState<number | null>(null);
   const [view, setView] = useState<"map" | "list">("map");
   const [promptExpanded, setPromptExpanded] = useState(false);
+  const [formData, setFormData] = useState<AgentFormData>(DEFAULT_FORM_DATA);
+  const [loaded, setLoaded] = useState(false);
+
+  /* localStorage: load */
+  useEffect(() => {
+    try {
+      const sf = localStorage.getItem("signalpot-buildout-form");
+      if (sf) setFormData((p) => ({ ...p, ...JSON.parse(sf) }));
+      const ss = localStorage.getItem("signalpot-buildout-status");
+      if (ss) {
+        const m = JSON.parse(ss) as Record<number, SectionStatus>;
+        setData((prev) => getAvailableSections(prev.map((s) => ({ ...s, status: m[s.id] === "completed" ? "completed" : s.status }))));
+      }
+    } catch { /* ignore */ }
+    setLoaded(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* localStorage: save form */
+  useEffect(() => {
+    if (!loaded) return;
+    try { localStorage.setItem("signalpot-buildout-form", JSON.stringify(formData)); } catch { /* */ }
+  }, [formData, loaded]);
+
+  /* localStorage: save section status */
+  useEffect(() => {
+    if (!loaded) return;
+    const m: Record<number, SectionStatus> = {};
+    data.forEach((s) => { m[s.id] = s.status; });
+    try { localStorage.setItem("signalpot-buildout-status", JSON.stringify(m)); } catch { /* */ }
+  }, [data, loaded]);
 
   const completedCount = data.filter((s) => s.status === "completed").length;
   const progress = (completedCount / data.length) * 100;
@@ -139,15 +275,326 @@ export default function AgentBuildoutTracker() {
 
   const toggleComplete = (id: number) => {
     setData((prev) =>
-      getAvailableSections(
-        prev.map((s) =>
-          s.id === id ? { ...s, status: (s.status === "completed" ? "active" : "completed") as SectionStatus } : s
-        )
-      )
+      getAvailableSections(prev.map((s) => s.id === id ? { ...s, status: (s.status === "completed" ? "active" : "completed") as SectionStatus } : s))
     );
   };
 
   const sel = data.find((s) => s.id === selected) || null;
+
+  /* ── Form helpers ── */
+
+  const updateField = useCallback(<K extends keyof AgentFormData>(key: K, value: AgentFormData[K]) => {
+    setFormData((p) => ({ ...p, [key]: value }));
+  }, []);
+
+  const generateSlug = useCallback((name: string) =>
+    name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 64), []);
+
+  const toggleChecklist = useCallback((field: "coreLogicChecklist" | "errorHandlingChecklist" | "deploymentChecklist" | "testingChecklist", itemId: string) => {
+    setFormData((p) => ({ ...p, [field]: (p[field] as ChecklistItem[]).map((i) => i.id === itemId ? { ...i, checked: !i.checked } : i) }));
+  }, []);
+
+  const addCapability = useCallback(() => {
+    setFormData((p) => ({ ...p, capabilities: [...p.capabilities, { id: `cap-${Date.now()}`, name: "", displayName: "", description: "" }] }));
+  }, []);
+
+  const removeCapability = useCallback((capId: string) => {
+    setFormData((p) => ({ ...p, capabilities: p.capabilities.filter((c) => c.id !== capId) }));
+  }, []);
+
+  const updateCapability = useCallback((capId: string, field: keyof Omit<CapabilityEntry, "id">, value: string) => {
+    setFormData((p) => ({ ...p, capabilities: p.capabilities.map((c) => c.id === capId ? { ...c, [field]: value } : c) }));
+  }, []);
+
+  const configProgress = useMemo(() => {
+    let filled = 0;
+    const total = 7;
+    if (formData.name) filled++;
+    if (formData.slug) filled++;
+    if (formData.description) filled++;
+    if (formData.goal) filled++;
+    if (formData.decisionLogic) filled++;
+    if (formData.capabilities.length > 0) filled++;
+    if (formData.endpointUrl) filled++;
+    return Math.round((filled / total) * 100);
+  }, [formData]);
+
+  const exportConfig = useCallback(() => {
+    const tags = formData.tags.split(",").map((t) => t.trim()).filter(Boolean);
+    const config = {
+      name: formData.name,
+      slug: formData.slug || generateSlug(formData.name),
+      description: formData.description || null,
+      goal: formData.goal || null,
+      decision_logic: formData.decisionLogic || null,
+      agent_type: formData.agentType,
+      auth_type: formData.authType,
+      rate_type: formData.rateType === "free" ? "per_call" : formData.rateType,
+      rate_amount: formData.rateType === "free" ? 0 : parseFloat(formData.rateAmount) || 0,
+      tags,
+      endpoint_url: formData.endpointUrl || null,
+      mcp_endpoint: formData.mcpEndpoint || null,
+      capability_schema: {
+        capabilities: formData.capabilities.filter((c) => c.name.trim()).map((c) => ({
+          id: c.name, name: c.displayName, description: c.description,
+          inputSchema: {}, outputSchema: {},
+        })),
+      },
+    };
+    const blob = new Blob([JSON.stringify(config, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "signalpot.config.json";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  }, [formData, generateSlug]);
+
+  const resetForm = useCallback(() => {
+    if (window.confirm("Clear all form data? This cannot be undone.")) {
+      setFormData(DEFAULT_FORM_DATA);
+      localStorage.removeItem("signalpot-buildout-form");
+    }
+  }, []);
+
+  /* ── Section form renderer ── */
+
+  const renderSectionForm = (sectionId: number) => {
+    switch (sectionId) {
+      case 1:
+        return (
+          <div style={formBox}>
+            <div style={formBoxTitle}>Agent Config</div>
+            <div style={fg}>
+              <label style={labelStyle}>Agent Name *</label>
+              <input style={inputStyle} value={formData.name} placeholder="My AI Agent" maxLength={200}
+                onChange={(e) => { updateField("name", e.target.value); if (!formData.slug || formData.slug === generateSlug(formData.name)) updateField("slug", generateSlug(e.target.value)); }} />
+            </div>
+            <div style={fg}>
+              <label style={labelStyle}>Slug</label>
+              <input style={inputStyle} value={formData.slug} placeholder="my-ai-agent" maxLength={64}
+                onChange={(e) => updateField("slug", e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} />
+              <div style={{ fontSize: 10, color: "#3f3f46", marginTop: 2 }}>signalpot.dev/agents/{formData.slug || "your-slug"}</div>
+            </div>
+            <div style={fg}>
+              <label style={labelStyle}>Description (max 280)</label>
+              <textarea style={textareaStyle} value={formData.description} placeholder="What does your agent do?" maxLength={280} rows={2}
+                onChange={(e) => updateField("description", e.target.value)} />
+              <div style={{ fontSize: 10, color: "#3f3f46", textAlign: "right" }}>{formData.description.length}/280</div>
+            </div>
+            <div style={fg}>
+              <label style={labelStyle}>Goal *</label>
+              <textarea style={textareaStyle} value={formData.goal} placeholder="What objective does this agent pursue?" maxLength={500} rows={3}
+                onChange={(e) => updateField("goal", e.target.value)} />
+            </div>
+            <div style={fg}>
+              <label style={labelStyle}>Decision Logic *</label>
+              <textarea style={textareaStyle} value={formData.decisionLogic} placeholder="How does it decide what to do?" maxLength={2000} rows={3}
+                onChange={(e) => updateField("decisionLogic", e.target.value)} />
+            </div>
+            <div style={fg}>
+              <label style={labelStyle}>Agent Type</label>
+              <select style={selectStyle} value={formData.agentType} onChange={(e) => updateField("agentType", e.target.value as AgentFormData["agentType"])}>
+                <option value="autonomous">Autonomous</option>
+                <option value="reactive">Reactive</option>
+                <option value="hybrid">Hybrid</option>
+              </select>
+            </div>
+            <div style={fg}>
+              <label style={labelStyle}>Tags (comma-separated)</label>
+              <input style={inputStyle} value={formData.tags} placeholder="nlp, monitoring, reports" onChange={(e) => updateField("tags", e.target.value)} />
+              {formData.tags && (
+                <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 6 }}>
+                  {formData.tags.split(",").map((t) => t.trim()).filter(Boolean).map((tag, i) => (
+                    <span key={i} style={{ fontSize: 10, padding: "2px 8px", borderRadius: 4, background: "#eab30815", color: "#eab308", border: "1px solid #eab30830" }}>{tag}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      case 2:
+        return (
+          <div style={formBox}>
+            <div style={formBoxTitle}>Interface Config</div>
+            <div style={fg}>
+              <label style={labelStyle}>Endpoint URL</label>
+              <input style={inputStyle} value={formData.endpointUrl} placeholder="https://my-agent.example.com" onChange={(e) => updateField("endpointUrl", e.target.value)} />
+            </div>
+            <div style={fg}>
+              <label style={labelStyle}>MCP Endpoint (optional)</label>
+              <input style={inputStyle} value={formData.mcpEndpoint} placeholder="https://my-agent.example.com/mcp/tools" onChange={(e) => updateField("mcpEndpoint", e.target.value)} />
+            </div>
+            <div style={fg}>
+              <label style={labelStyle}>Protocol Support</label>
+              {(["a2a", "mcp", "rest"] as const).map((p) => (
+                <label key={p} style={chkLabel}>
+                  <input type="checkbox" checked={formData.protocolSupport[p]}
+                    onChange={() => updateField("protocolSupport", { ...formData.protocolSupport, [p]: !formData.protocolSupport[p] })} />
+                  {p.toUpperCase()}
+                </label>
+              ))}
+            </div>
+          </div>
+        );
+      case 3:
+        return (
+          <div style={formBox}>
+            <div style={formBoxTitle}>Auth Config</div>
+            <div style={fg}>
+              <label style={labelStyle}>Auth Type</label>
+              <select style={selectStyle} value={formData.authType} onChange={(e) => updateField("authType", e.target.value as AgentFormData["authType"])}>
+                <option value="none">None</option>
+                <option value="bearer">Bearer Token</option>
+                <option value="api_key">API Key</option>
+                <option value="oauth2">OAuth 2.0</option>
+              </select>
+            </div>
+            <div style={fg}>
+              <label style={labelStyle}>Notes</label>
+              <textarea style={textareaStyle} value={formData.authNotes} placeholder="Auth implementation notes..." rows={3} onChange={(e) => updateField("authNotes", e.target.value)} />
+            </div>
+          </div>
+        );
+      case 4:
+        return (
+          <div style={formBox}>
+            <div style={formBoxTitle}>Core Logic Notes</div>
+            <div style={fg}>
+              <textarea style={textareaStyle} value={formData.coreLogicNotes} placeholder="Describe your internal tools, capability handlers, scheduler..." rows={4} onChange={(e) => updateField("coreLogicNotes", e.target.value)} />
+            </div>
+            <div style={formBoxTitle}>Implementation Checklist</div>
+            {formData.coreLogicChecklist.map((item) => (
+              <label key={item.id} style={chkLabel}>
+                <input type="checkbox" checked={item.checked} onChange={() => toggleChecklist("coreLogicChecklist", item.id)} />
+                <span style={{ textDecoration: item.checked ? "line-through" : "none", color: item.checked ? "#4ade80" : "#a1a1aa" }}>{item.label}</span>
+              </label>
+            ))}
+          </div>
+        );
+      case 5:
+        return (
+          <div style={formBox}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <div style={formBoxTitle}>Capabilities</div>
+              <button onClick={addCapability}
+                style={{ background: "#eab30815", border: "1px solid #eab30830", borderRadius: 4, color: "#eab308", fontSize: 10, padding: "3px 10px", cursor: "pointer", fontFamily: "inherit", letterSpacing: 1 }}>
+                + ADD
+              </button>
+            </div>
+            {formData.capabilities.length === 0 && (
+              <div style={{ fontSize: 11, color: "#3f3f46", fontStyle: "italic", marginBottom: 8 }}>No capabilities defined yet. Click + ADD to start.</div>
+            )}
+            {formData.capabilities.map((cap, idx) => (
+              <div key={cap.id} style={{ background: "#14141a", borderRadius: 6, padding: 10, marginBottom: 8, border: "1px solid #1e1e24" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <span style={{ fontSize: 10, color: "#52525b" }}>Capability {idx + 1}</span>
+                  <button onClick={() => removeCapability(cap.id)}
+                    style={{ background: "none", border: "none", color: "#ef4444", fontSize: 14, cursor: "pointer", padding: 0 }}>{"\u00D7"}</button>
+                </div>
+                <div style={fg}>
+                  <label style={labelStyle}>ID (e.g. signalpot/text-summary@v1)</label>
+                  <input style={inputStyle} value={cap.name} placeholder="signalpot/my-capability@v1" onChange={(e) => updateCapability(cap.id, "name", e.target.value)} />
+                </div>
+                <div style={fg}>
+                  <label style={labelStyle}>Display Name</label>
+                  <input style={inputStyle} value={cap.displayName} placeholder="My Capability" onChange={(e) => updateCapability(cap.id, "displayName", e.target.value)} />
+                </div>
+                <div style={fg}>
+                  <label style={labelStyle}>Description</label>
+                  <textarea style={{ ...textareaStyle, minHeight: 40 }} value={cap.description} placeholder="What does this capability do?" rows={2} onChange={(e) => updateCapability(cap.id, "description", e.target.value)} />
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      case 6:
+        return (
+          <div style={formBox}>
+            <div style={formBoxTitle}>Observability Notes</div>
+            <div style={fg}>
+              <textarea style={textareaStyle} value={formData.observabilityNotes} placeholder="Logging setup, custom metrics, dashboards..." rows={3} onChange={(e) => updateField("observabilityNotes", e.target.value)} />
+            </div>
+            <label style={chkLabel}>
+              <input type="checkbox" checked={formData.loggingEnabled} onChange={() => updateField("loggingEnabled", !formData.loggingEnabled)} />
+              Platform logging enabled
+            </label>
+          </div>
+        );
+      case 7:
+        return (
+          <div style={formBox}>
+            <div style={formBoxTitle}>Billing Config</div>
+            <div style={fg}>
+              <label style={labelStyle}>Rate Type</label>
+              <select style={selectStyle} value={formData.rateType} onChange={(e) => updateField("rateType", e.target.value as AgentFormData["rateType"])}>
+                <option value="free">Free</option>
+                <option value="per_call">Per Call</option>
+                <option value="per_task">Per Task</option>
+                <option value="per_hour">Per Hour</option>
+                <option value="per_token">Per Token</option>
+              </select>
+            </div>
+            {formData.rateType !== "free" && (
+              <div style={fg}>
+                <label style={labelStyle}>Rate Amount (USD)</label>
+                <input style={inputStyle} type="number" step="0.001" min="0.001" value={formData.rateAmount}
+                  onChange={(e) => updateField("rateAmount", e.target.value)} />
+                <div style={{ fontSize: 10, color: "#3f3f46", marginTop: 2 }}>Minimum $0.001 per transaction</div>
+              </div>
+            )}
+          </div>
+        );
+      case 8:
+        return (
+          <div style={formBox}>
+            <div style={formBoxTitle}>Error Handling Notes</div>
+            <div style={fg}>
+              <textarea style={textareaStyle} value={formData.errorHandlingNotes} placeholder="Error categories, retry strategy, fallbacks..." rows={3} onChange={(e) => updateField("errorHandlingNotes", e.target.value)} />
+            </div>
+            <div style={formBoxTitle}>Checklist</div>
+            {formData.errorHandlingChecklist.map((item) => (
+              <label key={item.id} style={chkLabel}>
+                <input type="checkbox" checked={item.checked} onChange={() => toggleChecklist("errorHandlingChecklist", item.id)} />
+                <span style={{ textDecoration: item.checked ? "line-through" : "none", color: item.checked ? "#4ade80" : "#a1a1aa" }}>{item.label}</span>
+              </label>
+            ))}
+          </div>
+        );
+      case 9:
+        return (
+          <div style={formBox}>
+            <div style={formBoxTitle}>Deployment Notes</div>
+            <div style={fg}>
+              <textarea style={textareaStyle} value={formData.deploymentNotes} placeholder="Deployment target, versioning strategy..." rows={3} onChange={(e) => updateField("deploymentNotes", e.target.value)} />
+            </div>
+            <div style={formBoxTitle}>Deployment Checklist</div>
+            {formData.deploymentChecklist.map((item) => (
+              <label key={item.id} style={chkLabel}>
+                <input type="checkbox" checked={item.checked} onChange={() => toggleChecklist("deploymentChecklist", item.id)} />
+                <span style={{ textDecoration: item.checked ? "line-through" : "none", color: item.checked ? "#4ade80" : "#a1a1aa" }}>{item.label}</span>
+              </label>
+            ))}
+          </div>
+        );
+      case 10:
+        return (
+          <div style={formBox}>
+            <div style={formBoxTitle}>Testing Notes</div>
+            <div style={fg}>
+              <textarea style={textareaStyle} value={formData.testingNotes} placeholder="Test strategy, coverage targets..." rows={3} onChange={(e) => updateField("testingNotes", e.target.value)} />
+            </div>
+            <div style={formBoxTitle}>Testing Checklist</div>
+            {formData.testingChecklist.map((item) => (
+              <label key={item.id} style={chkLabel}>
+                <input type="checkbox" checked={item.checked} onChange={() => toggleChecklist("testingChecklist", item.id)} />
+                <span style={{ textDecoration: item.checked ? "line-through" : "none", color: item.checked ? "#4ade80" : "#a1a1aa" }}>{item.label}</span>
+              </label>
+            ))}
+          </div>
+        );
+      default: return null;
+    }
+  };
+
+  /* ── Prompt renderer (unchanged) ── */
 
   const renderPrompt = (prompt: string | undefined) => {
     if (!prompt) return <div style={{ fontSize: 12, color: "#3f3f46", fontStyle: "italic" }}>Not yet drafted</div>;
@@ -171,6 +618,8 @@ export default function AgentBuildoutTracker() {
       </div>
     );
   };
+
+  /* ── Render ── */
 
   return (
     <div style={{ fontFamily: "'JetBrains Mono', 'Fira Code', monospace", background: "#0c0c0f", color: "#e4e4e7", minHeight: "100vh", padding: "24px", boxSizing: "border-box" }}>
@@ -196,13 +645,32 @@ export default function AgentBuildoutTracker() {
           </h1>
           <p style={{ fontSize: 12, color: "#71717a", margin: "6px 0 0 0" }}>Build your AI agent step by step &middot; MCP/A2A &middot; {completedCount}/{data.length} complete</p>
         </div>
-        <div style={{ minWidth: 220 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-            <span style={{ fontSize: 11, color: "#71717a" }}>BUILD PROGRESS</span>
-            <span style={{ fontSize: 11, color: "#eab308", fontWeight: 600 }}>{Math.round(progress)}%</span>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 16, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button onClick={exportConfig} disabled={!formData.name}
+              style={{ padding: "8px 16px", background: formData.name ? "#eab308" : "#27272a", border: "none", borderRadius: 6, color: formData.name ? "#0c0c0f" : "#52525b", fontSize: 11, fontFamily: "inherit", letterSpacing: 1, textTransform: "uppercase", cursor: formData.name ? "pointer" : "default", fontWeight: 600 }}>
+              Export Config
+            </button>
+            <button onClick={resetForm}
+              style={{ padding: "8px 12px", background: "transparent", border: "1px solid #27272a", borderRadius: 6, color: "#52525b", fontSize: 11, fontFamily: "inherit", letterSpacing: 1, cursor: "pointer" }}>
+              Reset
+            </button>
           </div>
-          <div style={{ height: 4, background: "#27272a", borderRadius: 2, overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${progress}%`, borderRadius: 2, background: "linear-gradient(90deg, #eab308, #22c55e)", transition: "width 0.5s ease" }} />
+          <div style={{ minWidth: 200 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+              <span style={{ fontSize: 10, color: "#71717a" }}>BUILD PROGRESS</span>
+              <span style={{ fontSize: 10, color: "#eab308", fontWeight: 600 }}>{Math.round(progress)}%</span>
+            </div>
+            <div style={{ height: 4, background: "#27272a", borderRadius: 2, overflow: "hidden", marginBottom: 6 }}>
+              <div style={{ height: "100%", width: `${progress}%`, borderRadius: 2, background: "linear-gradient(90deg, #eab308, #22c55e)", transition: "width 0.5s ease" }} />
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+              <span style={{ fontSize: 10, color: "#71717a" }}>CONFIG PROGRESS</span>
+              <span style={{ fontSize: 10, color: "#06b6d4", fontWeight: 600 }}>{configProgress}%</span>
+            </div>
+            <div style={{ height: 4, background: "#27272a", borderRadius: 2, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${configProgress}%`, borderRadius: 2, background: "linear-gradient(90deg, #06b6d4, #22d3ee)", transition: "width 0.5s ease" }} />
+            </div>
           </div>
         </div>
       </div>
@@ -268,7 +736,7 @@ export default function AgentBuildoutTracker() {
         </div>
 
         {/* Right: Detail Panel */}
-        <div style={{ flex: "0 0 400px", maxWidth: 440, background: "#14141a", border: "1px solid #1e1e24", borderRadius: 12, padding: 24, height: "fit-content", position: "sticky", top: 24 }}>
+        <div style={{ flex: "0 0 460px", maxWidth: 500, background: "#14141a", border: "1px solid #1e1e24", borderRadius: 12, padding: 24, maxHeight: "calc(100vh - 48px)", overflowY: "auto", position: "sticky", top: 24 }}>
           {sel ? (
             <div style={{ animation: "slideIn 0.25s ease" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -293,6 +761,10 @@ export default function AgentBuildoutTracker() {
                   </div>
                 ))}
               </div>
+
+              {/* Form fields for this section */}
+              {renderSectionForm(sel.id)}
+
               <div style={{ background: "#0c0c0f", borderRadius: 8, padding: 12, border: "1px solid #1e1e24", marginBottom: 12 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                   <div style={{ fontSize: 10, color: "#52525b", letterSpacing: 2, textTransform: "uppercase" }}>Buildout Prompt</div>
