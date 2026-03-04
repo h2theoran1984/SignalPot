@@ -13,4 +13,10 @@ export type SignalPotEvents = {
       platform_fee_pct: number;
     };
   };
+  "dispute/filed": {
+    data: {
+      dispute_id: string;
+      job_id: string;
+    };
+  };
 };

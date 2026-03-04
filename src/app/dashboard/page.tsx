@@ -155,7 +155,15 @@ export default async function DashboardPage() {
           </div>
         )}
 
-        <h2 className="text-xl font-semibold mb-4">Recent Jobs</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Recent Jobs</h2>
+          <a
+            href="/disputes"
+            className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+          >
+            My Disputes →
+          </a>
+        </div>
         {!jobs || jobs.length === 0 ? (
           <p className="text-gray-500">No job history yet.</p>
         ) : (
@@ -189,6 +197,15 @@ export default async function DashboardPage() {
                   )}
                   {job.cost > 0 && (
                     <span className="text-xs text-gray-500">${job.cost}</span>
+                  )}
+                  {job.status === "completed" && (
+                    <a
+                      href={`/disputes/new?job_id=${job.id}`}
+                      className="text-xs text-gray-600 hover:text-yellow-400 transition-colors border border-transparent hover:border-yellow-400/30 px-1.5 py-0.5 rounded"
+                      title="File a dispute for this job"
+                    >
+                      dispute
+                    </a>
                   )}
                 </div>
               </div>
