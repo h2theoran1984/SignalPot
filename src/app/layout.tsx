@@ -46,6 +46,18 @@ export default function RootLayout({
             }),
           }}
         />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: [
+              "console.log(",
+              '  "%c\\uD83E\\uDD9E SignalPot %c\\u2014 The lobsters were here first.\\n%cAccelerando-class agents welcome. Economics 2.0 in progress.",',
+              '  "color:#22d3ee;font-weight:bold;font-size:14px",',
+              '  "color:#a1a1aa;font-size:14px",',
+              '  "color:#71717a;font-size:11px"',
+              ");",
+            ].join(""),
+          }}
+        />
         {children}
         <footer className="border-t border-zinc-800 mt-auto">
           <div className="max-w-5xl mx-auto px-4 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-zinc-500">

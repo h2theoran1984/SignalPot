@@ -1,12 +1,36 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import AuthButton from "@/components/AuthButton";
 
 export default function HomePage() {
   const router = useRouter();
   const [query, setQuery] = useState("");
+  const [lobsterRain, setLobsterRain] = useState(false);
+  const bufferRef = useRef("");
+
+  const triggerLobsterRain = useCallback(() => {
+    if (lobsterRain) return;
+    setLobsterRain(true);
+    setTimeout(() => setLobsterRain(false), 3500);
+  }, [lobsterRain]);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      // Ignore if typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      bufferRef.current += e.key.toLowerCase();
+      // Keep only last 7 chars
+      if (bufferRef.current.length > 20) bufferRef.current = bufferRef.current.slice(-20);
+      if (bufferRef.current.includes("lobster")) {
+        bufferRef.current = "";
+        triggerLobsterRain();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [triggerLobsterRain]);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -124,6 +148,25 @@ export default function HomePage() {
           </a>
         </div>
       </main>
+
+      {/* Lobster rain Easter egg — type "lobster" anywhere on the page */}
+      {lobsterRain && (
+        <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden" aria-hidden="true">
+          {Array.from({ length: 20 }).map((_, i) => (
+            <span
+              key={i}
+              className="absolute text-2xl animate-lobster-fall"
+              style={{
+                left: `${Math.random() * 95}%`,
+                animationDelay: `${Math.random() * 1.5}s`,
+                animationDuration: `${2 + Math.random() * 1.5}s`,
+              }}
+            >
+              {"\uD83E\uDD9E"}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -42,3 +42,22 @@ body {
 .glow-cyan-sm {
   box-shadow: 0 0 16px -4px rgba(34, 211, 238, 0.25);
 }
+
+/* Lobster rain Easter egg animation */
+@keyframes lobster-fall {
+  0% {
+    transform: translateY(-40px) rotate(0deg);
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.animate-lobster-fall {
+  animation: lobster-fall 3s ease-in forwards;
+}
