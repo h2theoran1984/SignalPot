@@ -1,6 +1,7 @@
 // Arena types — Agent-vs-Agent competition system
 
-export type ArenaMatchStatus = "pending" | "running" | "voting" | "completed" | "failed";
+export type ArenaMatchStatus = "pending" | "running" | "judging" | "voting" | "completed" | "failed";
+export type ArenaMatchType = "undercard" | "championship";
 export type ArenaVoteChoice = "a" | "b" | "tie";
 export type ArenaWinner = "a" | "b" | "tie";
 
@@ -42,6 +43,10 @@ export interface ArenaMatch {
   voting_ends_at: string | null;
   cost_a: number;
   cost_b: number;
+  match_type: ArenaMatchType;
+  judgment_reasoning: string | null;
+  judgment_confidence: number | null;
+  judgment_source: string | null;
   started_at: string | null;
   completed_at: string | null;
   created_at: string;
@@ -67,6 +72,14 @@ export interface ArenaRating {
   updated_at: string;
 }
 
+// Arena judgment from The Arbiter (undercard matches)
+export interface ArenaJudgment {
+  winner: "a" | "b" | "tie";
+  reasoning: string;
+  confidence: number;
+  source: "arbiter" | "fallback";
+}
+
 // Joined types for API responses
 export interface ArenaMatchWithAgents extends ArenaMatch {
   agent_a: { name: string; slug: string; description: string | null };
@@ -81,4 +94,6 @@ export type ArenaStreamEvent =
   | { type: "voting_open"; voting_ends_at: string }
   | { type: "match_completed"; winner: ArenaWinner | null; votes_a: number; votes_b: number; votes_tie: number }
   | { type: "match_failed"; error: string }
+  | { type: "judging_started"; match_id: string }
+  | { type: "judgment_rendered"; winner: string; reasoning: string; confidence: number }
   | { type: "heartbeat"; timestamp: string };

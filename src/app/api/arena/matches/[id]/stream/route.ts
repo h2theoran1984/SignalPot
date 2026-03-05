@@ -53,7 +53,7 @@ export async function GET(
         try {
           const { data: match } = await admin
             .from("arena_matches")
-            .select("status, started_at, response_a, response_b, duration_a_ms, duration_b_ms, verified_a, verified_b, voting_ends_at, winner, votes_a, votes_b, votes_tie, completed_at")
+            .select("status, started_at, response_a, response_b, duration_a_ms, duration_b_ms, verified_a, verified_b, voting_ends_at, winner, votes_a, votes_b, votes_tie, completed_at, match_type, judgment_reasoning, judgment_confidence, judgment_source")
             .eq("id", id)
             .single();
 
@@ -73,6 +73,13 @@ export async function GET(
               })));
             }
 
+            if (match.status === "judging" && lastStatus !== "judging") {
+              controller.enqueue(encode(sseEvent({
+                type: "judging_started",
+                match_id: id,
+              })));
+            }
+
             if (match.status === "voting" && lastStatus !== "voting") {
               controller.enqueue(encode(sseEvent({
                 type: "voting_open",
@@ -81,6 +88,16 @@ export async function GET(
             }
 
             if (match.status === "completed") {
+              // If this was an undercard with judgment, emit judgment_rendered first
+              if (match.judgment_reasoning && lastStatus === "judging") {
+                controller.enqueue(encode(sseEvent({
+                  type: "judgment_rendered",
+                  winner: match.winner ?? "tie",
+                  reasoning: match.judgment_reasoning as string,
+                  confidence: (match.judgment_confidence as number) ?? 0,
+                })));
+              }
+
               controller.enqueue(encode(sseEvent({
                 type: "match_completed",
                 winner: match.winner,

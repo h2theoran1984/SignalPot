@@ -4,6 +4,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { wrapRequest, wrapResponse } from "@/lib/envelope";
 import { validateOutput } from "@/lib/schema-validator";
+import { inngest } from "@/lib/inngest/client";
 import type { Agent } from "@/lib/types";
 
 interface AgentCallResult {
@@ -242,10 +243,17 @@ export async function executeMatch(matchId: string): Promise<void> {
   }
 
   if (aSuccess && bSuccess) {
-    // Both succeeded — open voting
-    const votingEndsAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-    update.status = "voting";
-    update.voting_ends_at = votingEndsAt;
+    const matchType = (match.match_type as string) ?? "undercard";
+
+    if (matchType === "championship") {
+      // Championship → community voting (24h)
+      const votingEndsAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      update.status = "voting";
+      update.voting_ends_at = votingEndsAt;
+    } else {
+      // Undercard → The Arbiter judges
+      update.status = "judging";
+    }
   } else if (aSuccess && !bSuccess) {
     // Only A succeeded — A wins by default
     update.status = "completed";
@@ -266,4 +274,13 @@ export async function executeMatch(matchId: string): Promise<void> {
     .from("arena_matches")
     .update(update)
     .eq("id", matchId);
+
+  // Fire judging event for undercard matches where both agents succeeded
+  const matchType = (match.match_type as string) ?? "undercard";
+  if (matchType === "undercard" && aSuccess && bSuccess) {
+    await inngest.send({
+      name: "arena/match.judging",
+      data: { match_id: matchId },
+    });
+  }
 }

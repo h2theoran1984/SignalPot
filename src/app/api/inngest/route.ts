@@ -8,6 +8,8 @@ import { computeTrustSignals } from "@/lib/inngest/functions/compute-trust-signa
 import { generateStatements } from "@/lib/inngest/functions/generate-statements";
 import { dailySettlement } from "@/lib/inngest/functions/daily-settlement";
 import { arenaExecuteMatch } from "@/lib/inngest/functions/arena-execute-match";
+import { arenaJudgeMatch } from "@/lib/inngest/functions/arena-judge-match";
+import { arenaChampionship } from "@/lib/inngest/functions/arena-championship";
 import { resolveDisputeT3 } from "@/lib/inngest/functions/resolve-dispute-t3";
 
 // Inngest webhook handler — receives events from Inngest cloud and executes functions.
@@ -24,5 +26,7 @@ export const { GET, POST, PUT } = serve({
     generateStatements,
     dailySettlement,
     arenaExecuteMatch,
+    arenaJudgeMatch,
+    arenaChampionship,
   ],
 });

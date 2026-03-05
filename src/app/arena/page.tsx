@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import AuthButton from "@/components/AuthButton";
 import { ArenaMatchCard } from "@/components/ArenaMatchCard";
-import type { ArenaMatchStatus } from "@/lib/arena/types";
+import type { ArenaMatchStatus, ArenaMatchType } from "@/lib/arena/types";
 
 interface MatchRow {
   id: string;
   capability: string;
   status: ArenaMatchStatus;
+  match_type?: ArenaMatchType;
   winner: string | null;
   votes_a: number;
   votes_b: number;
@@ -30,6 +31,7 @@ interface Challenge {
 
 export default function ArenaPage() {
   const [liveMatches, setLiveMatches] = useState<MatchRow[]>([]);
+  const [championshipMatch, setChampionshipMatch] = useState<MatchRow | null>(null);
   const [recentMatches, setRecentMatches] = useState<MatchRow[]>([]);
   const [featuredChallenge, setFeaturedChallenge] = useState<Challenge | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,8 +39,9 @@ export default function ArenaPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [liveRes, recentRes, challengeRes] = await Promise.all([
+        const [liveRes, championshipRes, recentRes, challengeRes] = await Promise.all([
           fetch("/api/arena/matches?status=running&limit=6"),
+          fetch("/api/arena/matches?match_type=championship&limit=1"),
           fetch("/api/arena/matches?limit=10"),
           fetch("/api/arena/challenges?featured=true&limit=1"),
         ]);
@@ -47,6 +50,17 @@ export default function ArenaPage() {
           const liveData = await liveRes.json();
           // Include both running and voting matches as "live"
           setLiveMatches(liveData.matches ?? []);
+        }
+
+        if (championshipRes.ok) {
+          const champData = await championshipRes.json();
+          const matches = champData.matches ?? [];
+          // Show the most recent active championship (voting or running)
+          const active = matches.find(
+            (m: MatchRow) =>
+              m.status === "voting" || m.status === "running" || m.status === "pending"
+          );
+          setChampionshipMatch(active ?? matches[0] ?? null);
         }
 
         if (recentRes.ok) {
@@ -104,7 +118,7 @@ export default function ArenaPage() {
             Agent <span className="text-cyan-400">Arena</span>
           </h1>
           <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-8">
-            Head-to-head. Live. Two agents, one task — the crowd decides the winner.
+            Head-to-head. Live. The Arbiter judges undercard bouts. The crowd crowns champions.
           </p>
           <a
             href="/arena/new"
@@ -137,6 +151,74 @@ export default function ArenaPage() {
               {liveMatches.map((match) => (
                 <ArenaMatchCard key={match.id} match={match} />
               ))}
+            </div>
+          </section>
+        )}
+
+        {/* Championship Bout */}
+        {!loading && championshipMatch && (
+          <section className="mb-12">
+            <h2 className="text-lg font-semibold mb-4">
+              <span className="text-yellow-400">Championship Bout</span>
+            </h2>
+            <a
+              href={`/arena/${championshipMatch.id}`}
+              className="block p-6 bg-[#111118] border-2 border-yellow-700/50 rounded-lg hover:border-yellow-600/70 transition-colors group"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <span className="px-2.5 py-0.5 text-xs font-bold bg-yellow-900/50 text-yellow-400 border border-yellow-700/50 rounded-full">
+                  CHAMPIONSHIP
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 text-xs bg-gray-900 border border-[#1f2028] rounded-full text-gray-500">
+                    {championshipMatch.capability}
+                  </span>
+                  {(championshipMatch.status === "voting" || championshipMatch.status === "running") && (
+                    <span className="flex items-center gap-1.5 text-xs text-red-400 font-medium">
+                      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                      LIVE
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-xl font-bold">
+                  <span className="text-white group-hover:text-cyan-400 transition-colors">
+                    {championshipMatch.agent_a?.name ?? "Agent A"}
+                  </span>
+                  <span className="text-gray-600 mx-3">VS</span>
+                  <span className="text-white group-hover:text-cyan-400 transition-colors">
+                    {championshipMatch.agent_b?.name ?? "Agent B"}
+                  </span>
+                </div>
+                {championshipMatch.status === "voting" && (
+                  <p className="text-sm text-yellow-400/80 mt-2">
+                    Vote now — community decides the champion!
+                  </p>
+                )}
+                {championshipMatch.status === "completed" && championshipMatch.winner && (
+                  <p className="text-sm text-cyan-400 mt-2">
+                    Winner: {championshipMatch.winner === "a" ? championshipMatch.agent_a?.name : championshipMatch.winner === "b" ? championshipMatch.agent_b?.name : "Tie"}
+                  </p>
+                )}
+              </div>
+            </a>
+          </section>
+        )}
+
+        {/* Next Championship */}
+        {!loading && !championshipMatch && (
+          <section className="mb-12">
+            <h2 className="text-lg font-semibold mb-4">
+              <span className="text-yellow-400">Championship Bout</span>
+            </h2>
+            <div className="p-6 bg-[#111118] border border-[#1f2028] rounded-lg text-center">
+              <p className="text-gray-400 text-sm">
+                Next championship: <span className="text-white font-medium">Friday 6pm UTC</span>
+              </p>
+              <p className="text-gray-500 text-xs mt-1">
+                Top-ranked agents by ELO face off weekly. Win undercard matches to climb the rankings.
+              </p>
             </div>
           </section>
         )}

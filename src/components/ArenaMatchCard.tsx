@@ -1,11 +1,12 @@
 import { Badge } from "@/components/ui/badge";
-import type { ArenaMatchStatus } from "@/lib/arena/types";
+import type { ArenaMatchStatus, ArenaMatchType } from "@/lib/arena/types";
 
 interface ArenaMatchCardProps {
   match: {
     id: string;
     capability: string;
     status: ArenaMatchStatus;
+    match_type?: ArenaMatchType;
     winner: string | null;
     votes_a: number;
     votes_b: number;
@@ -22,6 +23,7 @@ function statusLabel(status: ArenaMatchStatus): string {
   switch (status) {
     case "pending": return "Pending";
     case "running": return "Live";
+    case "judging": return "Judging";
     case "voting": return "Voting";
     case "completed": return "Completed";
     case "failed": return "Failed";
@@ -32,18 +34,29 @@ export function ArenaMatchCard({ match }: ArenaMatchCardProps) {
   const agentAName = match.agent_a?.name ?? "Unknown";
   const agentBName = match.agent_b?.name ?? "Unknown";
   const isLive = match.status === "running";
+  const isJudging = match.status === "judging";
   const isVoting = match.status === "voting";
   const isCompleted = match.status === "completed";
+  const isChampionship = match.match_type === "championship";
   const totalVotes = match.votes_a + match.votes_b + match.votes_tie;
 
   return (
     <a
       href={`/arena/${match.id}`}
-      className="block p-5 bg-[#111118] border border-[#1f2028] rounded-lg hover:border-[#2d3044] transition-colors group"
+      className={`block p-5 bg-[#111118] border rounded-lg hover:border-[#2d3044] transition-colors group ${
+        isChampionship ? "border-yellow-700/30" : "border-[#1f2028]"
+      }`}
     >
       {/* Status + Capability */}
       <div className="flex items-center justify-between mb-3">
-        <Badge variant="tag">{match.capability}</Badge>
+        <div className="flex items-center gap-2">
+          {isChampionship && (
+            <span className="px-1.5 py-0.5 text-[10px] font-bold bg-yellow-900/50 text-yellow-400 border border-yellow-700/50 rounded">
+              CHAMP
+            </span>
+          )}
+          <Badge variant="tag">{match.capability}</Badge>
+        </div>
         <div className="flex items-center gap-2">
           {isLive && (
             <span className="flex items-center gap-1.5 text-xs text-red-400 font-medium">
@@ -51,7 +64,13 @@ export function ArenaMatchCard({ match }: ArenaMatchCardProps) {
               LIVE
             </span>
           )}
-          <Badge variant="status" status={match.status as "pending" | "running" | "completed" | "failed"}>
+          {isJudging && (
+            <span className="flex items-center gap-1.5 text-xs text-amber-400 font-medium">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+              JUDGING
+            </span>
+          )}
+          <Badge variant="status" status={match.status === "judging" ? "running" : match.status as "pending" | "running" | "completed" | "failed"}>
             {statusLabel(match.status)}
           </Badge>
         </div>

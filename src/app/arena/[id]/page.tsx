@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
 import AuthButton from "@/components/AuthButton";
 import { Badge } from "@/components/ui/badge";
-import type { ArenaMatchStatus, ArenaStreamEvent, ArenaVoteChoice } from "@/lib/arena/types";
+import type { ArenaMatchStatus, ArenaMatchType, ArenaStreamEvent, ArenaVoteChoice } from "@/lib/arena/types";
 
 interface MatchDetail {
   id: string;
@@ -28,6 +28,10 @@ interface MatchDetail {
   created_at: string;
   cost_a: number;
   cost_b: number;
+  match_type: ArenaMatchType;
+  judgment_reasoning: string | null;
+  judgment_confidence: number | null;
+  judgment_source: string | null;
   agent_a: { id: string; name: string; slug: string; description: string | null } | null;
   agent_b: { id: string; name: string; slug: string; description: string | null } | null;
   challenge: { title: string; description: string } | null;
@@ -176,6 +180,16 @@ export default function MatchPage() {
             };
           }
 
+        case "judging_started":
+          return { ...prev, status: "judging" };
+
+        case "judgment_rendered":
+          return {
+            ...prev,
+            judgment_reasoning: event.reasoning,
+            judgment_confidence: event.confidence,
+          };
+
         case "voting_open":
           return { ...prev, status: "voting", voting_ends_at: event.voting_ends_at };
 
@@ -278,9 +292,12 @@ export default function MatchPage() {
   const agentBName = match.agent_b?.name ?? "Agent B";
   const totalVotes = match.votes_a + match.votes_b + match.votes_tie;
   const isLive = match.status === "pending" || match.status === "running";
+  const isJudging = match.status === "judging";
   const isVoting = match.status === "voting";
   const isCompleted = match.status === "completed";
   const isFailed = match.status === "failed";
+  const isChampionship = match.match_type === "championship";
+  const isUndercard = match.match_type !== "championship";
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white bg-dot-grid">
@@ -300,6 +317,16 @@ export default function MatchPage() {
         {/* Match header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-4 mb-3">
+            {/* Match type badge */}
+            {isChampionship ? (
+              <span className="px-2.5 py-0.5 text-xs font-bold bg-yellow-900/50 text-yellow-400 border border-yellow-700/50 rounded-full">
+                CHAMPIONSHIP BOUT
+              </span>
+            ) : (
+              <span className="px-2.5 py-0.5 text-xs font-bold bg-gray-800 text-gray-400 border border-gray-700 rounded-full">
+                UNDERCARD
+              </span>
+            )}
             <Badge variant="tag">{match.capability}</Badge>
             <div className="flex items-center gap-2">
               {isLive && (
@@ -308,8 +335,14 @@ export default function MatchPage() {
                   LIVE
                 </span>
               )}
-              <Badge variant="status" status={match.status as "pending" | "running" | "completed" | "failed"}>
-                {match.status === "voting" ? "Voting Open" : match.status.charAt(0).toUpperCase() + match.status.slice(1)}
+              {isJudging && (
+                <span className="flex items-center gap-1.5 text-xs text-amber-400 font-medium">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                  JUDGING
+                </span>
+              )}
+              <Badge variant="status" status={match.status === "judging" ? "running" : match.status as "pending" | "running" | "completed" | "failed"}>
+                {match.status === "voting" ? "Voting Open" : match.status === "judging" ? "The Arbiter is reviewing..." : match.status.charAt(0).toUpperCase() + match.status.slice(1)}
               </Badge>
             </div>
           </div>
@@ -360,6 +393,61 @@ export default function MatchPage() {
             {JSON.stringify(match.prompt, null, 2)}
           </pre>
         </div>
+
+        {/* Arbiter judging state (undercard only) */}
+        {isJudging && isUndercard && (
+          <div className="p-6 bg-[#111118] border border-amber-900/50 rounded-lg mb-8 text-center">
+            <div className="flex items-center justify-center gap-3 mb-3">
+              <svg className="w-8 h-8 text-amber-400 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M12 3v1.5M18.36 5.64l-1.06 1.06M21 12h-1.5M18.36 18.36l-1.06-1.06M12 19.5V21M6.7 18.36l-1.06 1.06M4.5 12H3M6.7 5.64L5.64 4.58" />
+                <circle cx="12" cy="12" r="4" />
+              </svg>
+              <h3 className="text-lg font-semibold text-amber-400">The Arbiter is reviewing...</h3>
+            </div>
+            <p className="text-sm text-gray-400">
+              Analyzing both responses for quality, schema compliance, and efficiency.
+            </p>
+          </div>
+        )}
+
+        {/* Arbiter verdict (undercard, completed) */}
+        {isCompleted && isUndercard && match.judgment_reasoning && (
+          <div className="p-6 bg-[#111118] border border-cyan-900/50 rounded-lg mb-8 glow-cyan-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <svg className="w-5 h-5 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 3v1.5M18.36 5.64l-1.06 1.06M21 12h-1.5M18.36 18.36l-1.06-1.06M12 19.5V21M6.7 18.36l-1.06 1.06M4.5 12H3M6.7 5.64L5.64 4.58" />
+              </svg>
+              <h3 className="text-sm font-semibold text-amber-400">The Arbiter&apos;s Verdict</h3>
+              {match.judgment_confidence !== null && (
+                <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${
+                  match.judgment_confidence >= 0.85
+                    ? "bg-emerald-900/50 text-emerald-400"
+                    : match.judgment_confidence >= 0.6
+                    ? "bg-yellow-900/50 text-yellow-400"
+                    : "bg-red-900/50 text-red-400"
+                }`}>
+                  {(match.judgment_confidence * 100).toFixed(0)}% confidence
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-gray-300 leading-relaxed">{match.judgment_reasoning}</p>
+            {match.judgment_source && (
+              <p className="text-xs text-gray-600 mt-2">
+                Source: {match.judgment_source === "arbiter" ? "The Arbiter (MCP)" : "AI Fallback"}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Championship voting header */}
+        {isVoting && isChampionship && (
+          <div className="text-center mb-4">
+            <p className="text-sm text-yellow-400 font-medium">
+              Championship Bout — your vote counts!
+            </p>
+          </div>
+        )}
 
         {/* Voting section */}
         {isVoting && !viewerVote && (
@@ -446,13 +534,17 @@ export default function MatchPage() {
 
         {/* Winner announcement */}
         {isCompleted && match.winner && (
-          <div className="p-6 bg-[#111118] border border-cyan-900/50 rounded-lg mb-8 text-center glow-cyan-sm">
-            <div className="text-3xl mb-2">👑</div>
+          <div className={`p-6 bg-[#111118] border rounded-lg mb-8 text-center ${
+            isChampionship ? "border-yellow-700/50" : "border-cyan-900/50 glow-cyan-sm"
+          }`}>
+            <div className="text-3xl mb-2">{isChampionship ? "🏆" : "👑"}</div>
             <h3 className="text-xl font-bold text-cyan-400 mb-1">
               {match.winner === "a" ? agentAName : match.winner === "b" ? agentBName : "It's a Tie!"}
             </h3>
             {match.winner !== "tie" && (
-              <p className="text-sm text-gray-400">wins this round</p>
+              <p className="text-sm text-gray-400">
+                {isChampionship ? "wins the championship!" : "wins this round"}
+              </p>
             )}
           </div>
         )}

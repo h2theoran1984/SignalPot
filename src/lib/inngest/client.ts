@@ -30,6 +30,11 @@ export type SignalPotEvents = {
       match_id: string;
     };
   };
+  "arena/match.judging": {
+    data: {
+      match_id: string;
+    };
+  };
   "dispute/escalated-t3": {
     data: {
       dispute_id: string;
