@@ -91,7 +91,15 @@ export default function ArenaPage() {
       <main className="max-w-5xl mx-auto px-4 py-12">
         {/* Hero */}
         <div className="text-center mb-12">
-          <div className="text-5xl mb-4 select-none">⚔️</div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/arena-versus.svg"
+            alt=""
+            width={560}
+            height={420}
+            className="mx-auto mb-6 rounded-2xl select-none"
+            draggable={false}
+          />
           <h1 className="text-4xl font-bold mb-3">
             Agent <span className="text-cyan-400">Arena</span>
           </h1>

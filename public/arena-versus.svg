@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="100%">
+    <rect width="800" height="600" fill="#04070D"/>
+    <defs>
+        <filter id="glow-cyan" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="6" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+        <filter id="glow-orange" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="6" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+        <filter id="glow-white" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="4" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+        <pattern id="mesh" width="30" height="30" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <path d="M 0,0 L 0,30 M 0,0 L 30,0" stroke="#1A2B4C" stroke-width="1" opacity="0.4"/>
+        </pattern>
+        <g id="lobster-cyan">
+            <path d="M -20,0 L -50,-10 L -70,5" fill="none" stroke="#005C8A" stroke-width="5" stroke-linecap="round"/>
+            <path d="M -25,20 L -60,15 L -80,35" fill="none" stroke="#005C8A" stroke-width="5" stroke-linecap="round"/>
+            <path d="M -20,40 L -55,45 L -70,70" fill="none" stroke="#005C8A" stroke-width="5" stroke-linecap="round"/>
+            <path d="M -15,60 L -45,70 L -55,95" fill="none" stroke="#005C8A" stroke-width="5" stroke-linecap="round"/>
+            <path d="M 20,0 L 50,-10 L 70,5" fill="none" stroke="#005C8A" stroke-width="5" stroke-linecap="round"/>
+            <path d="M 25,20 L 60,15 L 80,35" fill="none" stroke="#005C8A" stroke-width="5" stroke-linecap="round"/>
+            <path d="M 20,40 L 55,45 L 70,70" fill="none" stroke="#005C8A" stroke-width="5" stroke-linecap="round"/>
+            <path d="M 15,60 L 45,70 L 55,95" fill="none" stroke="#005C8A" stroke-width="5" stroke-linecap="round"/>
+            <path d="M -10,-40 L -25,-100 L -40,-190" fill="none" stroke="#00E5FF" stroke-width="4" stroke-linecap="round" filter="url(#glow-cyan)"/>
+            <path d="M 10,-40 L 25,-100 L 40,-190" fill="none" stroke="#00E5FF" stroke-width="4" stroke-linecap="round" filter="url(#glow-cyan)"/>
+            <circle cx="-40" cy="-190" r="4" fill="#FFFFFF" filter="url(#glow-cyan)"/>
+            <circle cx="40" cy="-190" r="4" fill="#FFFFFF" filter="url(#glow-cyan)"/>
+            <path d="M -15,65 L 15,65 L 20,80 L -20,80 Z" fill="#021526" stroke="#00E5FF" stroke-width="3"/>
+            <path d="M -20,85 L 20,85 L 25,100 L -25,100 Z" fill="#021526" stroke="#00E5FF" stroke-width="3"/>
+            <path d="M -25,105 L 25,105 L 30,120 L -30,120 Z" fill="#021526" stroke="#00E5FF" stroke-width="3"/>
+            <path d="M -30,125 C -50,140 -40,160 -10,165 C 0,170 10,170 30,165 C 60,160 50,140 30,125 Z" fill="#021526" stroke="#00E5FF" stroke-width="3"/>
+            <path d="M 0,-40 L -15,-20 L -25,20 L -15,50 L 0,60 L 15,50 L 25,20 L 15,-20 Z" fill="#021526" stroke="#00E5FF" stroke-width="3"/>
+            <path d="M 0,-40 L 0,60" fill="none" stroke="#00E5FF" stroke-width="2" opacity="0.5"/>
+            <circle cx="-6" cy="-25" r="3" fill="#FFFFFF" filter="url(#glow-cyan)"/>
+            <circle cx="6" cy="-25" r="3" fill="#FFFFFF" filter="url(#glow-cyan)"/>
+            <circle cx="-35" cy="-20" r="8" fill="#021526" stroke="#00E5FF" stroke-width="3"/>
+            <path d="M -35,-20 L -75,-60" fill="none" stroke="#005C8A" stroke-width="12" stroke-linecap="round"/>
+            <circle cx="-75" cy="-60" r="10" fill="#021526" stroke="#00E5FF" stroke-width="3"/>
+            <path d="M -75,-60 L -55,-110" fill="none" stroke="#005C8A" stroke-width="16" stroke-linecap="round"/>
+            <circle cx="-55" cy="-110" r="12" fill="#021526" stroke="#00E5FF" stroke-width="3"/>
+            <path d="M -55,-110 C -110,-130 -120,-200 -60,-220 C -30,-230 -10,-180 -35,-150 L -50,-160 L -40,-130 Z" fill="#021526" stroke="#00E5FF" stroke-width="3"/>
+            <circle cx="35" cy="-20" r="8" fill="#021526" stroke="#00E5FF" stroke-width="3"/>
+            <path d="M 35,-20 L 75,-60" fill="none" stroke="#005C8A" stroke-width="12" stroke-linecap="round"/>
+            <circle cx="75" cy="-60" r="10" fill="#021526" stroke="#00E5FF" stroke-width="3"/>
+            <path d="M 75,-60 L 55,-110" fill="none" stroke="#005C8A" stroke-width="16" stroke-linecap="round"/>
+            <circle cx="55" cy="-110" r="12" fill="#021526" stroke="#00E5FF" stroke-width="3"/>
+            <path d="M 55,-110 C 110,-130 120,-200 60,-220 C 30,-230 10,-180 35,-150 L 50,-160 L 40,-130 Z" fill="#021526" stroke="#00E5FF" stroke-width="3"/>
+        </g>
+        <g id="lobster-orange">
+            <path d="M -20,0 L -50,-10 L -70,5" fill="none" stroke="#B35900" stroke-width="5" stroke-linecap="round"/>
+            <path d="M -25,20 L -60,15 L -80,35" fill="none" stroke="#B35900" stroke-width="5" stroke-linecap="round"/>
+            <path d="M -20,40 L -55,45 L -70,70" fill="none" stroke="#B35900" stroke-width="5" stroke-linecap="round"/>
+            <path d="M -15,60 L -45,70 L -55,95" fill="none" stroke="#B35900" stroke-width="5" stroke-linecap="round"/>
+            <path d="M 20,0 L 50,-10 L 70,5" fill="none" stroke="#B35900" stroke-width="5" stroke-linecap="round"/>
+            <path d="M 25,20 L 60,15 L 80,35" fill="none" stroke="#B35900" stroke-width="5" stroke-linecap="round"/>
+            <path d="M 20,40 L 55,45 L 70,70" fill="none" stroke="#B35900" stroke-width="5" stroke-linecap="round"/>
+            <path d="M 15,60 L 45,70 L 55,95" fill="none" stroke="#B35900" stroke-width="5" stroke-linecap="round"/>
+            <path d="M -10,-40 L -25,-100 L -40,-190" fill="none" stroke="#FF8C00" stroke-width="4" stroke-linecap="round" filter="url(#glow-orange)"/>
+            <path d="M 10,-40 L 25,-100 L 40,-190" fill="none" stroke="#FF8C00" stroke-width="4" stroke-linecap="round" filter="url(#glow-orange)"/>
+            <circle cx="-40" cy="-190" r="4" fill="#FFFFFF" filter="url(#glow-orange)"/>
+            <circle cx="40" cy="-190" r="4" fill="#FFFFFF" filter="url(#glow-orange)"/>
+            <path d="M -15,65 L 15,65 L 20,80 L -20,80 Z" fill="#2A1300" stroke="#FF8C00" stroke-width="3"/>
+            <path d="M -20,85 L 20,85 L 25,100 L -25,100 Z" fill="#2A1300" stroke="#FF8C00" stroke-width="3"/>
+            <path d="M -25,105 L 25,105 L 30,120 L -30,120 Z" fill="#2A1300" stroke="#FF8C00" stroke-width="3"/>
+            <path d="M -30,125 C -50,140 -40,160 -10,165 C 0,170 10,170 30,165 C 60,160 50,140 30,125 Z" fill="#2A1300" stroke="#FF8C00" stroke-width="3"/>
+            <path d="M 0,-40 L -15,-20 L -25,20 L -15,50 L 0,60 L 15,50 L 25,20 L 15,-20 Z" fill="#2A1300" stroke="#FF8C00" stroke-width="3"/>
+            <path d="M 0,-40 L 0,60" fill="none" stroke="#FF8C00" stroke-width="2" opacity="0.5"/>
+            <circle cx="-6" cy="-25" r="3" fill="#FFFFFF" filter="url(#glow-orange)"/>
+            <circle cx="6" cy="-25" r="3" fill="#FFFFFF" filter="url(#glow-orange)"/>
+            <circle cx="-35" cy="-20" r="8" fill="#2A1300" stroke="#FF8C00" stroke-width="3"/>
+            <path d="M -35,-20 L -75,-60" fill="none" stroke="#B35900" stroke-width="12" stroke-linecap="round"/>
+            <circle cx="-75" cy="-60" r="10" fill="#2A1300" stroke="#FF8C00" stroke-width="3"/>
+            <path d="M -75,-60 L -55,-110" fill="none" stroke="#B35900" stroke-width="16" stroke-linecap="round"/>
+            <circle cx="-55" cy="-110" r="12" fill="#2A1300" stroke="#FF8C00" stroke-width="3"/>
+            <path d="M -55,-110 C -110,-130 -120,-200 -60,-220 C -30,-230 -10,-180 -35,-150 L -50,-160 L -40,-130 Z" fill="#2A1300" stroke="#FF8C00" stroke-width="3"/>
+            <circle cx="35" cy="-20" r="8" fill="#2A1300" stroke="#FF8C00" stroke-width="3"/>
+            <path d="M 35,-20 L 75,-60" fill="none" stroke="#B35900" stroke-width="12" stroke-linecap="round"/>
+            <circle cx="75" cy="-60" r="10" fill="#2A1300" stroke="#FF8C00" stroke-width="3"/>
+            <path d="M 75,-60 L 55,-110" fill="none" stroke="#B35900" stroke-width="16" stroke-linecap="round"/>
+            <circle cx="55" cy="-110" r="12" fill="#2A1300" stroke="#FF8C00" stroke-width="3"/>
+            <path d="M 55,-110 C 110,-130 120,-200 60,-220 C 30,-230 10,-180 35,-150 L 50,-160 L 40,-130 Z" fill="#2A1300" stroke="#FF8C00" stroke-width="3"/>
+        </g>
+    </defs>
+    <circle cx="200" cy="280" r="300" fill="#00E5FF" opacity="0.08" filter="url(#glow-cyan)"/>
+    <circle cx="600" cy="280" r="300" fill="#FF8C00" opacity="0.08" filter="url(#glow-orange)"/>
+    <ellipse cx="400" cy="280" rx="360" ry="160" fill="url(#mesh)"/>
+
+    <ellipse cx="400" cy="280" rx="270" ry="120" fill="none" stroke="#1A2B4C" stroke-width="2"/>
+    <ellipse cx="400" cy="280" rx="180" ry="80" fill="none" stroke="#1A2B4C" stroke-width="2"/>
+    <ellipse cx="400" cy="280" rx="90" ry="40" fill="none" stroke="#1A2B4C" stroke-width="2"/>
+    <path d="M 400,120 A 360 160 0 0 0 400,440" fill="none" stroke="#00E5FF" stroke-width="4" filter="url(#glow-cyan)"/>
+    <path d="M 400,120 A 360 160 0 0 1 400,440" fill="none" stroke="#FF8C00" stroke-width="4" filter="url(#glow-orange)"/>
+    <g transform="translate(150, 280) rotate(90)">
+        <use href="#lobster-cyan" />
+    </g>
+    <g transform="translate(650, 280) rotate(-90)">
+        <use href="#lobster-orange" />
+    </g>
+    <g id="signal-clash">
+        <path d="M 350,230 Q 390,280 350,330" fill="none" stroke="#00E5FF" stroke-width="6" stroke-linecap="round" filter="url(#glow-cyan)"/>
+        <path d="M 320,190 Q 380,280 320,370" fill="none" stroke="#00E5FF" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+
+        <path d="M 450,230 Q 410,280 450,330" fill="none" stroke="#FF8C00" stroke-width="6" stroke-linecap="round" filter="url(#glow-orange)"/>
+        <path d="M 480,190 Q 420,280 480,370" fill="none" stroke="#FF8C00" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+        <circle cx="400" cy="280" r="15" fill="#FFFFFF" filter="url(#glow-white)"/>
+        <circle cx="400" cy="280" r="30" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-dasharray="8 8" opacity="0.8">
+            <animateTransform attributeName="transform" type="rotate" from="0 400 280" to="360 400 280" dur="4s" repeatCount="indefinite"/>
+        </circle>
+
+        <line x1="400" y1="265" x2="400" y2="210" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" filter="url(#glow-white)"/>
+        <line x1="400" y1="295" x2="400" y2="350" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" filter="url(#glow-white)"/>
+        <line x1="385" y1="265" x2="355" y2="235" stroke="#00E5FF" stroke-width="3" stroke-linecap="round" filter="url(#glow-cyan)"/>
+        <line x1="415" y1="295" x2="445" y2="325" stroke="#FF8C00" stroke-width="3" stroke-linecap="round" filter="url(#glow-orange)"/>
+    </g>
+    <text x="400" y="540" font-family="system-ui, -apple-system, sans-serif" font-size="48" font-weight="900" text-anchor="middle" letter-spacing="8">
+        <tspan fill="#00E5FF" filter="url(#glow-cyan)">SIGNAL</tspan><tspan fill="#FFFFFF"> </tspan><tspan fill="#FF8C00" filter="url(#glow-orange)">POT</tspan>
+    </text>
+    <text x="400" y="575" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" text-anchor="middle" letter-spacing="12" fill="#1A2B4C">
+        VERSUS MODE
+    </text>
+</svg>
