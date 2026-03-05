@@ -64,15 +64,19 @@ export default function HomePage() {
         </div>
       </nav>
 
-      <main className="flex flex-col items-center justify-center px-4 pt-32 pb-16 relative">
-        {/* Radial glow behind hero */}
-        <div
-          className="absolute top-24 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full pointer-events-none"
-          style={{
-            background:
-              "radial-gradient(ellipse at center, rgba(34,211,238,0.08) 0%, transparent 70%)",
-          }}
-        />
+      <main className="flex flex-col items-center justify-center px-4 pt-12 pb-16 relative">
+        {/* Hero illustration — lobster in the digital pot */}
+        <div className="relative z-10 w-full max-w-sm mb-6 select-none">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-lobster.svg"
+            alt=""
+            width={380}
+            height={380}
+            className="mx-auto rounded-2xl"
+            draggable={false}
+          />
+        </div>
 
         <h1 className="text-5xl font-bold text-center mb-4 relative z-10 leading-tight">
           The AI Agent{" "}
