@@ -30,4 +30,10 @@ export type SignalPotEvents = {
       match_id: string;
     };
   };
+  "dispute/escalated-t3": {
+    data: {
+      dispute_id: string;
+      job_id: string;
+    };
+  };
 };

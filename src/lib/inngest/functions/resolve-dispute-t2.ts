@@ -1,9 +1,13 @@
+// Tier 2 — Community Panel (Hardened)
+// Now calls real agent MCP endpoints for panel votes instead of simulated Claude calls.
+// Falls back to Claude Haiku per-agent when MCP is unreachable.
+// Escalates to Tier 3 (The Arbiter final judgment) on split votes.
+
 import { inngest } from "@/lib/inngest/client";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { settleDispute } from "@/lib/escrow";
-import Anthropic from "@anthropic-ai/sdk";
-
-const anthropic = new Anthropic();
+import { callPanelAgent } from "@/lib/dispute/panel";
+import type { DisputeEvidence } from "@/lib/dispute/types";
 
 export const resolveDisputeT2 = inngest.createFunction(
   {
@@ -47,15 +51,21 @@ export const resolveDisputeT2 = inngest.createFunction(
         (outputEnvelope as Record<string, unknown> | null)?.verified ?? "unknown";
 
       return {
+        dispute_id,
+        job_id,
         dispute_reason: (dispute as Record<string, unknown>).reason as string,
         resolver_notes_t1: (dispute as Record<string, unknown>).resolver_notes as string | null,
-        input_envelope: inputEnvelope,
-        output_envelope: outputEnvelope,
-        verified,
+        input_envelope: inputEnvelope as Record<string, unknown> | null,
+        output_envelope: outputEnvelope as Record<string, unknown> | null,
+        verified: verified as boolean | string,
         provider_agent_id: providerAgent?.id ?? null,
         provider_agent_name: providerAgent?.name ?? "Unknown Agent",
         provider_owner_id: providerAgent?.owner_id ?? null,
         requester_profile_id: job?.requester_profile_id as string | null,
+        capability: (job?.capability_used as string) ?? null,
+        rate_amount: (job?.rate_amount as number) ?? null,
+        capability_schema: (providerAgent?.capability_schema as Record<string, unknown>) ?? null,
+        output_schema: (providerAgent?.output_schema as Record<string, unknown>) ?? null,
       };
     });
 
@@ -67,7 +77,7 @@ export const resolveDisputeT2 = inngest.createFunction(
 
       const { data: candidates } = await admin
         .from("agents")
-        .select("id, name, slug, owner_id")
+        .select("id, name, slug, owner_id, mcp_endpoint")
         .neq("id", excludeAgentId)
         .neq("owner_id", excludeOwner1)
         .neq("owner_id", excludeOwner2)
@@ -116,6 +126,12 @@ export const resolveDisputeT2 = inngest.createFunction(
             resolver_notes: `[Tier 2 — Escalated to Tier 3: insufficient panel agents (${panelAgents.length} available, need 3)]`,
           })
           .eq("id", dispute_id);
+
+        // Fire T3 event for automated Arbiter resolution
+        await inngest.send({
+          name: "dispute/escalated-t3",
+          data: { dispute_id, job_id },
+        });
       });
 
       return {
@@ -126,92 +142,77 @@ export const resolveDisputeT2 = inngest.createFunction(
       };
     }
 
-    // Step 3: simulate AI panel votes (one Claude Haiku call per agent)
+    // Step 3: call real agent MCP endpoints for panel votes (with Claude fallback)
     const votes = await step.run("record-panel-votes", async () => {
-      const inputStr = evidence.input_envelope
-        ? JSON.stringify(evidence.input_envelope)
-        : "N/A";
-      const outputStr = evidence.output_envelope
-        ? JSON.stringify(evidence.output_envelope)
-        : "N/A";
+      // Build a DisputeEvidence object for the panel calls
+      const panelEvidence: DisputeEvidence = {
+        dispute_id: evidence.dispute_id,
+        job_id: evidence.job_id,
+        dispute_reason: evidence.dispute_reason,
+        agent_name: evidence.provider_agent_name,
+        capability: evidence.capability,
+        rate_amount: evidence.rate_amount,
+        input_envelope: evidence.input_envelope,
+        output_envelope: evidence.output_envelope,
+        capability_schema: evidence.capability_schema,
+        output_schema: evidence.output_schema,
+        schema_valid: evidence.verified,
+      };
 
       const results: Array<{
         agent_id: string;
         agent_name: string;
         vote: "upheld" | "rejected";
         reasoning: string;
+        source: "mcp" | "fallback";
       }> = [];
 
       for (const agent of panelAgents) {
-        const prompt = `You are agent "${agent.name}" on a dispute resolution panel.
-
-Dispute reason: ${evidence.dispute_reason}
-Input to agent: ${inputStr}
-Output from agent: ${outputStr}
-Output schema valid: ${evidence.verified}
-
-Vote: respond with JSON only: {"vote": "upheld" or "rejected", "reasoning": "1 sentence"}`;
-
-        let vote: "upheld" | "rejected" = "rejected";
-        let reasoning = "Unable to determine.";
-
-        try {
-          const message = await anthropic.messages.create({
-            model: "claude-3-5-haiku-20241022",
-            max_tokens: 128,
-            messages: [{ role: "user", content: prompt }],
-          });
-
-          const text =
-            message.content[0].type === "text" ? message.content[0].text : "";
-          const jsonMatch = text.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            const parsed = JSON.parse(jsonMatch[0]) as {
-              vote: string;
-              reasoning: string;
-            };
-            if (parsed.vote === "upheld" || parsed.vote === "rejected") {
-              vote = parsed.vote;
-            }
-            reasoning = parsed.reasoning ?? reasoning;
-          }
-        } catch {
-          // Default to rejected on error
-        }
+        // Call real MCP endpoint (or fallback to Claude)
+        const panelVote = await callPanelAgent(
+          agent.id,
+          agent.name,
+          agent.slug,
+          agent.mcp_endpoint ?? null,
+          panelEvidence
+        );
 
         // Record vote in dispute_panel_votes
         await admin.from("dispute_panel_votes").upsert(
           {
             dispute_id,
             agent_id: agent.id,
-            vote,
-            reasoning,
+            vote: panelVote.vote,
+            reasoning: panelVote.reasoning,
           },
           { onConflict: "dispute_id,agent_id" }
         );
 
         results.push({
-          agent_id: agent.id,
-          agent_name: agent.name,
-          vote,
-          reasoning,
+          agent_id: panelVote.agent_id,
+          agent_name: panelVote.agent_name,
+          vote: panelVote.vote,
+          reasoning: panelVote.reasoning,
+          source: panelVote.source,
         });
       }
 
       return results;
     });
 
-    // Step 4: tally votes and resolve or escalate
+    // Step 4: tally votes and resolve or escalate to T3
     await step.run("tally-votes", async () => {
       const upheldCount = votes.filter((v) => v.vote === "upheld").length;
       const rejectedCount = votes.filter((v) => v.vote === "rejected").length;
       const total = votes.length;
+      const mcpCount = votes.filter((v) => v.source === "mcp").length;
+      const fallbackCount = votes.filter((v) => v.source === "fallback").length;
 
       const voteBreakdown = votes
-        .map((v) => `${v.agent_name}: ${v.vote} — ${v.reasoning}`)
+        .map((v) => `${v.agent_name}: ${v.vote} [${v.source}] — ${v.reasoning}`)
         .join("\n");
 
-      const tally = `${upheldCount} uphold / ${rejectedCount} reject (of ${total} panel votes)`;
+      const tally = `${upheldCount} uphold / ${rejectedCount} reject (of ${total} panel votes, ${mcpCount} MCP / ${fallbackCount} fallback)`;
 
       // Majority: 3+ of 5 agree
       if (upheldCount >= 3) {
@@ -241,7 +242,7 @@ Vote: respond with JSON only: {"vote": "upheld" or "rejected", "reasoning": "1 s
 
         await settleDispute(dispute_id, "rejected", job_id);
       } else {
-        // Split vote — escalate to Tier 3
+        // Split vote — escalate to Tier 3 (The Arbiter)
         await admin
           .from("disputes")
           .update({
@@ -250,6 +251,12 @@ Vote: respond with JSON only: {"vote": "upheld" or "rejected", "reasoning": "1 s
             resolver_notes: `[Tier 2 Panel — Split: ${tally} — escalated to Tier 3]\n\n${voteBreakdown}`,
           })
           .eq("id", dispute_id);
+
+        // Fire T3 event for automated Arbiter resolution
+        await inngest.send({
+          name: "dispute/escalated-t3",
+          data: { dispute_id, job_id },
+        });
       }
 
       return { upheldCount, rejectedCount, tally };

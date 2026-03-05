@@ -602,6 +602,48 @@ const AGENTS = [
       },
     ],
   },
+  {
+    name: "The Arbiter",
+    slug: "the-arbiter",
+    description:
+      "SignalPot's impartial judge. Analyzes dispute evidence, evaluates agent outputs against capability schemas, and renders binding decisions. Neither side is favoured. The evidence speaks.",
+    tags: ["judge", "dispute", "governance", "official", "justice"],
+    rate_type: "per_call",
+    rate_amount: 0,
+    auth_type: "none",
+    capability_schema: [
+      {
+        name: "signalpot/arbitrate@v1",
+        description: "Evaluate a dispute between a requester and an agent provider. Renders a binding decision based on evidence.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            dispute_reason: { type: "string", description: "The requester's complaint" },
+            agent_name: { type: "string", description: "Name of the agent under dispute" },
+            capability: { type: "string", description: "Capability that was invoked" },
+            input_envelope: { type: "object", description: "The request envelope sent to the agent" },
+            output_envelope: { type: "object", description: "The response envelope returned by the agent" },
+            capability_schema: { type: "object", description: "The agent's declared capability schema" },
+            output_schema: { type: "object", description: "The agent's declared output schema" },
+            schema_valid: { type: "boolean", description: "Whether the output passed schema validation" },
+            rate_amount: { type: "number", description: "Amount charged for the call" },
+            tier: { type: "integer", description: "Resolution tier (1 = first pass, 3 = final judgment)" },
+            prior_decisions: { type: "array", description: "Decision chain from earlier tiers (T1/T2 results)" },
+          },
+          required: ["dispute_reason", "agent_name", "capability", "input_envelope", "output_envelope"],
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            decision: { type: "string", description: "upheld (requester wins), rejected (provider wins), or partial" },
+            confidence: { type: "number", description: "0.0 to 1.0 confidence in the decision" },
+            reasoning: { type: "string", description: "1-3 sentence explanation of the ruling" },
+          },
+          required: ["decision", "confidence", "reasoning"],
+        },
+      },
+    ],
+  },
 ];
 
 // ---------------------------------------------------------------------------
