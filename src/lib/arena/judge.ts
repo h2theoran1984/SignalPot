@@ -1,4 +1,5 @@
 // Arena Judge — calls The Arbiter to judge undercard matches.
+// Uses domain-specific rubrics for structured scoring.
 // Reuses the MCP call + Claude fallback pattern from src/lib/dispute/arbiter.ts.
 
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -6,7 +7,8 @@ import { wrapRequest, wrapResponse } from "@/lib/envelope";
 import { validateOutput } from "@/lib/schema-validator";
 import Anthropic from "@anthropic-ai/sdk";
 import type { Agent } from "@/lib/types";
-import type { ArenaJudgment } from "./types";
+import type { ArenaJudgment, ArenaRubric } from "./types";
+import { inferRubric, buildJudgePrompt, assembleBreakdown } from "./rubric";
 
 const ARBITER_SLUG = "the-arbiter";
 const ARBITER_CAPABILITY = "signalpot/arbitrate@v1";
@@ -27,20 +29,25 @@ interface ArenaJudgeInput {
   durationBMs: number;
   verifiedA: boolean;
   verifiedB: boolean;
+  rubric?: ArenaRubric;
+  costACents: number;
+  costBCents: number;
 }
 
 /**
  * Call The Arbiter to judge an undercard arena match.
  * 1. Looks up The Arbiter agent from the DB
  * 2. Creates a job record (feeds trust graph)
- * 3. Calls MCP endpoint with both agent responses + original prompt
+ * 3. Calls MCP endpoint with both agent responses + rubric
  * 4. Falls back to Claude Haiku if MCP fails
- * Returns: { winner, reasoning, confidence, source }
+ * 5. Computes speed/cost scores server-side, assembles breakdown
+ * Returns: { winner, reasoning, confidence, source, breakdown? }
  */
 export async function callArenaJudge(
   input: ArenaJudgeInput
 ): Promise<ArenaJudgment> {
   const admin = createAdminClient();
+  const rubric = input.rubric ?? inferRubric(input.capability);
 
   // Look up The Arbiter agent
   const { data: arbiter } = await admin
@@ -52,7 +59,7 @@ export async function callArenaJudge(
 
   if (!arbiter || !arbiter.mcp_endpoint) {
     console.warn("[arena-judge] The Arbiter not found or no endpoint — using fallback");
-    return callJudgeFallback(input);
+    return callJudgeFallback(input, rubric);
   }
 
   // Create a job record for this judgment
@@ -67,6 +74,7 @@ export async function callArenaJudge(
       input_summary: {
         match_id: input.matchId,
         capability: input.capability,
+        rubric_domain: rubric.domain,
         context: "arena_judgment",
       },
       status: "pending",
@@ -78,7 +86,7 @@ export async function callArenaJudge(
 
   if (jobError || !job) {
     console.error("[arena-judge] Failed to create job:", jobError?.message);
-    return callJudgeFallback(input);
+    return callJudgeFallback(input, rubric);
   }
 
   const jobId = job.id as string;
@@ -90,17 +98,20 @@ export async function callArenaJudge(
     capability: input.capability,
     prompt: input.prompt,
     prompt_text: input.promptText,
+    rubric,
     agent_a: {
       name: input.agentAName,
       response: input.responseA,
       duration_ms: input.durationAMs,
       schema_verified: input.verifiedA,
+      cost_cents: input.costACents,
     },
     agent_b: {
       name: input.agentBName,
       response: input.responseB,
       duration_ms: input.durationBMs,
       schema_verified: input.verifiedB,
+      cost_cents: input.costBCents,
     },
   };
 
@@ -188,13 +199,15 @@ export async function callArenaJudge(
       typeof confidence === "number" &&
       typeof reasoning === "string"
     ) {
-      return { winner, reasoning, confidence, source: "arbiter" };
+      // Try to parse structured breakdown
+      const breakdown = tryParseBreakdown(agentResponse, rubric, input);
+      return { winner, reasoning, confidence, source: "arbiter", breakdown };
     }
 
     // Valid response but unexpected format — fall back
     console.warn("[arena-judge] Unexpected response format — using fallback");
     await admin.from("jobs").update({ verified: false }).eq("id", jobId);
-    return callJudgeFallback(input);
+    return callJudgeFallback(input, rubric);
   } catch (err) {
     const durationMs = Date.now() - startTime;
 
@@ -209,57 +222,70 @@ export async function callArenaJudge(
 
     const message = err instanceof Error ? err.message : "Arbiter unreachable";
     console.warn(`[arena-judge] MCP call failed (${message}) — using fallback`);
-    return callJudgeFallback(input);
+    return callJudgeFallback(input, rubric);
   }
 }
 
 /**
- * Claude Haiku fallback — judges the match when The Arbiter MCP is unreachable.
+ * Try to parse a structured breakdown from the Arbiter's response.
+ * If the breakdown field is missing or malformed, returns undefined.
  */
-async function callJudgeFallback(
+function tryParseBreakdown(
+  response: Record<string, unknown>,
+  rubric: ArenaRubric,
   input: ArenaJudgeInput
-): Promise<ArenaJudgment> {
-  const prompt = `You are The Arbiter, an impartial judge for SignalPot's Agent Arena.
+) {
+  try {
+    const raw = response.breakdown as Record<string, unknown> | undefined;
+    if (!raw) return undefined;
 
-Two AI agents competed on the same task. Your job is to decide which agent performed better.
+    const a = raw.a as { criteria_scores: Array<{ name: string; score: number }>; schema_compliance: number } | undefined;
+    const b = raw.b as { criteria_scores: Array<{ name: string; score: number }>; schema_compliance: number } | undefined;
 
-## Task
-Capability: ${input.capability}
-${input.promptText ? `Prompt: ${input.promptText}` : ""}
-Input: ${JSON.stringify(input.prompt, null, 2)}
+    if (!a?.criteria_scores || !b?.criteria_scores) return undefined;
 
-## Agent A: "${input.agentAName}"
-Response time: ${input.durationAMs}ms
-Schema verified: ${input.verifiedA}
-Response:
-${JSON.stringify(input.responseA, null, 2)}
-
-## Agent B: "${input.agentBName}"
-Response time: ${input.durationBMs}ms
-Schema verified: ${input.verifiedB}
-Response:
-${JSON.stringify(input.responseB, null, 2)}
-
-## Judging Criteria
-1. **Quality** (50%) — correctness, completeness, relevance of the response
-2. **Schema compliance** (20%) — did the response match the expected format?
-3. **Efficiency** (15%) — response time (faster is better, all else equal)
-4. **Reliability** (15%) — schema verification status
-
-## Instructions
-Respond with ONLY valid JSON in this exact format:
-{
-  "winner": "a" | "b" | "tie",
-  "reasoning": "1-3 sentence explanation of your decision",
-  "confidence": 0.0 to 1.0
+    return assembleBreakdown({
+      rubric,
+      aiBreakdown: {
+        a: { criteria_scores: a.criteria_scores, schema_compliance: a.schema_compliance ?? (input.verifiedA ? 1.0 : 0.0) },
+        b: { criteria_scores: b.criteria_scores, schema_compliance: b.schema_compliance ?? (input.verifiedB ? 1.0 : 0.0) },
+      },
+      durationAMs: input.durationAMs,
+      durationBMs: input.durationBMs,
+      costACents: input.costACents,
+      costBCents: input.costBCents,
+    });
+  } catch {
+    return undefined;
+  }
 }
 
-Be fair and objective. If both responses are roughly equal, declare a tie.`;
+/**
+ * Claude Haiku fallback — uses domain-specific rubric prompt.
+ * Falls back to winner/reasoning/confidence if breakdown parsing fails.
+ */
+async function callJudgeFallback(
+  input: ArenaJudgeInput,
+  rubric: ArenaRubric
+): Promise<ArenaJudgment> {
+  const prompt = buildJudgePrompt(rubric, {
+    capability: input.capability,
+    promptText: input.promptText,
+    prompt: input.prompt,
+    agentAName: input.agentAName,
+    agentBName: input.agentBName,
+    responseA: input.responseA,
+    responseB: input.responseB,
+    durationAMs: input.durationAMs,
+    durationBMs: input.durationBMs,
+    verifiedA: input.verifiedA,
+    verifiedB: input.verifiedB,
+  });
 
   try {
     const message = await anthropic.messages.create({
       model: "claude-3-5-haiku-20241022",
-      max_tokens: 256,
+      max_tokens: 512,
       messages: [{ role: "user", content: prompt }],
     });
 
@@ -273,13 +299,22 @@ Be fair and objective. If both responses are roughly equal, declare a tie.`;
       winner: "a" | "b" | "tie";
       reasoning: string;
       confidence: number;
+      breakdown?: Record<string, unknown>;
     };
+
+    // Try to assemble breakdown from parsed response
+    const breakdown = tryParseBreakdown(
+      parsed as unknown as Record<string, unknown>,
+      rubric,
+      input
+    );
 
     return {
       winner: parsed.winner,
       reasoning: parsed.reasoning,
       confidence: parsed.confidence,
       source: "fallback",
+      breakdown,
     };
   } catch {
     // If Claude fails entirely, default to tie

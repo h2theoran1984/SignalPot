@@ -798,7 +798,270 @@ async function main() {
 
   console.log(`\n  Created ${jobsCreated} jobs across ${JOB_PAIRS.length} agent pairs\n`);
 
-  // Step 3: Summary
+  // Step 3: Seed arena challenges with template prompts + variable pools
+  console.log("━━━  Step 3: Seeding arena challenges ━━━");
+
+  const ARENA_CHALLENGES = [
+    {
+      title: "Web Research Challenge",
+      description: "Search the web and return high-quality, relevant results. Judged on relevance, completeness, and freshness.",
+      capability: "search",
+      difficulty: "medium",
+      tags: ["search", "information-retrieval"],
+      prompt: { query: "recent developments in climate change", max_results: 10 },
+      template_prompt: { query: "{{focus}} in {{topic}}", max_results: "{{count}}" },
+      task_variables: {
+        topic: [
+          "climate change", "quantum computing", "renewable energy", "gene therapy",
+          "autonomous vehicles", "space exploration", "CRISPR technology",
+          "nuclear fusion", "brain-computer interfaces", "dark matter research",
+          "vertical farming", "ocean conservation", "biodegradable plastics",
+          "cryptocurrency regulation", "artificial general intelligence",
+        ],
+        focus: [
+          "recent developments", "key research papers", "practical applications",
+          "major breakthroughs", "current challenges", "leading organizations",
+          "economic impact", "future predictions",
+        ],
+        count: [5, 10, 15],
+      },
+      rubric: {
+        domain: "information-retrieval",
+        criteria: [
+          { name: "relevance", weight: 0.25, description: "Results directly address the query intent" },
+          { name: "completeness", weight: 0.15, description: "Covers the topic breadth without major gaps" },
+          { name: "freshness", weight: 0.10, description: "Results include recent and up-to-date information" },
+        ],
+        speed_weight: 0.20,
+        speed_tiers: { excellent_ms: 1000, good_ms: 3000, acceptable_ms: 5000 },
+        cost_efficiency_weight: 0.20,
+        schema_compliance_weight: 0.10,
+      },
+    },
+    {
+      title: "Targeted Lookup",
+      description: "Perform a DNS lookup and return accurate records. Speed and correctness matter.",
+      capability: "lookup",
+      difficulty: "easy",
+      tags: ["dns", "lookup", "infrastructure"],
+      prompt: { domain: "example.com", record_type: "A" },
+      template_prompt: { domain: "{{domain}}", record_type: "{{record_type}}" },
+      task_variables: {
+        domain: [
+          "google.com", "github.com", "cloudflare.com", "vercel.com",
+          "supabase.com", "anthropic.com", "openai.com", "stripe.com",
+          "aws.amazon.com", "azure.microsoft.com", "fly.io", "railway.app",
+        ],
+        record_type: ["A", "AAAA", "MX", "TXT", "NS", "CNAME"],
+      },
+      rubric: {
+        domain: "information-retrieval",
+        criteria: [
+          { name: "relevance", weight: 0.25, description: "Correct records returned for the domain" },
+          { name: "completeness", weight: 0.15, description: "All matching records included" },
+          { name: "freshness", weight: 0.10, description: "Records reflect current DNS state" },
+        ],
+        speed_weight: 0.20,
+        speed_tiers: { excellent_ms: 500, good_ms: 1500, acceptable_ms: 3000 },
+        cost_efficiency_weight: 0.20,
+        schema_compliance_weight: 0.10,
+      },
+    },
+    {
+      title: "Summarization Showdown",
+      description: "Summarize text into a concise, accurate form. Judged on accuracy, coherence, and conciseness.",
+      capability: "summarize",
+      difficulty: "medium",
+      tags: ["nlp", "summarization", "text-processing"],
+      prompt: {
+        text: "Artificial intelligence has transformed multiple industries...",
+        format: "paragraph",
+        max_words: 100,
+      },
+      template_prompt: {
+        text: "{{passage}}",
+        format: "{{format}}",
+        max_words: "{{length}}",
+      },
+      task_variables: {
+        passage: [
+          "The development of mRNA vaccine technology represents one of the most significant medical breakthroughs of the 21st century. Originally researched for cancer treatment, the technology was rapidly adapted during the COVID-19 pandemic to produce effective vaccines in record time. The key innovation lies in using messenger RNA to instruct cells to produce specific proteins that trigger an immune response, eliminating the need for weakened or inactivated virus particles. This approach offers several advantages including faster development cycles, easier manufacturing scalability, and the ability to quickly modify vaccines for new variants. Research continues into mRNA applications for influenza, HIV, and various cancers.",
+          "Quantum computing represents a fundamental shift in computational paradigm. Unlike classical computers that process information in binary bits, quantum computers utilize quantum bits or qubits that can exist in superposition states. This enables certain types of calculations to be performed exponentially faster than on classical hardware. Current challenges include maintaining qubit coherence at extremely low temperatures, error correction, and scaling systems beyond a few hundred qubits. Major technology companies and governments are investing billions in quantum research, driven by potential applications in cryptography, drug discovery, materials science, and optimization problems that are intractable for classical computers.",
+          "The global transition to renewable energy sources has accelerated dramatically in recent years. Solar photovoltaic costs have dropped by over 90% since 2010, making solar power the cheapest source of electricity in many regions. Wind energy, both onshore and offshore, has seen similar cost reductions and capacity growth. Energy storage technologies, particularly lithium-ion batteries, are enabling greater grid integration of intermittent renewable sources. However, challenges remain in grid modernization, long-duration storage, supply chain sustainability for critical minerals, and ensuring a just transition for communities dependent on fossil fuel industries.",
+          "Deep learning has revolutionized natural language processing over the past decade. The introduction of transformer architectures in 2017 led to a paradigm shift, enabling models to understand and generate human language with unprecedented fluency. Large language models trained on vast text corpora can now perform translation, summarization, question answering, and creative writing tasks. However, these systems face challenges including hallucination of false information, high computational costs, potential for bias, and questions about intellectual property and the environmental impact of training large models.",
+          "The biodiversity crisis represents one of the most pressing environmental challenges of our time. Scientists estimate that species are going extinct at rates 100 to 1000 times higher than natural background rates, driven primarily by habitat destruction, climate change, pollution, and overexploitation. Coral reefs, tropical forests, and wetlands are among the most threatened ecosystems. Conservation efforts include establishing protected areas, rewilding programs, genetic rescue of endangered species, and international agreements like the Kunming-Montreal Global Biodiversity Framework, which aims to protect 30% of the planet by 2030.",
+        ],
+        format: ["paragraph", "bullets", "tldr"],
+        length: [50, 100, 150],
+      },
+      rubric: {
+        domain: "text-processing",
+        criteria: [
+          { name: "accuracy", weight: 0.25, description: "Summary faithfully represents the source material" },
+          { name: "coherence", weight: 0.15, description: "Summary reads naturally and flows logically" },
+          { name: "conciseness", weight: 0.15, description: "Summary is appropriately brief without losing key points" },
+        ],
+        speed_weight: 0.20,
+        speed_tiers: { excellent_ms: 1500, good_ms: 4000, acceptable_ms: 8000 },
+        cost_efficiency_weight: 0.15,
+        schema_compliance_weight: 0.10,
+      },
+    },
+    {
+      title: "Sentiment Analysis Arena",
+      description: "Analyze the sentiment of text passages. Accuracy and nuance are key.",
+      capability: "analyze",
+      difficulty: "easy",
+      tags: ["nlp", "sentiment", "classification"],
+      prompt: { text: "The product exceeded my expectations in every way.", granularity: "document" },
+      template_prompt: { text: "{{passage}}", granularity: "{{granularity}}" },
+      task_variables: {
+        passage: [
+          "I absolutely love this new feature update, it makes everything so much easier and more intuitive to use.",
+          "The service was adequate but nothing special. It met my basic needs without any notable highs or lows.",
+          "After three failed attempts and hours of waiting, I'm thoroughly disappointed with the entire experience.",
+          "While the design is beautiful, the functionality leaves a lot to be desired. A mixed bag overall.",
+          "This breakthrough technology could revolutionize the industry, though early adopters report growing pains.",
+          "The team delivered exceptional results under tight deadlines. Truly impressive collaboration.",
+          "Management seems disconnected from reality. Promises were made but none were kept.",
+          "An interesting concept with potential, but the execution needs significant work before it's ready.",
+          "Five stars across the board. Best purchase I've made all year without question.",
+          "The documentation is confusing, the API keeps changing, and support takes days to respond.",
+        ],
+        granularity: ["document", "sentence"],
+      },
+      rubric: {
+        domain: "text-processing",
+        criteria: [
+          { name: "accuracy", weight: 0.30, description: "Correctly identifies the overall sentiment" },
+          { name: "coherence", weight: 0.15, description: "Reasoning behind sentiment classification is clear" },
+          { name: "conciseness", weight: 0.10, description: "Output is focused and not overly verbose" },
+        ],
+        speed_weight: 0.20,
+        speed_tiers: { excellent_ms: 1000, good_ms: 3000, acceptable_ms: 6000 },
+        cost_efficiency_weight: 0.15,
+        schema_compliance_weight: 0.10,
+      },
+    },
+    {
+      title: "Code Execution Challenge",
+      description: "Execute code correctly and safely. Correctness, error handling, and speed all matter.",
+      capability: "run",
+      difficulty: "hard",
+      tags: ["code", "execution", "sandbox"],
+      prompt: { language: "python", code: "print(sum(range(100)))" },
+      template_prompt: { language: "{{language}}", code: "{{code}}" },
+      task_variables: {
+        language: ["python", "javascript"],
+        code: [
+          "print(sum(i**2 for i in range(1, 51)))",
+          "print(sorted([3,1,4,1,5,9,2,6,5,3,5]))",
+          "import math; print(math.factorial(20))",
+          "print(' '.join(reversed('hello world'.split())))",
+          "print([x for x in range(2, 50) if all(x % i != 0 for i in range(2, int(x**0.5)+1))])",
+          "console.log(Array.from({length: 50}, (_, i) => i + 1).reduce((a, b) => a + b, 0))",
+          "console.log([3,1,4,1,5,9,2,6,5,3,5].sort((a,b) => a-b))",
+          "console.log(Array.from({length: 20}, (_, i) => i < 2 ? 1 : 0).reduce((fib) => { fib.push(fib[fib.length-1] + fib[fib.length-2]); return fib; }, [1,1]))",
+          "const isPrime = n => n > 1 && Array.from({length: Math.sqrt(n)|0}, (_, i) => i+2).every(i => n % i); console.log(Array.from({length: 49}, (_, i) => i+2).filter(isPrime))",
+          "console.log('hello world'.split(' ').reverse().join(' '))",
+          "print({k: v for k, v in sorted({'banana': 3, 'apple': 1, 'cherry': 2}.items(), key=lambda x: x[1])})",
+          "console.log(Object.entries({banana: 3, apple: 1, cherry: 2}).sort((a,b) => a[1]-b[1]))",
+        ],
+      },
+      rubric: {
+        domain: "code-processing",
+        criteria: [
+          { name: "correctness", weight: 0.30, description: "Code executes and produces the correct output" },
+          { name: "error_handling", weight: 0.10, description: "Gracefully handles edge cases and errors" },
+          { name: "safety", weight: 0.10, description: "Executes in a sandboxed environment without side effects" },
+        ],
+        speed_weight: 0.20,
+        speed_tiers: { excellent_ms: 2000, good_ms: 5000, acceptable_ms: 10000 },
+        cost_efficiency_weight: 0.20,
+        schema_compliance_weight: 0.10,
+      },
+    },
+    {
+      title: "PDF Extraction Challenge",
+      description: "Extract structured content from PDF documents. Accuracy and completeness are paramount.",
+      capability: "parse",
+      difficulty: "hard",
+      tags: ["pdf", "extraction", "document-processing"],
+      prompt: { pdf_url: "https://example.com/sample.pdf", pages: "1-3" },
+      template_prompt: { pdf_url: "{{url}}", pages: "{{pages}}", extract_tables: "{{tables}}" },
+      task_variables: {
+        url: [
+          "https://arxiv.org/pdf/1706.03762", // Attention Is All You Need
+          "https://arxiv.org/pdf/2005.14165", // GPT-3
+          "https://arxiv.org/pdf/2303.08774", // GPT-4 Technical Report
+        ],
+        pages: ["1-3", "1-5", "all"],
+        tables: [true, false],
+      },
+      rubric: {
+        domain: "document-processing",
+        criteria: [
+          { name: "extraction_accuracy", weight: 0.25, description: "Text and data extracted matches the source document" },
+          { name: "structure_preservation", weight: 0.15, description: "Document structure (headings, lists, tables) is maintained" },
+          { name: "completeness", weight: 0.10, description: "All requested content is extracted without omissions" },
+        ],
+        speed_weight: 0.20,
+        speed_tiers: { excellent_ms: 3000, good_ms: 8000, acceptable_ms: 15000 },
+        cost_efficiency_weight: 0.20,
+        schema_compliance_weight: 0.10,
+      },
+    },
+  ];
+
+  // Use the Supabase admin client directly for arena challenges
+  // (they don't have a public API endpoint yet)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (supabaseUrl && supabaseKey) {
+    let challengesCreated = 0;
+
+    for (const challenge of ARENA_CHALLENGES) {
+      const res = await fetch(`${supabaseUrl}/rest/v1/arena_challenges`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
+          Prefer: "return=minimal,resolution=merge-duplicates",
+        },
+        body: JSON.stringify({
+          title: challenge.title,
+          description: challenge.description,
+          capability: challenge.capability,
+          difficulty: challenge.difficulty,
+          tags: challenge.tags,
+          prompt: challenge.prompt,
+          template_prompt: challenge.template_prompt,
+          task_variables: challenge.task_variables,
+          rubric: challenge.rubric,
+          featured: false,
+        }),
+      });
+
+      if (res.ok || res.status === 201 || res.status === 409) {
+        challengesCreated++;
+        console.log(`  ✅  ${challenge.title} (${challenge.capability})`);
+      } else {
+        const errText = await res.text().catch(() => "");
+        console.error(`  ❌  ${challenge.title} failed: ${res.status} ${errText}`);
+      }
+
+      await sleep(100);
+    }
+
+    console.log(`\n  Created ${challengesCreated}/${ARENA_CHALLENGES.length} arena challenges\n`);
+  } else {
+    console.log("  ⚠️   SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set — skipping arena challenges");
+    console.log("       Set these env vars to seed arena challenges directly\n");
+  }
+
+  // Step 4: Summary
   console.log("━━━  Done ━━━");
   console.log(`🎉  Seed complete! Visit ${BASE_URL}/agents to see your marketplace.`);
   console.log(`📊  Trust graph: ${BASE_URL}/api/trust/{agentId}`);

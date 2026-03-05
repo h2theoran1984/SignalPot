@@ -5,6 +5,51 @@ export type ArenaMatchType = "undercard" | "championship";
 export type ArenaVoteChoice = "a" | "b" | "tie";
 export type ArenaWinner = "a" | "b" | "tie";
 
+// Rubric types
+export interface ArenaRubricCriterion {
+  name: string;
+  weight: number;
+  description: string;
+}
+
+export interface SpeedTiers {
+  excellent_ms: number;
+  good_ms: number;
+  acceptable_ms: number;
+}
+
+export interface ArenaRubric {
+  domain: string;
+  criteria: ArenaRubricCriterion[];
+  speed_weight: number;
+  speed_tiers: SpeedTiers;
+  cost_efficiency_weight: number;
+  schema_compliance_weight: number;
+}
+
+// Per-criterion score in judgment breakdown
+export interface CriterionScore {
+  name: string;
+  score: number;
+  weight: number;
+  notes?: string;
+}
+
+// Full structured judgment breakdown
+export interface JudgmentBreakdown {
+  criteria_scores_a: CriterionScore[];
+  criteria_scores_b: CriterionScore[];
+  speed_score_a: number;
+  speed_score_b: number;
+  cost_efficiency_a: number;
+  cost_efficiency_b: number;
+  schema_compliance_a: number;
+  schema_compliance_b: number;
+  total_a: number;
+  total_b: number;
+  rubric_domain: string;
+}
+
 export interface ArenaChallenge {
   id: string;
   title: string;
@@ -15,6 +60,9 @@ export interface ArenaChallenge {
   tags: string[];
   featured: boolean;
   featured_week: string | null;
+  rubric: ArenaRubric | null;
+  task_variables: Record<string, unknown[]> | null;
+  template_prompt: Record<string, unknown> | null;
   created_at: string;
 }
 
@@ -47,6 +95,8 @@ export interface ArenaMatch {
   judgment_reasoning: string | null;
   judgment_confidence: number | null;
   judgment_source: string | null;
+  resolved_prompt: Record<string, unknown> | null;
+  judgment_breakdown: JudgmentBreakdown | null;
   started_at: string | null;
   completed_at: string | null;
   created_at: string;
@@ -78,6 +128,7 @@ export interface ArenaJudgment {
   reasoning: string;
   confidence: number;
   source: "arbiter" | "fallback";
+  breakdown?: JudgmentBreakdown;
 }
 
 // Joined types for API responses

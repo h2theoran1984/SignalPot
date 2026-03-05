@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
 import AuthButton from "@/components/AuthButton";
 import { Badge } from "@/components/ui/badge";
-import type { ArenaMatchStatus, ArenaMatchType, ArenaStreamEvent, ArenaVoteChoice } from "@/lib/arena/types";
+import type { ArenaMatchStatus, ArenaMatchType, ArenaStreamEvent, ArenaVoteChoice, JudgmentBreakdown } from "@/lib/arena/types";
 
 interface MatchDetail {
   id: string;
@@ -32,10 +32,169 @@ interface MatchDetail {
   judgment_reasoning: string | null;
   judgment_confidence: number | null;
   judgment_source: string | null;
+  judgment_breakdown: JudgmentBreakdown | null;
+  resolved_prompt: Record<string, unknown> | null;
   agent_a: { id: string; name: string; slug: string; description: string | null } | null;
   agent_b: { id: string; name: string; slug: string; description: string | null } | null;
   challenge: { title: string; description: string } | null;
   viewer_vote: ArenaVoteChoice | null;
+}
+
+/* ── Score bar: shows A vs B as dual horizontal bars ── */
+function ScoreBar({
+  label,
+  scoreA,
+  scoreB,
+  weight,
+}: {
+  label: string;
+  scoreA: number;
+  scoreB: number;
+  weight?: number;
+}) {
+  const pctA = Math.round(scoreA * 100);
+  const pctB = Math.round(scoreB * 100);
+  const aWins = scoreA > scoreB;
+  const bWins = scoreB > scoreA;
+
+  return (
+    <div className="mb-3 last:mb-0">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs text-gray-400 font-medium">{label}</span>
+        {weight !== undefined && (
+          <span className="text-[10px] text-gray-600">{Math.round(weight * 100)}% weight</span>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        {/* Agent A bar */}
+        <div className="flex items-center gap-2">
+          <div className="flex-1 h-5 bg-[#0a0a0f] rounded overflow-hidden flex justify-end">
+            <div
+              className={`h-full rounded transition-all duration-700 ${
+                aWins ? "bg-cyan-600" : "bg-gray-700"
+              }`}
+              style={{ width: `${pctA}%` }}
+            />
+          </div>
+          <span className={`text-xs font-mono w-10 text-right ${aWins ? "text-cyan-400" : "text-gray-500"}`}>
+            {pctA}%
+          </span>
+        </div>
+        {/* Agent B bar */}
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-mono w-10 ${bWins ? "text-cyan-400" : "text-gray-500"}`}>
+            {pctB}%
+          </span>
+          <div className="flex-1 h-5 bg-[#0a0a0f] rounded overflow-hidden">
+            <div
+              className={`h-full rounded transition-all duration-700 ${
+                bWins ? "bg-cyan-600" : "bg-gray-700"
+              }`}
+              style={{ width: `${pctB}%` }}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Judgment breakdown panel ── */
+function JudgmentBreakdownPanel({
+  breakdown,
+  agentAName,
+  agentBName,
+}: {
+  breakdown: JudgmentBreakdown;
+  agentAName: string;
+  agentBName: string;
+}) {
+  const domainLabels: Record<string, string> = {
+    "information-retrieval": "Information Retrieval",
+    "text-processing": "Text Processing",
+    "code-processing": "Code Processing",
+    "content-generation": "Content Generation",
+    "document-processing": "Document Processing",
+    default: "General",
+  };
+
+  const domainLabel = domainLabels[breakdown.rubric_domain] ?? breakdown.rubric_domain;
+
+  return (
+    <div className="p-5 bg-[#111118] border border-[#1f2028] rounded-lg mb-8">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold text-gray-300">Scoring Breakdown</h3>
+        <span className="px-2 py-0.5 text-[10px] font-bold bg-purple-900/40 text-purple-400 border border-purple-700/40 rounded-full">
+          {domainLabel}
+        </span>
+      </div>
+
+      {/* Column headers */}
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <div className="text-right">
+          <span className="text-xs text-gray-500 font-medium">{agentAName}</span>
+        </div>
+        <div>
+          <span className="text-xs text-gray-500 font-medium">{agentBName}</span>
+        </div>
+      </div>
+
+      {/* Per-criterion scores */}
+      {breakdown.criteria_scores_a.map((criterion, i) => {
+        const bScore = breakdown.criteria_scores_b[i];
+        return (
+          <ScoreBar
+            key={criterion.name}
+            label={criterion.name.charAt(0).toUpperCase() + criterion.name.slice(1)}
+            scoreA={criterion.score}
+            scoreB={bScore?.score ?? 0}
+            weight={criterion.weight}
+          />
+        );
+      })}
+
+      {/* Divider */}
+      <div className="border-t border-[#1f2028] my-4" />
+
+      {/* Speed */}
+      <ScoreBar label="Speed" scoreA={breakdown.speed_score_a} scoreB={breakdown.speed_score_b} />
+
+      {/* Cost Efficiency */}
+      <ScoreBar
+        label="Cost Efficiency"
+        scoreA={breakdown.cost_efficiency_a}
+        scoreB={breakdown.cost_efficiency_b}
+      />
+
+      {/* Schema Compliance */}
+      <ScoreBar
+        label="Schema Compliance"
+        scoreA={breakdown.schema_compliance_a}
+        scoreB={breakdown.schema_compliance_b}
+      />
+
+      {/* Divider + Totals */}
+      <div className="border-t border-[#1f2028] my-4" />
+      <div className="grid grid-cols-2 gap-2">
+        <div className="text-right">
+          <span className={`text-lg font-bold font-mono ${
+            breakdown.total_a > breakdown.total_b ? "text-cyan-400" : "text-gray-400"
+          }`}>
+            {(breakdown.total_a * 100).toFixed(1)}
+          </span>
+          <span className="text-xs text-gray-600 ml-1">/ 100</span>
+        </div>
+        <div>
+          <span className={`text-lg font-bold font-mono ${
+            breakdown.total_b > breakdown.total_a ? "text-cyan-400" : "text-gray-400"
+          }`}>
+            {(breakdown.total_b * 100).toFixed(1)}
+          </span>
+          <span className="text-xs text-gray-600 ml-1">/ 100</span>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function ResponsePanel({
@@ -383,14 +542,21 @@ export default function MatchPage() {
 
         {/* Prompt display */}
         <div className="p-4 bg-[#111118] border border-[#1f2028] rounded-lg mb-8">
-          <h3 className="text-sm font-medium text-gray-400 mb-2">
-            {match.challenge ? `Challenge: ${match.challenge.title}` : "Prompt"}
-          </h3>
+          <div className="flex items-center gap-2 mb-2">
+            <h3 className="text-sm font-medium text-gray-400">
+              {match.challenge ? `Challenge: ${match.challenge.title}` : "Prompt"}
+            </h3>
+            {match.resolved_prompt && (
+              <span className="px-1.5 py-0.5 text-[10px] font-medium bg-amber-900/30 text-amber-400 border border-amber-800/40 rounded">
+                resolved from template
+              </span>
+            )}
+          </div>
           {match.prompt_text && (
             <p className="text-sm text-gray-300 mb-2">{match.prompt_text}</p>
           )}
           <pre className="text-xs text-gray-500 font-mono overflow-x-auto whitespace-pre-wrap">
-            {JSON.stringify(match.prompt, null, 2)}
+            {JSON.stringify(match.resolved_prompt ?? match.prompt, null, 2)}
           </pre>
         </div>
 
@@ -438,6 +604,15 @@ export default function MatchPage() {
               </p>
             )}
           </div>
+        )}
+
+        {/* Judgment breakdown (undercard, completed, has breakdown) */}
+        {isCompleted && isUndercard && match.judgment_breakdown && (
+          <JudgmentBreakdownPanel
+            breakdown={match.judgment_breakdown}
+            agentAName={agentAName}
+            agentBName={agentBName}
+          />
         )}
 
         {/* Championship voting header */}

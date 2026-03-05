@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { wrapRequest, wrapResponse } from "@/lib/envelope";
 import { validateOutput } from "@/lib/schema-validator";
 import { inngest } from "@/lib/inngest/client";
+import { resolveTemplate } from "@/lib/arena/rubric";
 import type { Agent } from "@/lib/types";
 
 interface AgentCallResult {
@@ -202,17 +203,40 @@ export async function executeMatch(matchId: string): Promise<void> {
     return;
   }
 
-  // Mark match as running
+  // Resolve template if challenge has variable pools (anti-gaming)
+  let actualPrompt = match.prompt as Record<string, unknown>;
+
+  if (match.challenge_id) {
+    const { data: challenge } = await admin
+      .from("arena_challenges")
+      .select("template_prompt, task_variables, prompt")
+      .eq("id", match.challenge_id)
+      .single();
+
+    if (challenge?.template_prompt && challenge?.task_variables) {
+      actualPrompt = resolveTemplate({
+        template_prompt: challenge.template_prompt as Record<string, unknown> | null,
+        task_variables: challenge.task_variables as Record<string, unknown[]> | null,
+        prompt: challenge.prompt as Record<string, unknown>,
+      });
+    }
+  }
+
+  // Mark match as running + store resolved prompt
   const startedAt = new Date().toISOString();
   await admin
     .from("arena_matches")
-    .update({ status: "running", started_at: startedAt })
+    .update({
+      status: "running",
+      started_at: startedAt,
+      resolved_prompt: actualPrompt,
+    })
     .eq("id", matchId);
 
-  // Call both agents in parallel
+  // Call both agents in parallel (using resolved prompt, not template)
   const [resultA, resultB] = await Promise.allSettled([
-    callAgent(admin, agentA as Agent, match.capability, match.prompt, matchId, "a"),
-    callAgent(admin, agentB as Agent, match.capability, match.prompt, matchId, "b"),
+    callAgent(admin, agentA as Agent, match.capability, actualPrompt, matchId, "a"),
+    callAgent(admin, agentB as Agent, match.capability, actualPrompt, matchId, "b"),
   ]);
 
   // Process results
