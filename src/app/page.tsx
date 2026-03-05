@@ -55,6 +55,12 @@ export default function HomePage() {
             Browse Agents
           </a>
           <a
+            href="/arena"
+            className="text-sm text-gray-400 hover:text-white transition-colors"
+          >
+            Arena
+          </a>
+          <a
             href="/pricing"
             className="text-sm text-gray-400 hover:text-white transition-colors"
           >

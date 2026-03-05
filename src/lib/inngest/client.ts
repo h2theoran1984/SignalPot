@@ -25,4 +25,9 @@ export type SignalPotEvents = {
       job_id: string;
     };
   };
+  "arena/match.created": {
+    data: {
+      match_id: string;
+    };
+  };
 };

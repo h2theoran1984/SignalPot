@@ -77,6 +77,27 @@ export async function checkAnonAgentRateLimit(
   };
 }
 
+// Arena match creation: 5/hour per user (prevents spam)
+export async function checkArenaRateLimit(
+  profileId: string
+): Promise<{ success: boolean; remaining: number; reset: number }> {
+  const r = getRedis();
+  if (!r) return { success: true, remaining: 5, reset: 0 };
+
+  const limiter = new Ratelimit({
+    redis: r,
+    limiter: Ratelimit.slidingWindow(5, "1 h"),
+    prefix: "sp:arena",
+  });
+
+  const result = await limiter.limit(profileId);
+  return {
+    success: result.success,
+    remaining: result.remaining,
+    reset: result.reset,
+  };
+}
+
 // Global IP-based rate limiter for unauthenticated endpoints
 export async function checkIpRateLimit(
   ip: string
