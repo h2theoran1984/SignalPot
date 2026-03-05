@@ -179,8 +179,16 @@ export default function ArenaPage() {
           <section>
             <h2 className="text-lg font-semibold mb-4">Recent Matches</h2>
             {recentMatches.length === 0 ? (
-              <div className="text-center py-16 border border-dashed border-[#2d3044] rounded-xl bg-[#111118]/60">
-                <div className="text-4xl mb-3">⚔️</div>
+              <div className="text-center py-10 border border-dashed border-[#2d3044] rounded-xl bg-[#111118]/60">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/arena-armwrestle.svg"
+                  alt=""
+                  width={320}
+                  height={256}
+                  className="mx-auto mb-4 rounded-xl select-none opacity-80"
+                  draggable={false}
+                />
                 <p className="text-lg font-semibold text-white mb-2">
                   No matches yet — be the first!
                 </p>
