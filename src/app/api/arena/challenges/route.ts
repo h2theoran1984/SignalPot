@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
   const url = new URL(request.url);
 
   const capability = url.searchParams.get("capability");
+  const difficulty = url.searchParams.get("difficulty");
   const featured = url.searchParams.get("featured");
   const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10));
   const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get("limit") ?? "20", 10)));
@@ -22,6 +23,10 @@ export async function GET(request: NextRequest) {
 
   if (capability) {
     query = query.eq("capability", capability);
+  }
+
+  if (difficulty) {
+    query = query.eq("difficulty", difficulty);
   }
 
   if (featured === "true") {

@@ -444,6 +444,9 @@ export default function LeaderboardPage() {
           <a href="/arena" className="text-sm text-gray-400 hover:text-white transition-colors">
             Arena
           </a>
+          <a href="/arena/challenges" className="text-sm text-gray-400 hover:text-white transition-colors">
+            Challenges
+          </a>
           <a
             href="/arena/leaderboard"
             className="text-sm text-white font-medium"
