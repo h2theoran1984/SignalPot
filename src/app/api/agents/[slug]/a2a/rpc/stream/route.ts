@@ -7,6 +7,20 @@ import { A2AErrorCodes, type JSONRPCRequest, type Task, type TaskStatusUpdateEve
 
 export const dynamic = "force-dynamic";
 
+/** Validate request origin against allowed origins. Returns the origin if valid, null otherwise. */
+function getAllowedOrigin(request: Request): string | null {
+  const origin = request.headers.get("origin");
+  if (!origin) return null;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.signalpot.dev";
+  const allowed = [
+    siteUrl,
+    "https://signalpot.dev",
+    "https://www.signalpot.dev",
+    ...(process.env.NODE_ENV === "development" ? ["http://localhost:3000", "http://localhost:3002"] : []),
+  ];
+  return allowed.includes(origin) ? origin : null;
+}
+
 function sseEvent(data: unknown): string {
   return `data: ${JSON.stringify(data)}\n\n`;
 }
@@ -151,13 +165,16 @@ export async function POST(
     },
   });
 
-  return new Response(stream, {
-    status: 200,
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      "Connection": "keep-alive",
-      "Access-Control-Allow-Origin": "*",
-    },
-  });
+  const corsOrigin = getAllowedOrigin(request);
+  const headers: Record<string, string> = {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    "Connection": "keep-alive",
+  };
+  if (corsOrigin) {
+    headers["Access-Control-Allow-Origin"] = corsOrigin;
+    headers["Vary"] = "Origin";
+  }
+
+  return new Response(stream, { status: 200, headers });
 }

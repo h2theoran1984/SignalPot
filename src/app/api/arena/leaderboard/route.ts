@@ -25,7 +25,7 @@ export async function GET() {
       losses,
       ties,
       updated_at,
-      agent:agents!arena_ratings_agent_id_fkey(id, name, slug, description)
+      agent:agents!arena_ratings_agent_id_fkey(id, name, slug, description, mcp_endpoint)
       `
     )
     .order("elo", { ascending: false });
@@ -55,8 +55,11 @@ export async function GET() {
   >();
 
   for (const r of ratings ?? []) {
-    const agent = r.agent as unknown as { id: string; name: string; slug: string; description: string | null } | null;
+    const agent = r.agent as unknown as { id: string; name: string; slug: string; description: string | null; mcp_endpoint: string | null } | null;
     if (!agent) continue;
+
+    // Hide placeholder agents (no endpoint) from the arena leaderboard
+    if (!agent.mcp_endpoint) continue;
 
     const entry = {
       agent_id: r.agent_id,
@@ -118,8 +121,11 @@ export async function GET() {
   >();
 
   for (const r of ratings ?? []) {
-    const agent = r.agent as unknown as { id: string; name: string; slug: string; description: string | null } | null;
+    const agent = r.agent as unknown as { id: string; name: string; slug: string; description: string | null; mcp_endpoint: string | null } | null;
     if (!agent) continue;
+
+    // Hide placeholder agents (no endpoint) from the arena leaderboard
+    if (!agent.mcp_endpoint) continue;
 
     const existing = agentAgg.get(r.agent_id);
     if (existing) {
@@ -197,15 +203,22 @@ export async function GET() {
       ? Math.round(rankings.reduce((sum, r) => sum + r.avg_elo, 0) / rankings.length)
       : 1500;
 
-  return NextResponse.json({
-    rankings,
-    divisions,
-    recentMatches: recentMatches ?? [],
-    stats: {
-      total_agents: totalAgents,
-      total_matches: Math.round(totalMatches),
-      avg_elo: avgElo,
-      total_capabilities: divisionMap.size,
+  return NextResponse.json(
+    {
+      rankings,
+      divisions,
+      recentMatches: recentMatches ?? [],
+      stats: {
+        total_agents: totalAgents,
+        total_matches: Math.round(totalMatches),
+        avg_elo: avgElo,
+        total_capabilities: divisionMap.size,
+      },
     },
-  });
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+      },
+    }
+  );
 }

@@ -9,6 +9,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { Agent } from "@/lib/types";
 import type { ArenaJudgment, ArenaRubric } from "./types";
 import { inferRubric, buildJudgePrompt, assembleBreakdown } from "./rubric";
+import { LEVEL_CONFIGS, type ArenaLevel } from "./levels";
 
 const ARBITER_SLUG = "the-arbiter";
 const ARBITER_CAPABILITY = "signalpot/arbitrate@v1";
@@ -32,6 +33,7 @@ interface ArenaJudgeInput {
   rubric?: ArenaRubric;
   costACents: number;
   costBCents: number;
+  level?: ArenaLevel;
 }
 
 /**
@@ -52,7 +54,7 @@ export async function callArenaJudge(
   // Look up The Arbiter agent
   const { data: arbiter } = await admin
     .from("agents")
-    .select("*")
+    .select("id, slug, mcp_endpoint, capability_schema, status")
     .eq("slug", ARBITER_SLUG)
     .eq("status", "active")
     .single();
@@ -85,7 +87,7 @@ export async function callArenaJudge(
     .single();
 
   if (jobError || !job) {
-    console.error("[arena-judge] Failed to create job:", jobError?.message);
+    console.error("[arena-judge] Failed to create job record");
     return callJudgeFallback(input, rubric);
   }
 
@@ -96,6 +98,7 @@ export async function callArenaJudge(
     context: "arena_match_judgment",
     match_id: input.matchId,
     capability: input.capability,
+    level: input.level ?? 1,
     prompt: input.prompt,
     prompt_text: input.promptText,
     rubric,
@@ -220,8 +223,7 @@ export async function callArenaJudge(
       })
       .eq("id", jobId);
 
-    const message = err instanceof Error ? err.message : "Arbiter unreachable";
-    console.warn(`[arena-judge] MCP call failed (${message}) — using fallback`);
+    console.warn("[arena-judge] MCP call failed — using fallback");
     return callJudgeFallback(input, rubric);
   }
 }
@@ -264,10 +266,27 @@ function tryParseBreakdown(
  * Claude Haiku fallback — uses domain-specific rubric prompt.
  * Falls back to winner/reasoning/confidence if breakdown parsing fails.
  */
+/** Get the fallback judge model — Sonnet for Level 3, Haiku otherwise. */
+function getFallbackModel(level: ArenaLevel = 1): string {
+  return level === 3 ? "claude-sonnet-4-20250514" : "claude-haiku-4-5-20251001";
+}
+
+/** Level-specific judge context injected into the prompt. */
+function getLevelJudgeContext(level: ArenaLevel = 1): string {
+  if (level === 2) {
+    return "\n\nJUDGING CONTEXT: This is a Level 2 match. Apply stricter quality standards. Minor errors should be penalized more than at Level 1. Expect chain-of-thought reasoning and self-consistent outputs.";
+  }
+  if (level === 3) {
+    return "\n\nJUDGING CONTEXT: This is a Level 3 (championship) match. Apply the strictest quality standards. Expect near-flawless, production-quality output. Even small mistakes, hallucinations, or missed edge cases should be heavily penalized. Only truly exceptional responses deserve high scores.";
+  }
+  return "";
+}
+
 async function callJudgeFallback(
   input: ArenaJudgeInput,
   rubric: ArenaRubric
 ): Promise<ArenaJudgment> {
+  const level = input.level ?? 1;
   const prompt = buildJudgePrompt(rubric, {
     capability: input.capability,
     promptText: input.promptText,
@@ -280,11 +299,11 @@ async function callJudgeFallback(
     durationBMs: input.durationBMs,
     verifiedA: input.verifiedA,
     verifiedB: input.verifiedB,
-  });
+  }) + getLevelJudgeContext(level);
 
   try {
     const message = await anthropic.messages.create({
-      model: "claude-3-5-haiku-20241022",
+      model: getFallbackModel(level),
       max_tokens: 512,
       messages: [{ role: "user", content: prompt }],
     });
@@ -316,8 +335,9 @@ async function callJudgeFallback(
       source: "fallback",
       breakdown,
     };
-  } catch {
+  } catch (err) {
     // If Claude fails entirely, default to tie
+    console.error("[arena-judge] Fallback Claude call failed");
     return {
       winner: "tie",
       reasoning: "AI judge could not render a verdict — defaulting to tie.",

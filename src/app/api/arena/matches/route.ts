@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
       challenge_id: challenge_id ?? null,
       status: "pending",
     })
-    .select("*")
+    .select("id, status, capability, created_at")
     .single();
 
   if (insertError || !match) {
@@ -126,20 +126,30 @@ export async function GET(request: NextRequest) {
   const admin = createAdminClient();
   const url = new URL(request.url);
 
-  const status = url.searchParams.get("status");
+  const VALID_STATUSES = new Set(["pending", "running", "judging", "voting", "completed", "failed"]);
+  const VALID_MATCH_TYPES = new Set(["undercard", "championship"]);
+
+  const rawStatus = url.searchParams.get("status");
   const capability = url.searchParams.get("capability");
-  const matchType = url.searchParams.get("match_type");
+  const rawMatchType = url.searchParams.get("match_type");
   const agentSlug = url.searchParams.get("agent");
   const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10));
   const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get("limit") ?? "20", 10)));
   const offset = (page - 1) * limit;
 
-  // Build query
+  // Validate enum query params — ignore invalid values
+  const status = rawStatus && VALID_STATUSES.has(rawStatus) ? rawStatus : null;
+  const matchType = rawMatchType && VALID_MATCH_TYPES.has(rawMatchType) ? rawMatchType : null;
+
+  // Build query — explicit columns to avoid leaking internal data
   let query = admin
     .from("arena_matches")
     .select(
       `
-      *,
+      id, capability, status, match_type, level, winner,
+      votes_a, votes_b, votes_tie,
+      duration_a_ms, duration_b_ms,
+      created_at,
       agent_a:agents!arena_matches_agent_a_id_fkey(name, slug, description),
       agent_b:agents!arena_matches_agent_b_id_fkey(name, slug, description)
       `,
@@ -161,7 +171,7 @@ export async function GET(request: NextRequest) {
   const { data: matches, count, error } = await query;
 
   if (error) {
-    console.error("[arena] List error:", error);
+    console.error("[arena] List matches query failed");
     return NextResponse.json({ error: "Failed to list matches" }, { status: 500 });
   }
 
@@ -170,15 +180,22 @@ export async function GET(request: NextRequest) {
   if (agentSlug) {
     filtered = filtered.filter(
       (m) =>
-        (m.agent_a as { slug: string })?.slug === agentSlug ||
-        (m.agent_b as { slug: string })?.slug === agentSlug
+        (m.agent_a as unknown as { slug: string })?.slug === agentSlug ||
+        (m.agent_b as unknown as { slug: string })?.slug === agentSlug
     );
   }
 
-  return NextResponse.json({
-    matches: filtered,
-    total: count ?? 0,
-    page,
-    limit,
-  });
+  return NextResponse.json(
+    {
+      matches: filtered,
+      total: count ?? 0,
+      page,
+      limit,
+    },
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30",
+      },
+    }
+  );
 }

@@ -16,10 +16,16 @@ export async function GET(
     .from("arena_matches")
     .select(
       `
-      *,
+      id, capability, status, match_type, level, winner,
+      votes_a, votes_b, votes_tie,
+      duration_a_ms, duration_b_ms, verified_a, verified_b,
+      voting_ends_at, started_at, completed_at, created_at,
+      prompt, prompt_text, response_a, response_b,
+      judgment_reasoning, judgment_confidence, judgment_source,
+      cost_a, cost_b,
       agent_a:agents!arena_matches_agent_a_id_fkey(id, name, slug, description, tags, rate_amount, rate_type),
       agent_b:agents!arena_matches_agent_b_id_fkey(id, name, slug, description, tags, rate_amount, rate_type),
-      challenge:arena_challenges(*)
+      challenge:arena_challenges(id, capability, difficulty, prompt, prompt_text, featured)
       `
     )
     .eq("id", id)
@@ -49,10 +55,18 @@ export async function GET(
     // Auth check failed — viewer is anonymous, that's fine
   }
 
-  return NextResponse.json({
-    match: {
-      ...match,
-      viewer_vote,
+  return NextResponse.json(
+    {
+      match: {
+        ...match,
+        viewer_vote,
+      },
     },
-  });
+    {
+      headers: {
+        // Short cache since match state changes during live matches
+        "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30",
+      },
+    }
+  );
 }

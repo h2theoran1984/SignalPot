@@ -34,6 +34,7 @@ interface MatchDetail {
   judgment_source: string | null;
   judgment_breakdown: JudgmentBreakdown | null;
   resolved_prompt: Record<string, unknown> | null;
+  level: number | null;
   agent_a: { id: string; name: string; slug: string; description: string | null } | null;
   agent_b: { id: string; name: string; slug: string; description: string | null } | null;
   challenge: { title: string; description: string } | null;
@@ -487,6 +488,15 @@ export default function MatchPage() {
               </span>
             )}
             <Badge variant="tag">{match.capability}</Badge>
+            {match.level && match.level > 1 && (
+              <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${
+                match.level === 3
+                  ? "bg-purple-900/50 text-purple-400 border-purple-700/50"
+                  : "bg-blue-900/50 text-blue-400 border-blue-700/50"
+              }`}>
+                LVL {match.level}
+              </span>
+            )}
             <div className="flex items-center gap-2">
               {isLive && (
                 <span className="flex items-center gap-1.5 text-xs text-red-400 font-medium">

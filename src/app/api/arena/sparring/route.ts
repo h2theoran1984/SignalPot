@@ -81,15 +81,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       jsonrpc: "2.0",
       id,
-      error: { code: -32601, message: `Method not found: ${body.method}` },
+      error: { code: -32601, message: "Method not found" },
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Internal error";
-    console.error("Sparring Partner error:", err);
+    console.error("[arena-sparring] Request failed:", err instanceof Error ? err.message : "unknown");
     return NextResponse.json({
       jsonrpc: "2.0",
       id: 0,
-      error: { code: -32603, message },
+      error: { code: -32603, message: "Internal error" },
     });
   }
 }

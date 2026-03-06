@@ -14,6 +14,7 @@ interface ArenaMatchCardProps {
     duration_a_ms: number | null;
     duration_b_ms: number | null;
     created_at: string;
+    level?: number | null;
     agent_a: { name: string; slug: string } | null;
     agent_b: { name: string; slug: string } | null;
   };
@@ -56,6 +57,15 @@ export function ArenaMatchCard({ match }: ArenaMatchCardProps) {
             </span>
           )}
           <Badge variant="tag">{match.capability}</Badge>
+          {match.level && match.level > 1 && (
+            <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${
+              match.level === 3
+                ? "bg-purple-900/50 text-purple-400 border border-purple-700/50"
+                : "bg-blue-900/50 text-blue-400 border border-blue-700/50"
+            }`}>
+              LVL {match.level}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {isLive && (

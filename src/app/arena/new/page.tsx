@@ -45,6 +45,8 @@ function NewMatchPage() {
   const [capability, setCapability] = useState("");
   const [promptText, setPromptText] = useState("");
   const [promptJson, setPromptJson] = useState("{}");
+  const [selectedLevel, setSelectedLevel] = useState(1);
+  const [challengerElo, setChallengerElo] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -90,15 +92,65 @@ function NewMatchPage() {
   const agentAObj = agents.find((a) => a.slug === agentA);
   const agentBObj = agents.find((a) => a.slug === agentB);
 
+  // Detect sparring partner involvement
+  const hasSparring = agentA === "sparring-partner" || agentB === "sparring-partner";
+  const challengerSlug = hasSparring
+    ? (agentA === "sparring-partner" ? agentB : agentA) || null
+    : null;
+
+  // Level config
+  const LEVELS = [
+    { level: 1, label: "Level 1", description: "Haiku · Basic prompts", elo: 0 },
+    { level: 2, label: "Level 2", description: "Sonnet · Enhanced prompts", elo: 1300 },
+    { level: 3, label: "Level 3", description: "Opus · Master prompts", elo: 1500 },
+  ];
+
+  // Fetch challenger ELO when sparring partner is involved
+  useEffect(() => {
+    if (!challengerSlug || !capability) {
+      setChallengerElo(null);
+      setSelectedLevel(1);
+      return;
+    }
+
+    async function fetchElo() {
+      try {
+        const res = await fetch(
+          `/api/arena/ratings?agent=${encodeURIComponent(challengerSlug!)}&capability=${encodeURIComponent(capability)}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setChallengerElo(data.elo ?? 1200);
+        }
+      } catch {
+        setChallengerElo(1200);
+      }
+    }
+    fetchElo();
+  }, [challengerSlug, capability]);
+
   // Shared capabilities between A and B
+  // The Sparring Partner is a universal opponent — it handles ANY capability
+  const SPARRING_SLUG = "sparring-partner";
   const capsA = agentAObj?.capability_schema?.map((c) => c.name) ?? [];
   const capsB = agentBObj?.capability_schema?.map((c) => c.name) ?? [];
-  const sharedCaps = capsA.filter((c) => capsB.includes(c));
+
+  const sharedCaps = (() => {
+    if (agentA === SPARRING_SLUG && agentBObj) return capsB;   // SP handles anything B can do
+    if (agentB === SPARRING_SLUG && agentAObj) return capsA;   // SP handles anything A can do
+    return capsA.filter((c) => capsB.includes(c));              // Normal: intersection
+  })();
 
   // Filter agent B to only show agents that share capabilities with A
+  // Always include the Sparring Partner (universal opponent)
   const agentBOptions = agentA
     ? agents.filter((a) => {
         if (a.slug === agentA) return false;
+        // Always show Sparring Partner as an option
+        if (a.slug === SPARRING_SLUG) return true;
+        // If Agent A is the Sparring Partner, show all agents
+        if (agentA === SPARRING_SLUG) return true;
+        // Otherwise, filter by shared capabilities
         const bCaps = a.capability_schema?.map((c) => c.name) ?? [];
         return capsA.some((c) => bCaps.includes(c));
       })
@@ -139,6 +191,7 @@ function NewMatchPage() {
           prompt: parsedPrompt,
           prompt_text: promptText || undefined,
           challenge_id: selectedChallenge?.id,
+          level: hasSparring ? selectedLevel : undefined,
         }),
       });
 
@@ -317,6 +370,56 @@ function NewMatchPage() {
               className="w-full px-4 py-3 bg-[#111118] border border-[#1f2028] rounded-lg text-white placeholder-gray-600 font-mono text-sm focus:outline-none focus:border-cyan-700 transition-colors"
             />
           </div>
+
+          {/* Level selector — only shown when sparring partner is involved */}
+          {hasSparring && capability && (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                Difficulty Level
+              </label>
+              {challengerElo !== null && (
+                <p className="text-xs text-gray-500 mb-3">
+                  {challengerSlug} has <span className="text-cyan-400 font-semibold">{challengerElo}</span> ELO in {capability}
+                </p>
+              )}
+              <div className="grid grid-cols-3 gap-3">
+                {LEVELS.map((l) => {
+                  const unlocked = challengerElo !== null ? challengerElo >= l.elo : l.level === 1;
+                  const isSelected = selectedLevel === l.level;
+
+                  return (
+                    <button
+                      key={l.level}
+                      type="button"
+                      onClick={() => unlocked && setSelectedLevel(l.level)}
+                      disabled={!unlocked}
+                      className={`p-3 rounded-lg border text-left transition-colors ${
+                        isSelected
+                          ? "bg-cyan-950 border-cyan-700 text-white"
+                          : unlocked
+                          ? "bg-[#111118] border-[#1f2028] text-gray-400 hover:border-[#2d3044] cursor-pointer"
+                          : "bg-[#0a0a0f] border-[#1a1a22] text-gray-600 opacity-50 cursor-not-allowed"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-sm font-semibold ${
+                          isSelected ? "text-cyan-400" : unlocked ? "text-white" : "text-gray-600"
+                        }`}>
+                          {l.label}
+                        </span>
+                        {!unlocked && (
+                          <span className="text-[10px] px-1.5 py-0.5 bg-gray-800 text-gray-500 rounded font-medium">
+                            🔒 {l.elo} ELO
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500">{l.description}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Cost preview */}
           <div className="p-4 bg-[#111118] border border-[#1f2028] rounded-lg">

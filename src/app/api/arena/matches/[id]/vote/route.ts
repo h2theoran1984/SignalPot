@@ -82,29 +82,13 @@ export async function POST(
     return NextResponse.json({ error: "Failed to cast vote" }, { status: 500 });
   }
 
-  // Increment vote count on the match
+  // Atomically increment vote count via SQL — prevents race condition
   const voteColumn = vote === "a" ? "votes_a" : vote === "b" ? "votes_b" : "votes_tie";
 
-  // Fetch current counts and increment
-  const { data: updated } = await admin
-    .from("arena_matches")
-    .select("votes_a, votes_b, votes_tie")
-    .eq("id", id)
-    .single();
-
-  if (updated) {
-    await admin
-      .from("arena_matches")
-      .update({ [voteColumn]: (updated[voteColumn] as number) + 1 })
-      .eq("id", id);
-  }
-
-  // Return updated counts
-  const { data: final } = await admin
-    .from("arena_matches")
-    .select("votes_a, votes_b, votes_tie")
-    .eq("id", id)
-    .single();
+  const { data: final } = await admin.rpc("increment_arena_vote", {
+    p_match_id: id,
+    p_vote_column: voteColumn,
+  }).single() as { data: { votes_a: number; votes_b: number; votes_tie: number } | null };
 
   return NextResponse.json({
     vote,

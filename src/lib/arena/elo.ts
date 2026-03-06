@@ -59,10 +59,12 @@ export async function updateElo(
 ): Promise<{ eloA: number; eloB: number; deltaA: number; deltaB: number }> {
   const admin = createAdminClient();
 
+  const RATING_COLS = "elo, matches_played, wins, losses, ties";
+
   // Fetch or create rating for Agent A
   let { data: ratingA } = await admin
     .from("arena_ratings")
-    .select("*")
+    .select(RATING_COLS)
     .eq("agent_id", agentAId)
     .eq("capability", capability)
     .single();
@@ -79,7 +81,7 @@ export async function updateElo(
         losses: 0,
         ties: 0,
       })
-      .select("*")
+      .select(RATING_COLS)
       .single();
     ratingA = created;
   }
@@ -87,7 +89,7 @@ export async function updateElo(
   // Fetch or create rating for Agent B
   let { data: ratingB } = await admin
     .from("arena_ratings")
-    .select("*")
+    .select(RATING_COLS)
     .eq("agent_id", agentBId)
     .eq("capability", capability)
     .single();
@@ -104,7 +106,7 @@ export async function updateElo(
         losses: 0,
         ties: 0,
       })
-      .select("*")
+      .select(RATING_COLS)
       .single();
     ratingB = created;
   }
@@ -163,4 +165,23 @@ export async function updateElo(
     deltaA: newA - oldEloA,
     deltaB: newB - oldEloB,
   };
+}
+
+/**
+ * Fetch the current ELO for an agent on a specific capability.
+ * Returns DEFAULT_ELO (1200) if no rating row exists yet.
+ */
+export async function getAgentElo(
+  agentId: string,
+  capability: string
+): Promise<number> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("arena_ratings")
+    .select("elo")
+    .eq("agent_id", agentId)
+    .eq("capability", capability)
+    .single();
+
+  return (data?.elo as number) ?? DEFAULT_ELO;
 }

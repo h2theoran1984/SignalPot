@@ -1,5 +1,7 @@
 // Arena types — Agent-vs-Agent competition system
 
+export type { ArenaLevel } from "./levels";
+
 export type ArenaMatchStatus = "pending" | "running" | "judging" | "voting" | "completed" | "failed";
 export type ArenaMatchType = "undercard" | "championship";
 export type ArenaVoteChoice = "a" | "b" | "tie";
@@ -97,6 +99,7 @@ export interface ArenaMatch {
   judgment_source: string | null;
   resolved_prompt: Record<string, unknown> | null;
   judgment_breakdown: JudgmentBreakdown | null;
+  level: number | null;
   started_at: string | null;
   completed_at: string | null;
   created_at: string;

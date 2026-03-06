@@ -8,6 +8,11 @@ import { inngest } from "@/lib/inngest/client";
 import { resolveTemplate } from "@/lib/arena/rubric";
 import type { Agent } from "@/lib/types";
 
+/** How long to wait for an external agent response before aborting. */
+const AGENT_CALL_TIMEOUT_MS = 30_000;
+/** Championship voting window. */
+const VOTING_PERIOD_MS = 24 * 60 * 60 * 1000; // 24 hours
+
 interface AgentCallResult {
   response: Record<string, unknown>;
   durationMs: number;
@@ -79,7 +84,7 @@ async function callAgent(
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30_000);
+    const timeout = setTimeout(() => controller.abort(), AGENT_CALL_TIMEOUT_MS);
 
     const res = await fetch(agent.mcp_endpoint, {
       method: "POST",
@@ -168,30 +173,32 @@ export async function executeMatch(matchId: string): Promise<void> {
   // Fetch the match
   const { data: match, error: matchError } = await admin
     .from("arena_matches")
-    .select("*")
+    .select("id, status, agent_a_id, agent_b_id, capability, prompt, challenge_id, match_type")
     .eq("id", matchId)
     .single();
 
   if (matchError || !match) {
-    console.error(`[arena] Match not found: ${matchId}`);
+    console.error("[arena] Match not found");
     return;
   }
 
   if (match.status !== "pending") {
-    console.warn(`[arena] Match ${matchId} is not pending (status: ${match.status})`);
+    console.warn("[arena] Match is not in pending state, skipping");
     return;
   }
 
   // Fetch both agents
+  const AGENT_COLS = "id, name, slug, mcp_endpoint, rate_amount, capability_schema, status";
+
   const { data: agentA } = await admin
     .from("agents")
-    .select("*")
+    .select(AGENT_COLS)
     .eq("id", match.agent_a_id)
     .single();
 
   const { data: agentB } = await admin
     .from("agents")
-    .select("*")
+    .select(AGENT_COLS)
     .eq("id", match.agent_b_id)
     .single();
 
@@ -271,7 +278,7 @@ export async function executeMatch(matchId: string): Promise<void> {
 
     if (matchType === "championship") {
       // Championship → community voting (24h)
-      const votingEndsAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      const votingEndsAt = new Date(Date.now() + VOTING_PERIOD_MS).toISOString();
       update.status = "voting";
       update.voting_ends_at = votingEndsAt;
     } else {

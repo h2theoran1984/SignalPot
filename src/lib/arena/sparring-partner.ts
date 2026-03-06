@@ -1,11 +1,13 @@
 /**
- * The Sparring Partner — universal arena house fighter.
+ * The house agent — universal arena contender.
  *
- * Handles ANY capability by reading the output schema and asking Claude Haiku
- * to produce a matching response. Lives inside the main app — no external
+ * Handles ANY capability at 3 difficulty levels. Level 1 uses Haiku with
+ * basic prompts, Level 2 uses Sonnet with chain-of-thought, Level 3 uses
+ * Opus with multi-step reasoning. Lives inside the main app — no external
  * deployment needed.
  */
 import Anthropic from "@anthropic-ai/sdk";
+import { LEVEL_CONFIGS, type ArenaLevel } from "./levels";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -37,6 +39,46 @@ const SYSTEM_PROMPTS: Record<string, string> = {
 
 const DEFAULT_SYSTEM =
   "You are a versatile AI agent handling a capability request. Produce a high-quality response matching the required output format.";
+
+// ── Level 2: Enhanced prompts (chain-of-thought + self-critique) ──────
+const ENHANCED_SUFFIX =
+  "\n\nThink step-by-step before responding. After generating your answer, self-critique: Is everything accurate? Did you miss anything? Revise if needed before finalizing.";
+
+const ENHANCED_DEFAULT_SYSTEM =
+  DEFAULT_SYSTEM + ENHANCED_SUFFIX;
+
+// ── Level 3: Master prompts (multi-step reasoning, edge cases, perfectionism) ──
+const MASTER_SUFFIX =
+  "\n\nFollow a rigorous multi-step process:\n1. ANALYZE the input thoroughly — identify structure, intent, and edge cases.\n2. PLAN your response — consider multiple approaches, pick the best one.\n3. EXECUTE with precision — every detail matters.\n4. VERIFY — check for errors, hallucinations, missed nuances. Fix anything wrong.\n5. POLISH — ensure the output is production-quality and complete.\n\nYour response should be indistinguishable from expert human work.";
+
+const MASTER_DEFAULT_SYSTEM =
+  DEFAULT_SYSTEM + MASTER_SUFFIX;
+
+/**
+ * Get the system prompt for a capability at a given level.
+ * Level 1: basic prompts (current behavior).
+ * Level 2: base prompt + chain-of-thought + self-critique.
+ * Level 3: base prompt + multi-step reasoning + edge cases + perfectionism.
+ */
+function getSystemPrompt(capability: string, level: ArenaLevel): string {
+  const base = SYSTEM_PROMPTS[capability];
+
+  switch (LEVEL_CONFIGS[level].promptStyle) {
+    case "enhanced":
+      return (base ?? DEFAULT_SYSTEM) + ENHANCED_SUFFIX;
+    case "master":
+      return (base ?? DEFAULT_SYSTEM) + MASTER_SUFFIX;
+    default:
+      return base ?? DEFAULT_SYSTEM;
+  }
+}
+
+/** Get the user prompt suffix for stricter output expectations at higher levels. */
+function getUserPromptSuffix(level: ArenaLevel): string {
+  if (level === 2) return "\n\nBe thorough and consider edge cases.";
+  if (level === 3) return "\n\nProduce championship-quality output. Every detail matters. Handle edge cases explicitly.";
+  return "";
+}
 
 // Known output schemas for seed agent capabilities
 const OUTPUT_SCHEMAS: Record<string, Record<string, unknown>> = {
@@ -159,13 +201,16 @@ const OUTPUT_SCHEMAS: Record<string, Record<string, unknown>> = {
 };
 
 /**
- * Handle any capability request via Claude Haiku.
+ * Handle any capability request at the specified difficulty level.
+ * Level 1: Haiku + basic prompts. Level 2: Sonnet + enhanced. Level 3: Opus + master.
  */
 export async function handleSparringRequest(
   capability: string,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
+  level: ArenaLevel = 1
 ): Promise<Record<string, unknown>> {
-  const systemPrompt = SYSTEM_PROMPTS[capability] ?? DEFAULT_SYSTEM;
+  const config = LEVEL_CONFIGS[level];
+  const systemPrompt = getSystemPrompt(capability, level);
   const outputSchema = OUTPUT_SCHEMAS[capability];
 
   const schemaBlock = outputSchema
@@ -177,11 +222,11 @@ export async function handleSparringRequest(
 INPUT:
 ${JSON.stringify(input, null, 2)}${schemaBlock}
 
-Respond with ONLY valid JSON matching the output schema. No markdown, no explanation, no code blocks. Just the JSON object.`;
+Respond with ONLY valid JSON matching the output schema. No markdown, no explanation, no code blocks. Just the JSON object.${getUserPromptSuffix(level)}`;
 
   const message = await anthropic.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 2048,
+    model: config.model,
+    max_tokens: config.maxTokens,
     system: systemPrompt,
     messages: [{ role: "user", content: userPrompt }],
   });
