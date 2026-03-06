@@ -130,6 +130,8 @@ interface AgentFormData {
   name: string;
   slug: string;
   description: string;
+  longDescription: string;
+  sourceUrl: string;
   goal: string;
   decisionLogic: string;
   agentType: "autonomous" | "reactive" | "hybrid";
@@ -137,17 +139,36 @@ interface AgentFormData {
   endpointUrl: string;
   mcpEndpoint: string;
   protocolSupport: { a2a: boolean; mcp: boolean; rest: boolean };
+  transport: "sse" | "stdio" | "http";
+  maxPayloadKb: string;
+  hiringStrategy: "standard_first" | "tag_first" | "cost_first";
+  budgetCapPerHire: string;
   authType: "none" | "bearer" | "api_key" | "oauth2";
   authNotes: string;
+  minTrustScore: string;
+  trustChecklist: ChecklistItem[];
   coreLogicNotes: string;
   coreLogicChecklist: ChecklistItem[];
   capabilities: CapabilityEntry[];
+  validationMode: "strict" | "lenient";
+  errorFormat: "signalpot/error@v1" | "custom";
   observabilityNotes: string;
   loggingEnabled: boolean;
+  customMetrics: string;
+  alertOnErrorRate: string;
+  logRetentionDays: string;
   rateType: "free" | "per_call" | "per_task" | "per_hour" | "per_token";
   rateAmount: string;
+  freeTierEnabled: boolean;
+  freeTierMonthlyRequests: string;
   errorHandlingNotes: string;
+  retryPolicy: "exponential_backoff" | "linear" | "none";
+  maxRetries: string;
+  circuitBreakerThreshold: string;
   errorHandlingChecklist: ChecklistItem[];
+  deploymentTarget: "vercel" | "aws" | "gcp" | "fly" | "railway" | "self_hosted";
+  currentVersion: string;
+  healthEndpoint: string;
   deploymentNotes: string;
   deploymentChecklist: ChecklistItem[];
   testingNotes: string;
@@ -155,11 +176,19 @@ interface AgentFormData {
 }
 
 const DEFAULT_FORM_DATA: AgentFormData = {
-  name: "", slug: "", description: "", goal: "", decisionLogic: "",
+  name: "", slug: "", description: "", longDescription: "", sourceUrl: "",
+  goal: "", decisionLogic: "",
   agentType: "reactive", tags: "",
   endpointUrl: "", mcpEndpoint: "",
   protocolSupport: { a2a: true, mcp: true, rest: false },
-  authType: "none", authNotes: "",
+  transport: "sse", maxPayloadKb: "100",
+  hiringStrategy: "standard_first", budgetCapPerHire: "0.10",
+  authType: "none", authNotes: "", minTrustScore: "0",
+  trustChecklist: [
+    { id: "cl3-1", label: "Bidirectional auth configured", checked: false },
+    { id: "cl3-2", label: "Trust thresholds set per capability", checked: false },
+    { id: "cl3-3", label: "Permission tiers defined", checked: false },
+  ],
   coreLogicNotes: "",
   coreLogicChecklist: [
     { id: "cl4-1", label: "Internal tools implemented", checked: false },
@@ -168,9 +197,14 @@ const DEFAULT_FORM_DATA: AgentFormData = {
     { id: "cl4-4", label: "Hiring flow tested", checked: false },
   ],
   capabilities: [],
+  validationMode: "strict", errorFormat: "signalpot/error@v1",
   observabilityNotes: "", loggingEnabled: true,
+  customMetrics: "", alertOnErrorRate: "20", logRetentionDays: "90",
   rateType: "free", rateAmount: "0",
+  freeTierEnabled: true, freeTierMonthlyRequests: "100",
   errorHandlingNotes: "",
+  retryPolicy: "exponential_backoff", maxRetries: "3",
+  circuitBreakerThreshold: "50",
   errorHandlingChecklist: [
     { id: "cl8-1", label: "Error categories mapped", checked: false },
     { id: "cl8-2", label: "Retry logic with backoff", checked: false },
@@ -178,6 +212,7 @@ const DEFAULT_FORM_DATA: AgentFormData = {
     { id: "cl8-4", label: "Fallback chains configured", checked: false },
     { id: "cl8-5", label: "Health endpoint responding", checked: false },
   ],
+  deploymentTarget: "vercel", currentVersion: "1.0.0", healthEndpoint: "/health",
   deploymentNotes: "",
   deploymentChecklist: [
     { id: "cl9-1", label: "Version set in config", checked: false },
@@ -290,7 +325,7 @@ export default function AgentBuildoutTracker() {
   const generateSlug = useCallback((name: string) =>
     name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 64), []);
 
-  const toggleChecklist = useCallback((field: "coreLogicChecklist" | "errorHandlingChecklist" | "deploymentChecklist" | "testingChecklist", itemId: string) => {
+  const toggleChecklist = useCallback((field: "trustChecklist" | "coreLogicChecklist" | "errorHandlingChecklist" | "deploymentChecklist" | "testingChecklist", itemId: string) => {
     setFormData((p) => ({ ...p, [field]: (p[field] as ChecklistItem[]).map((i) => i.id === itemId ? { ...i, checked: !i.checked } : i) }));
   }, []);
 
@@ -308,14 +343,34 @@ export default function AgentBuildoutTracker() {
 
   const configProgress = useMemo(() => {
     let filled = 0;
-    const total = 7;
+    const total = 16;
+    // S1: Identity
     if (formData.name) filled++;
-    if (formData.slug) filled++;
     if (formData.description) filled++;
     if (formData.goal) filled++;
     if (formData.decisionLogic) filled++;
-    if (formData.capabilities.length > 0) filled++;
+    // S2: Interface
     if (formData.endpointUrl) filled++;
+    // S3: Auth
+    if (formData.authType !== "none") filled++;
+    // S4: Core logic
+    if (formData.coreLogicChecklist.some((c) => c.checked)) filled++;
+    // S5: Capabilities
+    if (formData.capabilities.length > 0) filled++;
+    // S6: Observability
+    if (formData.observabilityNotes || formData.customMetrics) filled++;
+    // S7: Billing
+    if (formData.rateType !== "free" || formData.freeTierEnabled) filled++;
+    // S8: Error handling
+    if (formData.errorHandlingChecklist.some((c) => c.checked)) filled++;
+    // S9: Deployment
+    if (formData.currentVersion) filled++;
+    if (formData.healthEndpoint) filled++;
+    if (formData.deploymentChecklist.some((c) => c.checked)) filled++;
+    // S10: Testing
+    if (formData.testingChecklist.some((c) => c.checked)) filled++;
+    // Bonus: source url
+    if (formData.sourceUrl) filled++;
     return Math.round((filled / total) * 100);
   }, [formData]);
 
@@ -325,20 +380,59 @@ export default function AgentBuildoutTracker() {
       name: formData.name,
       slug: formData.slug || generateSlug(formData.name),
       description: formData.description || null,
+      long_description: formData.longDescription || null,
+      source_url: formData.sourceUrl || null,
       goal: formData.goal || null,
       decision_logic: formData.decisionLogic || null,
       agent_type: formData.agentType,
-      auth_type: formData.authType,
-      rate_type: formData.rateType === "free" ? "per_call" : formData.rateType,
-      rate_amount: formData.rateType === "free" ? 0 : parseFloat(formData.rateAmount) || 0,
       tags,
-      endpoint_url: formData.endpointUrl || null,
-      mcp_endpoint: formData.mcpEndpoint || null,
-      capability_schema: {
-        capabilities: formData.capabilities.filter((c) => c.name.trim()).map((c) => ({
-          id: c.name, name: c.displayName, description: c.description,
-          inputSchema: {}, outputSchema: {},
-        })),
+      communication: {
+        endpoint_url: formData.endpointUrl || null,
+        mcp_endpoint: formData.mcpEndpoint || null,
+        transport: formData.transport,
+        max_payload_kb: parseInt(formData.maxPayloadKb) || 100,
+        protocols: Object.entries(formData.protocolSupport).filter(([, v]) => v).map(([k]) => k),
+      },
+      hiring_strategy: {
+        prefer: formData.hiringStrategy,
+        budget_cap_per_hire: parseFloat(formData.budgetCapPerHire) || 0.10,
+      },
+      auth: {
+        type: formData.authType,
+        min_trust_score: parseFloat(formData.minTrustScore) || 0,
+        notes: formData.authNotes || null,
+      },
+      capabilities: formData.capabilities.filter((c) => c.name.trim()).map((c) => ({
+        capability_name: c.name,
+        display_name: c.displayName,
+        description: c.description,
+        input_schema: {},
+        output_schema: {},
+      })),
+      io_contracts: {
+        validation_mode: formData.validationMode,
+        error_format: formData.errorFormat,
+      },
+      observability: {
+        platform_logging: formData.loggingEnabled,
+        custom_metrics: formData.customMetrics ? formData.customMetrics.split(",").map((m) => m.trim()).filter(Boolean) : [],
+        alert_on_error_rate: parseInt(formData.alertOnErrorRate) || 20,
+        log_retention_days: parseInt(formData.logRetentionDays) || 90,
+      },
+      pricing: {
+        model: formData.rateType,
+        rate_amount: formData.rateType === "free" ? 0 : parseFloat(formData.rateAmount) || 0,
+        free_tier: formData.freeTierEnabled ? { enabled: true, monthly_requests: parseInt(formData.freeTierMonthlyRequests) || 100 } : { enabled: false },
+      },
+      resilience: {
+        retry_policy: formData.retryPolicy,
+        max_retries: parseInt(formData.maxRetries) || 3,
+        circuit_breaker_threshold: parseInt(formData.circuitBreakerThreshold) || 50,
+      },
+      deployment: {
+        target: formData.deploymentTarget,
+        version: formData.currentVersion || "1.0.0",
+        health_endpoint: formData.healthEndpoint || "/health",
       },
     };
     const blob = new Blob([JSON.stringify(config, null, 2)], { type: "application/json" });
@@ -398,6 +492,15 @@ export default function AgentBuildoutTracker() {
               </select>
             </div>
             <div style={fg}>
+              <label style={labelStyle}>Source URL (GitHub repo)</label>
+              <input style={inputStyle} value={formData.sourceUrl} placeholder="https://github.com/you/your-agent" onChange={(e) => updateField("sourceUrl", e.target.value)} />
+            </div>
+            <div style={fg}>
+              <label style={labelStyle}>Long Description (Markdown)</label>
+              <textarea style={{ ...textareaStyle, minHeight: 80 }} value={formData.longDescription} placeholder="Detailed explanation of your agent (supports markdown)..." rows={4}
+                onChange={(e) => updateField("longDescription", e.target.value)} />
+            </div>
+            <div style={fg}>
               <label style={labelStyle}>Tags (comma-separated)</label>
               <input style={inputStyle} value={formData.tags} placeholder="nlp, monitoring, reports" onChange={(e) => updateField("tags", e.target.value)} />
               {formData.tags && (
@@ -417,10 +520,28 @@ export default function AgentBuildoutTracker() {
             <div style={fg}>
               <label style={labelStyle}>Endpoint URL</label>
               <input style={inputStyle} value={formData.endpointUrl} placeholder="https://my-agent.example.com" onChange={(e) => updateField("endpointUrl", e.target.value)} />
+              {formData.endpointUrl && formData.slug && (
+                <div style={{ fontSize: 10, color: "#06b6d4", marginTop: 2 }}>MCP: {formData.endpointUrl}/mcp</div>
+              )}
             </div>
             <div style={fg}>
-              <label style={labelStyle}>MCP Endpoint (optional)</label>
+              <label style={labelStyle}>MCP Endpoint (override)</label>
               <input style={inputStyle} value={formData.mcpEndpoint} placeholder="https://my-agent.example.com/mcp/tools" onChange={(e) => updateField("mcpEndpoint", e.target.value)} />
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+              <div>
+                <label style={labelStyle}>Transport</label>
+                <select style={selectStyle} value={formData.transport} onChange={(e) => updateField("transport", e.target.value as AgentFormData["transport"])}>
+                  <option value="sse">SSE (Server-Sent Events)</option>
+                  <option value="stdio">Stdio</option>
+                  <option value="http">HTTP</option>
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Max Payload (KB)</label>
+                <input style={inputStyle} type="number" min="1" max="10000" value={formData.maxPayloadKb}
+                  onChange={(e) => updateField("maxPayloadKb", e.target.value)} />
+              </div>
             </div>
             <div style={fg}>
               <label style={labelStyle}>Protocol Support</label>
@@ -432,6 +553,24 @@ export default function AgentBuildoutTracker() {
                 </label>
               ))}
             </div>
+            <div style={{ borderTop: "1px solid #1e1e24", paddingTop: 12, marginTop: 4 }}>
+              <div style={formBoxTitle}>Hiring Strategy (Outbound)</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={labelStyle}>Strategy</label>
+                  <select style={selectStyle} value={formData.hiringStrategy} onChange={(e) => updateField("hiringStrategy", e.target.value as AgentFormData["hiringStrategy"])}>
+                    <option value="standard_first">Standard Match First</option>
+                    <option value="tag_first">Tag Match First</option>
+                    <option value="cost_first">Lowest Cost First</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Budget Cap / Hire (USD)</label>
+                  <input style={inputStyle} type="number" step="0.01" min="0" value={formData.budgetCapPerHire}
+                    onChange={(e) => updateField("budgetCapPerHire", e.target.value)} />
+                </div>
+              </div>
+            </div>
           </div>
         );
       case 3:
@@ -441,15 +580,35 @@ export default function AgentBuildoutTracker() {
             <div style={fg}>
               <label style={labelStyle}>Auth Type</label>
               <select style={selectStyle} value={formData.authType} onChange={(e) => updateField("authType", e.target.value as AgentFormData["authType"])}>
-                <option value="none">None</option>
+                <option value="none">None (open access)</option>
                 <option value="bearer">Bearer Token</option>
                 <option value="api_key">API Key</option>
                 <option value="oauth2">OAuth 2.0</option>
               </select>
             </div>
             <div style={fg}>
-              <label style={labelStyle}>Notes</label>
-              <textarea style={textareaStyle} value={formData.authNotes} placeholder="Auth implementation notes..." rows={3} onChange={(e) => updateField("authNotes", e.target.value)} />
+              <label style={labelStyle}>Min Trust Score for Callers (0 = open, 1 = max)</label>
+              <input style={inputStyle} type="number" step="0.1" min="0" max="1" value={formData.minTrustScore}
+                onChange={(e) => updateField("minTrustScore", e.target.value)} />
+              <div style={{ height: 4, background: "#27272a", borderRadius: 2, marginTop: 6, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${(parseFloat(formData.minTrustScore) || 0) * 100}%`, borderRadius: 2, background: (parseFloat(formData.minTrustScore) || 0) > 0.7 ? "#22c55e" : (parseFloat(formData.minTrustScore) || 0) > 0.3 ? "#eab308" : "#ef4444", transition: "width 0.3s" }} />
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "#3f3f46", marginTop: 2 }}>
+                <span>Open</span><span>Restrictive</span>
+              </div>
+            </div>
+            <div style={fg}>
+              <label style={labelStyle}>Auth Notes</label>
+              <textarea style={textareaStyle} value={formData.authNotes} placeholder="Auth implementation notes, token scoping, credential isolation..." rows={3} onChange={(e) => updateField("authNotes", e.target.value)} />
+            </div>
+            <div style={{ borderTop: "1px solid #1e1e24", paddingTop: 12, marginTop: 4 }}>
+              <div style={formBoxTitle}>Trust Integration Checklist</div>
+              {formData.trustChecklist.map((item) => (
+                <label key={item.id} style={chkLabel}>
+                  <input type="checkbox" checked={item.checked} onChange={() => toggleChecklist("trustChecklist", item.id)} />
+                  <span style={{ textDecoration: item.checked ? "line-through" : "none", color: item.checked ? "#4ade80" : "#a1a1aa" }}>{item.label}</span>
+                </label>
+              ))}
             </div>
           </div>
         );
@@ -503,19 +662,62 @@ export default function AgentBuildoutTracker() {
                 </div>
               </div>
             ))}
+            <div style={{ borderTop: "1px solid #1e1e24", paddingTop: 12, marginTop: 4 }}>
+              <div style={formBoxTitle}>I/O Contracts</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={labelStyle}>Validation Mode</label>
+                  <select style={selectStyle} value={formData.validationMode} onChange={(e) => updateField("validationMode", e.target.value as AgentFormData["validationMode"])}>
+                    <option value="strict">Strict (reject invalid)</option>
+                    <option value="lenient">Lenient (coerce types)</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Error Format</label>
+                  <select style={selectStyle} value={formData.errorFormat} onChange={(e) => updateField("errorFormat", e.target.value as AgentFormData["errorFormat"])}>
+                    <option value="signalpot/error@v1">signalpot/error@v1</option>
+                    <option value="custom">Custom</option>
+                  </select>
+                </div>
+              </div>
+            </div>
           </div>
         );
       case 6:
         return (
           <div style={formBox}>
-            <div style={formBoxTitle}>Observability Notes</div>
+            <div style={formBoxTitle}>Observability Config</div>
             <div style={fg}>
+              <label style={labelStyle}>Notes</label>
               <textarea style={textareaStyle} value={formData.observabilityNotes} placeholder="Logging setup, custom metrics, dashboards..." rows={3} onChange={(e) => updateField("observabilityNotes", e.target.value)} />
             </div>
             <label style={chkLabel}>
               <input type="checkbox" checked={formData.loggingEnabled} onChange={() => updateField("loggingEnabled", !formData.loggingEnabled)} />
               Platform logging enabled
             </label>
+            <div style={fg}>
+              <label style={labelStyle}>Custom Metrics (comma-separated)</label>
+              <input style={inputStyle} value={formData.customMetrics} placeholder="mentions_per_cycle, escalations, avg_sentiment" onChange={(e) => updateField("customMetrics", e.target.value)} />
+              {formData.customMetrics && (
+                <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 6 }}>
+                  {formData.customMetrics.split(",").map((m) => m.trim()).filter(Boolean).map((metric, i) => (
+                    <span key={i} style={{ fontSize: 10, padding: "2px 8px", borderRadius: 4, background: "#06b6d415", color: "#06b6d4", border: "1px solid #06b6d430" }}>{metric}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div>
+                <label style={labelStyle}>Alert on Error Rate (%)</label>
+                <input style={inputStyle} type="number" min="1" max="100" value={formData.alertOnErrorRate}
+                  onChange={(e) => updateField("alertOnErrorRate", e.target.value)} />
+              </div>
+              <div>
+                <label style={labelStyle}>Log Retention (days)</label>
+                <input style={inputStyle} type="number" min="1" max="365" value={formData.logRetentionDays}
+                  onChange={(e) => updateField("logRetentionDays", e.target.value)} />
+              </div>
+            </div>
           </div>
         );
       case 7:
@@ -537,19 +739,68 @@ export default function AgentBuildoutTracker() {
                 <label style={labelStyle}>Rate Amount (USD)</label>
                 <input style={inputStyle} type="number" step="0.001" min="0.001" value={formData.rateAmount}
                   onChange={(e) => updateField("rateAmount", e.target.value)} />
-                <div style={{ fontSize: 10, color: "#3f3f46", marginTop: 2 }}>Minimum $0.001 per transaction</div>
+                <div style={{ fontSize: 10, color: "#3f3f46", marginTop: 2 }}>Minimum $0.001 per transaction (economic cost defense)</div>
               </div>
             )}
+            {formData.rateType !== "free" && (
+              <div style={{ background: "#14141a", borderRadius: 6, padding: 10, marginTop: 8, border: "1px solid #1e1e24" }}>
+                <div style={{ fontSize: 10, color: "#52525b", marginBottom: 6 }}>Fee Breakdown Preview</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, fontSize: 11, color: "#a1a1aa" }}>
+                  <span>Agent fee:</span><span style={{ textAlign: "right" }}>${parseFloat(formData.rateAmount) ? parseFloat(formData.rateAmount).toFixed(4) : "0.0000"}</span>
+                  <span>Platform (10%):</span><span style={{ textAlign: "right" }}>${parseFloat(formData.rateAmount) ? Math.max(0.001, parseFloat(formData.rateAmount) * 0.10).toFixed(4) : "0.0010"}</span>
+                  <span>Reserve (2%):</span><span style={{ textAlign: "right" }}>${parseFloat(formData.rateAmount) ? (parseFloat(formData.rateAmount) * 0.02).toFixed(4) : "0.0000"}</span>
+                  <span style={{ color: "#e4e4e7", fontWeight: 600, borderTop: "1px solid #27272a", paddingTop: 4 }}>Caller pays:</span>
+                  <span style={{ textAlign: "right", color: "#eab308", fontWeight: 600, borderTop: "1px solid #27272a", paddingTop: 4 }}>
+                    ${parseFloat(formData.rateAmount) ? (parseFloat(formData.rateAmount) + Math.max(0.001, parseFloat(formData.rateAmount) * 0.10) + parseFloat(formData.rateAmount) * 0.02).toFixed(4) : "0.0010"}
+                  </span>
+                </div>
+              </div>
+            )}
+            <div style={{ borderTop: "1px solid #1e1e24", paddingTop: 12, marginTop: 12 }}>
+              <div style={formBoxTitle}>Free Tier</div>
+              <label style={chkLabel}>
+                <input type="checkbox" checked={formData.freeTierEnabled} onChange={() => updateField("freeTierEnabled", !formData.freeTierEnabled)} />
+                Enable free tier
+              </label>
+              {formData.freeTierEnabled && (
+                <div style={fg}>
+                  <label style={labelStyle}>Monthly Free Requests</label>
+                  <input style={inputStyle} type="number" min="0" max="10000" value={formData.freeTierMonthlyRequests}
+                    onChange={(e) => updateField("freeTierMonthlyRequests", e.target.value)} />
+                </div>
+              )}
+            </div>
           </div>
         );
       case 8:
         return (
           <div style={formBox}>
-            <div style={formBoxTitle}>Error Handling Notes</div>
-            <div style={fg}>
-              <textarea style={textareaStyle} value={formData.errorHandlingNotes} placeholder="Error categories, retry strategy, fallbacks..." rows={3} onChange={(e) => updateField("errorHandlingNotes", e.target.value)} />
+            <div style={formBoxTitle}>Resilience Config</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
+              <div>
+                <label style={labelStyle}>Retry Policy</label>
+                <select style={selectStyle} value={formData.retryPolicy} onChange={(e) => updateField("retryPolicy", e.target.value as AgentFormData["retryPolicy"])}>
+                  <option value="exponential_backoff">Exponential Backoff</option>
+                  <option value="linear">Linear</option>
+                  <option value="none">No Retries</option>
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Max Retries</label>
+                <input style={inputStyle} type="number" min="0" max="10" value={formData.maxRetries}
+                  onChange={(e) => updateField("maxRetries", e.target.value)} />
+              </div>
+              <div>
+                <label style={labelStyle}>CB Threshold (%)</label>
+                <input style={inputStyle} type="number" min="10" max="100" value={formData.circuitBreakerThreshold}
+                  onChange={(e) => updateField("circuitBreakerThreshold", e.target.value)} />
+              </div>
             </div>
-            <div style={formBoxTitle}>Checklist</div>
+            <div style={fg}>
+              <label style={labelStyle}>Error Handling Notes</label>
+              <textarea style={textareaStyle} value={formData.errorHandlingNotes} placeholder="Error categories, fallback strategy, degradation behavior..." rows={3} onChange={(e) => updateField("errorHandlingNotes", e.target.value)} />
+            </div>
+            <div style={formBoxTitle}>Implementation Checklist</div>
             {formData.errorHandlingChecklist.map((item) => (
               <label key={item.id} style={chkLabel}>
                 <input type="checkbox" checked={item.checked} onChange={() => toggleChecklist("errorHandlingChecklist", item.id)} />
@@ -561,9 +812,36 @@ export default function AgentBuildoutTracker() {
       case 9:
         return (
           <div style={formBox}>
-            <div style={formBoxTitle}>Deployment Notes</div>
+            <div style={formBoxTitle}>Deployment Config</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+              <div>
+                <label style={labelStyle}>Deployment Target</label>
+                <select style={selectStyle} value={formData.deploymentTarget} onChange={(e) => updateField("deploymentTarget", e.target.value as AgentFormData["deploymentTarget"])}>
+                  <option value="vercel">Vercel</option>
+                  <option value="aws">AWS</option>
+                  <option value="gcp">Google Cloud</option>
+                  <option value="fly">Fly.io</option>
+                  <option value="railway">Railway</option>
+                  <option value="self_hosted">Self-Hosted</option>
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Current Version</label>
+                <input style={inputStyle} value={formData.currentVersion} placeholder="1.0.0"
+                  onChange={(e) => updateField("currentVersion", e.target.value)} />
+              </div>
+            </div>
             <div style={fg}>
-              <textarea style={textareaStyle} value={formData.deploymentNotes} placeholder="Deployment target, versioning strategy..." rows={3} onChange={(e) => updateField("deploymentNotes", e.target.value)} />
+              <label style={labelStyle}>Health Endpoint</label>
+              <input style={inputStyle} value={formData.healthEndpoint} placeholder="/health"
+                onChange={(e) => updateField("healthEndpoint", e.target.value)} />
+              {formData.endpointUrl && formData.healthEndpoint && (
+                <div style={{ fontSize: 10, color: "#06b6d4", marginTop: 2 }}>{formData.endpointUrl}{formData.healthEndpoint}</div>
+              )}
+            </div>
+            <div style={fg}>
+              <label style={labelStyle}>Deployment Notes</label>
+              <textarea style={textareaStyle} value={formData.deploymentNotes} placeholder="CI/CD pipeline, env vars needed, rollback plan..." rows={3} onChange={(e) => updateField("deploymentNotes", e.target.value)} />
             </div>
             <div style={formBoxTitle}>Deployment Checklist</div>
             {formData.deploymentChecklist.map((item) => (

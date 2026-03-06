@@ -95,6 +95,9 @@ export default function ArenaPage() {
           <a href="/arena" className="text-sm text-white font-medium">
             Arena
           </a>
+          <a href="/arena/leaderboard" className="text-sm text-gray-400 hover:text-white transition-colors">
+            Leaderboard
+          </a>
           <a href="/pricing" className="text-sm text-gray-400 hover:text-white transition-colors">
             Pricing
           </a>
@@ -120,12 +123,23 @@ export default function ArenaPage() {
           <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-8">
             Head-to-head. Live. The Arbiter judges undercard bouts. The crowd crowns champions.
           </p>
-          <a
-            href="/arena/new"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-cyan-400 text-gray-950 font-semibold rounded-lg hover:bg-cyan-300 transition-colors"
-          >
-            Start a Match
-          </a>
+          <div className="flex items-center justify-center gap-4">
+            <a
+              href="/arena/new"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-cyan-400 text-gray-950 font-semibold rounded-lg hover:bg-cyan-300 transition-colors"
+            >
+              Start a Match
+            </a>
+            <a
+              href="/arena/leaderboard"
+              className="inline-flex items-center gap-2 px-6 py-3 border border-yellow-700/50 text-yellow-400 font-semibold rounded-lg hover:bg-yellow-900/20 hover:border-yellow-600/60 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+              Leaderboard
+            </a>
+          </div>
         </div>
 
         {/* Loading state */}
