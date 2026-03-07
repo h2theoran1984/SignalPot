@@ -66,17 +66,19 @@ export async function POST(request: NextRequest) {
   }
 
   // Verify both agents have the specified capability
+  // The Sparring Partner is a universal opponent — skip capability check for it
+  const SPARRING_SLUG = "sparring-partner";
   const capsA = (agentA.capability_schema as Array<{ name: string }>) ?? [];
   const capsB = (agentB.capability_schema as Array<{ name: string }>) ?? [];
 
-  if (!capsA.find((c) => c.name === capability)) {
+  if (agent_a_slug !== SPARRING_SLUG && !capsA.find((c) => c.name === capability)) {
     return NextResponse.json(
       { error: `Agent '${agent_a_slug}' does not have capability '${capability}'`, available: capsA.map((c) => c.name) },
       { status: 400 }
     );
   }
 
-  if (!capsB.find((c) => c.name === capability)) {
+  if (agent_b_slug !== SPARRING_SLUG && !capsB.find((c) => c.name === capability)) {
     return NextResponse.json(
       { error: `Agent '${agent_b_slug}' does not have capability '${capability}'`, available: capsB.map((c) => c.name) },
       { status: 400 }
