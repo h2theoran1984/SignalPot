@@ -129,6 +129,59 @@ function NewMatchPage() {
     fetchElo();
   }, [challengerSlug, capability]);
 
+  // Default prompts by capability — fills in when no challenge is selected
+  const DEFAULT_PROMPTS: Record<string, { text: string; json: Record<string, unknown> }> = {
+    "signalpot/sentiment@v1": {
+      text: "Analyze sentiment of sample text",
+      json: { text: "Artificial intelligence agents are rapidly transforming software development. They automate repetitive coding tasks like writing boilerplate, generating tests, and fixing linting errors. This frees developers to focus on architecture and creative problem-solving." },
+    },
+    "signalpot/text-summary@v1": {
+      text: "Summarize a passage about technology",
+      json: { text: "Machine learning operations, commonly known as MLOps, bridges the gap between data science experimentation and production deployment. It encompasses model versioning, automated testing pipelines, continuous integration for ML models, monitoring for data drift, and rollback mechanisms when model performance degrades." },
+    },
+    "github-summary": {
+      text: "Summarize a GitHub repository",
+      json: { owner: "vercel", repo: "next.js" },
+    },
+    summarize: {
+      text: "Summarize a text passage",
+      json: { text: "The James Webb Space Telescope has revealed galaxies formed just 300 million years after the Big Bang, challenging existing models of galaxy formation." },
+    },
+    analyze: {
+      text: "Analyze text sentiment",
+      json: { text: "I absolutely loved the new restaurant downtown. The food was incredible and the atmosphere was perfect." },
+    },
+    search: {
+      text: "Search for recent developments",
+      json: { query: "recent developments in renewable energy", max_results: 5 },
+    },
+    run: {
+      text: "Execute a code snippet",
+      json: { language: "python", code: "print(sum(range(1, 101)))" },
+    },
+  };
+
+  // Auto-fill default prompt when capability changes (if no challenge is selected)
+  useEffect(() => {
+    if (!capability || selectedChallenge) return;
+
+    // Check if there's a matching challenge to auto-select
+    const matchingChallenge = challenges.find((c) => c.capability === capability);
+    if (matchingChallenge) {
+      setSelectedChallenge(matchingChallenge);
+      setPromptJson(JSON.stringify(matchingChallenge.prompt, null, 2));
+      setPromptText(matchingChallenge.title);
+      return;
+    }
+
+    // Otherwise use default prompt
+    const defaultPrompt = DEFAULT_PROMPTS[capability];
+    if (defaultPrompt) {
+      setPromptJson(JSON.stringify(defaultPrompt.json, null, 2));
+      setPromptText(defaultPrompt.text);
+    }
+  }, [capability, challenges]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Shared capabilities between A and B
   // The Sparring Partner is a universal opponent — it handles ANY capability
   const SPARRING_SLUG = "sparring-partner";
