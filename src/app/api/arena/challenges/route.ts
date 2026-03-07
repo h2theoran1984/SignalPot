@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
   let query = admin
     .from("arena_challenges")
-    .select("id, capability, difficulty, prompt, prompt_text, featured, created_at", { count: "exact" })
+    .select("id, title, description, capability, difficulty, prompt, tags, featured, created_at", { count: "exact" })
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 

@@ -25,7 +25,7 @@ export async function GET(
       cost_a, cost_b,
       agent_a:agents!arena_matches_agent_a_id_fkey(id, name, slug, description, tags, rate_amount, rate_type),
       agent_b:agents!arena_matches_agent_b_id_fkey(id, name, slug, description, tags, rate_amount, rate_type),
-      challenge:arena_challenges(id, capability, difficulty, prompt, prompt_text, featured)
+      challenge:arena_challenges(id, title, description, capability, difficulty, prompt, tags, featured)
       `
     )
     .eq("id", id)
