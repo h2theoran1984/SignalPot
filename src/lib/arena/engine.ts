@@ -6,12 +6,69 @@ import { wrapRequest, wrapResponse } from "@/lib/envelope";
 import { validateOutput } from "@/lib/schema-validator";
 import { inngest } from "@/lib/inngest/client";
 import { resolveTemplate } from "@/lib/arena/rubric";
+import { handleSparringRequest } from "@/lib/arena/sparring-partner";
 import type { Agent } from "@/lib/types";
 
 /** How long to wait for an external agent response before aborting. */
 const AGENT_CALL_TIMEOUT_MS = 30_000;
 /** Championship voting window. */
 const VOTING_PERIOD_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+const SPARRING_SLUG = "sparring-partner";
+
+/** Private/internal IP patterns — block SSRF attempts. */
+const BLOCKED_HOSTNAMES = ["localhost", "0.0.0.0", "[::1]"];
+const PRIVATE_IP_PREFIXES = [
+  "10.", "172.16.", "172.17.", "172.18.", "172.19.",
+  "172.20.", "172.21.", "172.22.", "172.23.", "172.24.", "172.25.", "172.26.",
+  "172.27.", "172.28.", "172.29.", "172.30.", "172.31.", "192.168.", "127.",
+  "169.254.", "0.",
+];
+
+/**
+ * Derive the A2A RPC endpoint from a stored mcp_endpoint URL.
+ * Stored endpoints are typically /mcp/tools — the RPC endpoint
+ * lives at /a2a/rpc on the same host.
+ * Blocks SSRF to private/internal IPs.
+ */
+function deriveRpcEndpoint(mcpEndpoint: string): string {
+  const url = new URL(mcpEndpoint);
+
+  if (process.env.NODE_ENV === "production" && url.protocol !== "https:") {
+    throw new Error("Agent endpoints must use HTTPS");
+  }
+
+  const hostname = url.hostname.toLowerCase();
+  if (BLOCKED_HOSTNAMES.includes(hostname)) {
+    throw new Error("Agent endpoint resolves to a blocked address");
+  }
+  if (PRIVATE_IP_PREFIXES.some((p) => hostname.startsWith(p))) {
+    throw new Error("Agent endpoint resolves to a private IP range");
+  }
+  if (hostname === "metadata.google.internal" || hostname.endsWith(".internal")) {
+    throw new Error("Agent endpoint resolves to a cloud metadata address");
+  }
+
+  url.pathname = "/a2a/rpc";
+  return url.toString();
+}
+
+/**
+ * Extract the actual response data from an A2A JSON-RPC result.
+ * Digs into result.artifacts[0].parts[0].data if present,
+ * otherwise returns the raw result.
+ */
+function extractA2AResponse(result: Record<string, unknown>): Record<string, unknown> {
+  try {
+    const artifacts = result.artifacts as Array<{ parts: Array<{ type: string; data?: Record<string, unknown> }> }>;
+    if (artifacts?.[0]?.parts?.[0]?.data) {
+      return artifacts[0].parts[0].data;
+    }
+  } catch {
+    // Fall through to raw result
+  }
+  return result;
+}
 
 interface AgentCallResult {
   response: Record<string, unknown>;
@@ -71,40 +128,74 @@ async function callAgent(
     })
     .eq("id", jobId);
 
-  // Call agent MCP endpoint
-  if (!agent.mcp_endpoint) {
-    await admin
-      .from("jobs")
-      .update({ status: "failed", completed_at: new Date().toISOString() })
-      .eq("id", jobId);
-    return { jobId, error: "Agent has no endpoint configured" };
-  }
-
   const startTime = Date.now();
 
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), AGENT_CALL_TIMEOUT_MS);
+    let agentResponse: Record<string, unknown>;
 
-    const res = await fetch(agent.mcp_endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        capability,
-        input: prompt,
-        job_id: jobId,
-        _envelope: requestEnvelope,
-      }),
-      signal: controller.signal,
-    });
+    // ── Sparring Partner: call directly, no network hop ──────────
+    if (agent.slug === SPARRING_SLUG) {
+      agentResponse = await handleSparringRequest(capability, prompt);
+    }
+    // ── External agent: call via A2A JSON-RPC 2.0 ────────────────
+    else {
+      if (!agent.mcp_endpoint) {
+        await admin
+          .from("jobs")
+          .update({ status: "failed", completed_at: new Date().toISOString() })
+          .eq("id", jobId);
+        return { jobId, error: "Agent has no endpoint configured" };
+      }
 
-    clearTimeout(timeout);
+      const rpcEndpoint = deriveRpcEndpoint(agent.mcp_endpoint);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), AGENT_CALL_TIMEOUT_MS);
 
-    if (!res.ok) {
-      throw new Error(`Agent returned ${res.status}`);
+      try {
+        const res = await fetch(rpcEndpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: `arena-${matchId}-${side}-${Date.now()}`,
+            method: "message/send",
+            params: {
+              message: {
+                role: "user",
+                parts: [{ type: "data", data: prompt }],
+              },
+              metadata: {
+                capability_used: capability,
+                job_id: jobId,
+                _envelope: requestEnvelope,
+              },
+            },
+          }),
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeout);
+
+        if (!res.ok) {
+          throw new Error(`Agent returned ${res.status}`);
+        }
+
+        const json = (await res.json()) as Record<string, unknown>;
+
+        // Check for JSON-RPC error
+        if (json.error) {
+          const err = json.error as { message?: string };
+          throw new Error(`Agent RPC error: ${err.message ?? JSON.stringify(json.error)}`);
+        }
+
+        // Extract the actual data from the A2A response wrapper
+        const rpcResult = (json.result ?? json) as Record<string, unknown>;
+        agentResponse = extractA2AResponse(rpcResult);
+      } finally {
+        clearTimeout(timeout);
+      }
     }
 
-    const agentResponse = (await res.json()) as Record<string, unknown>;
     const durationMs = Date.now() - startTime;
 
     // Validate output
