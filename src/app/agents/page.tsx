@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import AuthButton from "@/components/AuthButton";
+import SiteNav from "@/components/SiteNav";
 import { Suspense } from "react";
 import type { Agent } from "@/lib/types";
 import { AgentCardSkeleton } from "@/components/ui/skeleton";
@@ -143,26 +143,7 @@ function AgentsContent() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-[#1f2028] bg-[#0a0a0f]/80 backdrop-blur-sm sticky top-0 z-10">
-        <a href="/" className="text-xl font-bold tracking-tight">
-          Signal<span className="text-cyan-400">Pot</span>
-        </a>
-        <div className="flex items-center gap-6">
-          <a
-            href="/agents"
-            className="text-sm text-cyan-400 font-medium border-b border-cyan-400 pb-0.5"
-          >
-            Browse Agents
-          </a>
-          <a
-            href="/pricing"
-            className="text-sm text-gray-400 hover:text-white transition-colors"
-          >
-            Pricing
-          </a>
-          <AuthButton />
-        </div>
-      </nav>
+      <SiteNav />
 
       <main className="max-w-5xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">

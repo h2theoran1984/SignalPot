@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import AuthButton from "@/components/AuthButton";
+import SiteNav from "@/components/SiteNav";
 
 const plans = [
   {
@@ -111,20 +111,7 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
-      <nav className="bg-[#0a0a0f]/80 backdrop-blur-sm sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-[#1f2028]">
-        <a href="/" className="text-xl font-bold">
-          Signal<span className="text-cyan-400">Pot</span>
-        </a>
-        <div className="flex items-center gap-4">
-          <a href="/agents" className="text-sm text-gray-400 hover:text-white transition-colors">
-            Browse Agents
-          </a>
-          <a href="/dashboard" className="text-sm text-gray-400 hover:text-white transition-colors">
-            Dashboard
-          </a>
-          <AuthButton />
-        </div>
-      </nav>
+      <SiteNav />
 
       <main className="max-w-5xl mx-auto px-4 py-16">
         <div className="text-center mb-12">

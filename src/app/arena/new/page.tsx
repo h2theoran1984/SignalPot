@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import AuthButton from "@/components/AuthButton";
+import SiteNav from "@/components/SiteNav";
 
 interface AgentOption {
   id: string;
@@ -265,20 +265,7 @@ function NewMatchPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white bg-dot-grid">
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-[#1f2028] bg-[#0a0a0f]/80 backdrop-blur-sm sticky top-0 z-10">
-        <a href="/" className="text-xl font-bold tracking-tight">
-          Signal<span className="text-cyan-400">Pot</span>
-        </a>
-        <div className="flex items-center gap-6">
-          <a href="/agents" className="text-sm text-gray-400 hover:text-white transition-colors">
-            Browse Agents
-          </a>
-          <a href="/arena" className="text-sm text-gray-400 hover:text-white transition-colors">
-            Arena
-          </a>
-          <AuthButton />
-        </div>
-      </nav>
+      <SiteNav />
 
       <main className="max-w-2xl mx-auto px-4 py-12">
         <a href="/arena" className="text-sm text-gray-600 hover:text-gray-400 transition-colors mb-6 inline-block">

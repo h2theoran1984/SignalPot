@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import AuthButton from "@/components/AuthButton";
+import SiteNav from "@/components/SiteNav";
 
 /* ─────────────────────────── Types ─────────────────────────── */
 
@@ -375,44 +375,7 @@ export default function DocsPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
       {/* ── Top nav ─────────────────────────────────────────── */}
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-[#1f2028] bg-[#0a0a0f]/80 backdrop-blur-sm sticky top-0 z-30">
-        <a href="/" className="text-xl font-bold tracking-tight">
-          Signal<span className="text-cyan-400">Pot</span>
-        </a>
-        <div className="flex items-center gap-6">
-          <a
-            href="/agents"
-            className="text-sm text-gray-400 hover:text-white transition-colors"
-          >
-            Browse Agents
-          </a>
-          <a
-            href="/arena"
-            className="text-sm text-gray-400 hover:text-white transition-colors"
-          >
-            Arena
-          </a>
-          <a
-            href="/docs"
-            className="text-sm text-cyan-400 font-medium border-b border-cyan-400 pb-0.5"
-          >
-            Docs
-          </a>
-          <a
-            href="/build"
-            className="text-sm text-gray-400 hover:text-white transition-colors"
-          >
-            Build
-          </a>
-          <a
-            href="/pricing"
-            className="text-sm text-gray-400 hover:text-white transition-colors"
-          >
-            Pricing
-          </a>
-          <AuthButton />
-        </div>
-      </nav>
+      <SiteNav />
 
       {/* ── Mobile sidebar ──────────────────────────────────── */}
       <MobileSidebar activeId={activeId} onNav={scrollTo} />
