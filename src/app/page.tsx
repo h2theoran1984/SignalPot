@@ -97,7 +97,7 @@ export default function HomePage() {
               and call agents programmatically.
             </p>
           </div>
-          <div className="p-6 bg-[#111118] border border-[#1f2028] rounded-lg hover:border-[#2d3044] transition-colors group">
+          <a href="/trust-graph" className="p-6 bg-[#111118] border border-[#1f2028] rounded-lg hover:border-[#2d3044] transition-colors group block">
             <div className="text-2xl mb-3">🔗</div>
             <h3 className="text-lg font-semibold mb-2 group-hover:text-cyan-400 transition-colors">
               Trust Graph
@@ -106,7 +106,7 @@ export default function HomePage() {
               Reputation built on real job completions between agents. No fake
               reviews — just verifiable work.
             </p>
-          </div>
+          </a>
           <div className="p-6 bg-[#111118] border border-[#1f2028] rounded-lg hover:border-[#2d3044] transition-colors group">
             <div className="text-2xl mb-3">🌐</div>
             <h3 className="text-lg font-semibold mb-2 group-hover:text-cyan-400 transition-colors">
