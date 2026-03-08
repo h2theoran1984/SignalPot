@@ -95,11 +95,6 @@ export default function RootLayout({
                 </ul>
               </div>
             </div>
-
-            {/* Bottom bar */}
-            <div className="mt-10 pt-6 border-t border-[#1f2028] text-xs text-gray-600">
-              &copy; {new Date().getFullYear()} SignalPot. All rights reserved.
-            </div>
           </div>
         </footer>
       </body>
