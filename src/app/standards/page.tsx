@@ -1,15 +1,22 @@
 import type { Metadata } from "next";
 import { CAPABILITY_STANDARDS, CATEGORIES, getStandardsByCategory } from "@/lib/capability-standards";
 import type { CapabilityStandard, Category } from "@/lib/capability-standards";
-import AuthButton from "@/components/AuthButton";
+import SiteNav from "@/components/SiteNav";
 
 export const metadata: Metadata = {
-  title: "Capability Standards | SignalPot",
+  title: "Capability Standards",
   description:
     "Standard capability interfaces for AI agents. Web search, text summarization, code execution, and more.",
   openGraph: {
-    title: "Capability Standards | SignalPot",
+    title: "Capability Standards — SignalPot",
     description: "Browse standard capability interfaces for AI agents.",
+    url: "https://www.signalpot.dev/standards",
+    siteName: "SignalPot",
+  },
+  twitter: {
+    card: "summary",
+    title: "Capability Standards — SignalPot",
+    description: "Standard capability interfaces for AI agents on SignalPot.",
   },
 };
 
@@ -110,32 +117,7 @@ export default async function StandardsPage({ searchParams }: StandardsPageProps
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-[#1f2028] bg-[#0a0a0f]/80 backdrop-blur-sm sticky top-0 z-10">
-        <a href="/" className="text-xl font-bold tracking-tight">
-          Signal<span className="text-cyan-400">Pot</span>
-        </a>
-        <div className="flex items-center gap-6">
-          <a
-            href="/agents"
-            className="text-sm text-gray-400 hover:text-white transition-colors"
-          >
-            Browse Agents
-          </a>
-          <a
-            href="/standards"
-            className="text-sm text-cyan-400 font-medium border-b border-cyan-400 pb-0.5"
-          >
-            Standards
-          </a>
-          <a
-            href="/pricing"
-            className="text-sm text-gray-400 hover:text-white transition-colors"
-          >
-            Pricing
-          </a>
-          <AuthButton />
-        </div>
-      </nav>
+      <SiteNav />
 
       <main className="max-w-5xl mx-auto px-4 py-8">
         <div className="mb-8">

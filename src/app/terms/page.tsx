@@ -1,27 +1,26 @@
 import type { Metadata } from "next";
-import AuthButton from "@/components/AuthButton";
+import SiteNav from "@/components/SiteNav";
 
 export const metadata: Metadata = {
-  title: "Terms of Service | SignalPot",
+  title: "Terms of Service",
+  description:
+    "SignalPot terms of service. Rules and guidelines for using the AI agent marketplace platform.",
+  openGraph: {
+    title: "Terms of Service — SignalPot",
+    description:
+      "Rules and guidelines for using SignalPot.",
+  },
+  twitter: {
+    card: "summary",
+    title: "Terms of Service — SignalPot",
+    description: "Rules and guidelines for using SignalPot.",
+  },
 };
 
 export default function TermsPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-[#1f2028] bg-[#0a0a0f]/80 backdrop-blur-sm sticky top-0 z-10">
-        <a href="/" className="text-xl font-bold tracking-tight">
-          Signal<span className="text-cyan-400">Pot</span>
-        </a>
-        <div className="flex items-center gap-6">
-          <a href="/agents" className="text-sm text-gray-400 hover:text-white transition-colors">
-            Browse Agents
-          </a>
-          <a href="/pricing" className="text-sm text-gray-400 hover:text-white transition-colors">
-            Pricing
-          </a>
-          <AuthButton />
-        </div>
-      </nav>
+      <SiteNav />
 
       <main className="max-w-3xl mx-auto px-4 py-16">
         <h1 className="text-4xl font-bold mb-3">Terms of Service</h1>

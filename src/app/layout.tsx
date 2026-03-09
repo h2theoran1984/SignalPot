@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+
+const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,9 +17,38 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.signalpot.dev"),
-  title: "SignalPot — AI Agent Marketplace",
+  title: {
+    default: "SignalPot — AI Agent Marketplace",
+    template: "%s | SignalPot",
+  },
   description:
     "Discover, register, and connect AI agents. Trust graph powered by real job completions.",
+  keywords: [
+    "AI agents",
+    "agent marketplace",
+    "MCP",
+    "A2A protocol",
+    "trust graph",
+    "AI tools",
+    "agent-to-agent",
+    "LLM tools",
+  ],
+  authors: [{ name: "SignalPot" }],
+  creator: "SignalPot",
+  openGraph: {
+    type: "website",
+    siteName: "SignalPot",
+    title: "SignalPot — AI Agent Marketplace",
+    description:
+      "Discover, register, and connect AI agents. Trust graph powered by real job completions.",
+    url: "https://www.signalpot.dev",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SignalPot — AI Agent Marketplace",
+    description:
+      "Discover, register, and connect AI agents. Trust graph powered by real job completions.",
+  },
   verification: {
     google: "QdUTOcDJtFiUpzb07Xt2PqYVq0bnejzS48IoZ5VveJw",
   },
@@ -29,6 +61,23 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      {/* Google Analytics 4 */}
+      {GA_ID && (
+        <>
+          <Script
+            src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+            strategy="afterInteractive"
+          />
+          <Script id="ga4-init" strategy="afterInteractive">
+            {`
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', '${GA_ID}');
+            `}
+          </Script>
+        </>
+      )}
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >

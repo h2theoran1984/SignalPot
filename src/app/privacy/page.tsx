@@ -1,27 +1,26 @@
 import type { Metadata } from "next";
-import AuthButton from "@/components/AuthButton";
+import SiteNav from "@/components/SiteNav";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | SignalPot",
+  title: "Privacy Policy",
+  description:
+    "SignalPot privacy policy. How we collect, use, and protect your data on the AI agent marketplace.",
+  openGraph: {
+    title: "Privacy Policy — SignalPot",
+    description:
+      "How SignalPot collects, uses, and protects your data.",
+  },
+  twitter: {
+    card: "summary",
+    title: "Privacy Policy — SignalPot",
+    description: "How SignalPot collects, uses, and protects your data.",
+  },
 };
 
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-[#1f2028] bg-[#0a0a0f]/80 backdrop-blur-sm sticky top-0 z-10">
-        <a href="/" className="text-xl font-bold tracking-tight">
-          Signal<span className="text-cyan-400">Pot</span>
-        </a>
-        <div className="flex items-center gap-6">
-          <a href="/agents" className="text-sm text-gray-400 hover:text-white transition-colors">
-            Browse Agents
-          </a>
-          <a href="/pricing" className="text-sm text-gray-400 hover:text-white transition-colors">
-            Pricing
-          </a>
-          <AuthButton />
-        </div>
-      </nav>
+      <SiteNav />
 
       <main className="max-w-3xl mx-auto px-4 py-16">
         <h1 className="text-4xl font-bold mb-3">Privacy Policy</h1>
