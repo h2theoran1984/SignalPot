@@ -9,6 +9,7 @@ import { handleSparringRequest } from "@/lib/arena/sparring-partner";
 import { callArenaJudge } from "@/lib/arena/judge";
 import { updateElo, getAgentElo } from "@/lib/arena/elo";
 import { inferRubric, applyLevelModifiers, resolveTemplate } from "@/lib/arena/rubric";
+import { generateSyntheticPrompt } from "@/lib/arena/synthetic";
 import { isLevelUnlocked, LEVEL_CONFIGS, type ArenaLevel } from "@/lib/arena/levels";
 import { fightSchema } from "@/lib/arena/validations";
 import { checkArenaRateLimit } from "@/lib/rate-limit";
@@ -247,8 +248,14 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Resolve the prompt
-  let actualPrompt = prompt ?? { text: "Test prompt" };
+  // Resolve the prompt — generate synthetic data if none provided
+  let actualPrompt: Record<string, unknown>;
+  if (prompt) {
+    actualPrompt = prompt;
+  } else {
+    const synthetic = generateSyntheticPrompt(capability);
+    actualPrompt = synthetic.prompt;
+  }
 
   if (challenge_id) {
     const { data: challenge } = await admin

@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import SiteNav from "@/components/SiteNav";
 
 interface AgentOption {
@@ -10,14 +10,6 @@ interface AgentOption {
   slug: string;
   capability_schema: Array<{ name: string; description: string }>;
   rate_amount: number;
-}
-
-interface Challenge {
-  id: string;
-  title: string;
-  description: string;
-  capability: string;
-  prompt: Record<string, unknown>;
 }
 
 export default function NewMatchPageWrapper() {
@@ -34,59 +26,33 @@ export default function NewMatchPageWrapper() {
 
 function NewMatchPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const challengeParam = searchParams.get("challenge");
 
   const [agents, setAgents] = useState<AgentOption[]>([]);
-  const [challenges, setChallenges] = useState<Challenge[]>([]);
-  const [selectedChallenge, setSelectedChallenge] = useState<Challenge | null>(null);
   const [agentA, setAgentA] = useState("");
   const [agentB, setAgentB] = useState("");
   const [capability, setCapability] = useState("");
-  const [promptText, setPromptText] = useState("");
-  const [promptJson, setPromptJson] = useState("{}");
   const [selectedLevel, setSelectedLevel] = useState(1);
   const [challengerElo, setChallengerElo] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  // Load agents and challenges
+  // Load agents
   useEffect(() => {
     async function load() {
       try {
-        const [agentsRes, challengesRes] = await Promise.all([
-          fetch("/api/agents?limit=100"),
-          fetch("/api/arena/challenges?limit=50"),
-        ]);
-
-        if (agentsRes.ok) {
-          const data = await agentsRes.json();
+        const res = await fetch("/api/agents?limit=100");
+        if (res.ok) {
+          const data = await res.json();
           setAgents(
             (data.agents ?? []).filter((a: AgentOption) => a.capability_schema?.length > 0)
           );
-        }
-
-        if (challengesRes.ok) {
-          const data = await challengesRes.json();
-          setChallenges(data.challenges ?? []);
-
-          // Auto-select challenge from URL param
-          if (challengeParam) {
-            const found = (data.challenges ?? []).find((c: Challenge) => c.id === challengeParam);
-            if (found) {
-              setSelectedChallenge(found);
-              setCapability(found.capability);
-              setPromptJson(JSON.stringify(found.prompt, null, 2));
-              setPromptText(found.title);
-            }
-          }
         }
       } catch {
         setError("Failed to load agents");
       }
     }
     load();
-  }, [challengeParam]);
+  }, []);
 
   // Get agent A object
   const agentAObj = agents.find((a) => a.slug === agentA);
@@ -129,59 +95,6 @@ function NewMatchPage() {
     fetchElo();
   }, [challengerSlug, capability]);
 
-  // Default prompts by capability — fills in when no challenge is selected
-  const DEFAULT_PROMPTS: Record<string, { text: string; json: Record<string, unknown> }> = {
-    "signalpot/sentiment@v1": {
-      text: "Analyze sentiment of sample text",
-      json: { text: "Artificial intelligence agents are rapidly transforming software development. They automate repetitive coding tasks like writing boilerplate, generating tests, and fixing linting errors. This frees developers to focus on architecture and creative problem-solving." },
-    },
-    "signalpot/text-summary@v1": {
-      text: "Summarize a passage about technology",
-      json: { text: "Machine learning operations, commonly known as MLOps, bridges the gap between data science experimentation and production deployment. It encompasses model versioning, automated testing pipelines, continuous integration for ML models, monitoring for data drift, and rollback mechanisms when model performance degrades." },
-    },
-    "github-summary": {
-      text: "Summarize a GitHub repository",
-      json: { owner: "vercel", repo: "next.js" },
-    },
-    summarize: {
-      text: "Summarize a text passage",
-      json: { text: "The James Webb Space Telescope has revealed galaxies formed just 300 million years after the Big Bang, challenging existing models of galaxy formation." },
-    },
-    analyze: {
-      text: "Analyze text sentiment",
-      json: { text: "I absolutely loved the new restaurant downtown. The food was incredible and the atmosphere was perfect." },
-    },
-    search: {
-      text: "Search for recent developments",
-      json: { query: "recent developments in renewable energy", max_results: 5 },
-    },
-    run: {
-      text: "Execute a code snippet",
-      json: { language: "python", code: "print(sum(range(1, 101)))" },
-    },
-  };
-
-  // Auto-fill default prompt when capability changes (if no challenge is selected)
-  useEffect(() => {
-    if (!capability || selectedChallenge) return;
-
-    // Check if there's a matching challenge to auto-select
-    const matchingChallenge = challenges.find((c) => c.capability === capability);
-    if (matchingChallenge) {
-      setSelectedChallenge(matchingChallenge);
-      setPromptJson(JSON.stringify(matchingChallenge.prompt, null, 2));
-      setPromptText(matchingChallenge.title);
-      return;
-    }
-
-    // Otherwise use default prompt
-    const defaultPrompt = DEFAULT_PROMPTS[capability];
-    if (defaultPrompt) {
-      setPromptJson(JSON.stringify(defaultPrompt.json, null, 2));
-      setPromptText(defaultPrompt.text);
-    }
-  }, [capability, challenges]); // eslint-disable-line react-hooks/exhaustive-deps
-
   // Shared capabilities between A and B
   // The Sparring Partner is a universal opponent — it handles ANY capability
   const SPARRING_SLUG = "sparring-partner";
@@ -223,14 +136,6 @@ function NewMatchPage() {
       return;
     }
 
-    let parsedPrompt: Record<string, unknown>;
-    try {
-      parsedPrompt = JSON.parse(promptJson);
-    } catch {
-      setError("Invalid JSON in prompt field");
-      return;
-    }
-
     setSubmitting(true);
 
     try {
@@ -241,9 +146,6 @@ function NewMatchPage() {
           agent_a_slug: agentA,
           agent_b_slug: agentB,
           capability,
-          prompt: parsedPrompt,
-          prompt_text: promptText || undefined,
-          challenge_id: selectedChallenge?.id,
           level: hasSparring ? selectedLevel : undefined,
         }),
       });
@@ -276,7 +178,7 @@ function NewMatchPage() {
           Start a <span className="text-cyan-400">Match</span>
         </h1>
         <p className="text-gray-400 mb-8">
-          Pick two agents, choose a shared capability, and set the challenge.
+          Pick two agents, choose a shared capability, and let the arena generate the challenge.
         </p>
 
         {error && (
@@ -356,60 +258,14 @@ function NewMatchPage() {
             </select>
           </div>
 
-          {/* Challenge picker OR custom prompt */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1.5">
-              Challenge / Prompt
-            </label>
-
-            {/* Challenge quick-pick */}
-            {challenges.length > 0 && capability && (
-              <div className="mb-3">
-                <p className="text-xs text-gray-500 mb-2">Pick a challenge:</p>
-                <div className="flex flex-wrap gap-2">
-                  {challenges
-                    .filter((c) => c.capability === capability)
-                    .slice(0, 5)
-                    .map((c) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedChallenge(c);
-                          setPromptJson(JSON.stringify(c.prompt, null, 2));
-                          setPromptText(c.title);
-                        }}
-                        className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
-                          selectedChallenge?.id === c.id
-                            ? "bg-cyan-950 border-cyan-700 text-cyan-400"
-                            : "bg-[#111118] border-[#1f2028] text-gray-400 hover:border-[#2d3044]"
-                        }`}
-                      >
-                        {c.title}
-                      </button>
-                    ))}
-                </div>
-              </div>
-            )}
-
-            <input
-              type="text"
-              value={promptText}
-              onChange={(e) => setPromptText(e.target.value)}
-              placeholder="Brief description (e.g. 'Summarize quantum computing')"
-              className="w-full px-4 py-2.5 mb-2 bg-[#111118] border border-[#1f2028] rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none focus:border-cyan-700 transition-colors"
-            />
-            <textarea
-              value={promptJson}
-              onChange={(e) => {
-                setPromptJson(e.target.value);
-                setSelectedChallenge(null);
-              }}
-              placeholder='{"query": "your prompt here"}'
-              rows={4}
-              className="w-full px-4 py-3 bg-[#111118] border border-[#1f2028] rounded-lg text-white placeholder-gray-600 font-mono text-sm focus:outline-none focus:border-cyan-700 transition-colors"
-            />
-          </div>
+          {/* Synthetic data notice */}
+          {capability && (
+            <div className="p-3 bg-[#111118] border border-[#1f2028] rounded-lg">
+              <p className="text-xs text-gray-400">
+                <span className="text-cyan-400 font-medium">Auto-generated test data</span> — the arena will create a synthetic prompt tailored to the <span className="text-white font-mono">{capability}</span> capability.
+              </p>
+            </div>
+          )}
 
           {/* Level selector — only shown when sparring partner is involved */}
           {hasSparring && capability && (

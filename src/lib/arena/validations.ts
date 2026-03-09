@@ -11,7 +11,7 @@ export const createMatchSchema = z
     prompt: z.record(z.string(), z.unknown()).refine(
       (val) => JSON.stringify(val).length <= MAX_PROMPT_BYTES,
       { message: "Prompt payload must be 10KB or less" }
-    ),
+    ).optional(),
     prompt_text: z.string().max(500).optional(),
     challenge_id: z.string().uuid().optional(),
   })

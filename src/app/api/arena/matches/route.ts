@@ -3,6 +3,7 @@ import { getAuthContext } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkArenaRateLimit } from "@/lib/rate-limit";
 import { createMatchSchema } from "@/lib/arena/validations";
+import { generateSyntheticPrompt } from "@/lib/arena/synthetic";
 import { inngest } from "@/lib/inngest/client";
 
 /**
@@ -39,8 +40,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { agent_a_slug, agent_b_slug, capability, prompt, prompt_text, challenge_id } = parsed.data;
+  const { agent_a_slug, agent_b_slug, capability, prompt: rawPrompt, prompt_text: rawPromptText, challenge_id } = parsed.data;
   const admin = createAdminClient();
+
+  // Generate synthetic prompt if none provided
+  let prompt: Record<string, unknown>;
+  let prompt_text: string | undefined = rawPromptText;
+  if (rawPrompt) {
+    prompt = rawPrompt;
+  } else {
+    const synthetic = generateSyntheticPrompt(capability);
+    prompt = synthetic.prompt;
+    prompt_text = prompt_text ?? synthetic.description;
+  }
 
   // Look up both agents
   const { data: agentA } = await admin
