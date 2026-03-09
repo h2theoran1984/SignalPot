@@ -213,16 +213,21 @@ async function callAgent(
     };
   } catch (err) {
     const durationMs = Date.now() - startTime;
+    const message = err instanceof Error
+      ? `${err.name}: ${err.message}`
+      : "Agent unreachable";
+    console.error(`[arena] Agent ${side} (${agent.slug}) failed after ${durationMs}ms:`, message);
+
     await admin
       .from("jobs")
       .update({
         status: "failed",
         completed_at: new Date().toISOString(),
         duration_ms: durationMs,
+        output_summary: { _error: message },
       })
       .eq("id", jobId);
 
-    const message = err instanceof Error ? err.message : "Agent unreachable";
     return { jobId, error: message };
   }
 }
@@ -314,8 +319,12 @@ export async function executeMatch(matchId: string): Promise<void> {
   ]);
 
   // Process results
-  const aResult = resultA.status === "fulfilled" ? resultA.value : { jobId: "", error: "Promise rejected" };
-  const bResult = resultB.status === "fulfilled" ? resultB.value : { jobId: "", error: "Promise rejected" };
+  const aResult = resultA.status === "fulfilled"
+    ? resultA.value
+    : { jobId: "", error: `Promise rejected: ${resultA.reason}` };
+  const bResult = resultB.status === "fulfilled"
+    ? resultB.value
+    : { jobId: "", error: `Promise rejected: ${resultB.reason}` };
 
   const aSuccess = "result" in aResult;
   const bSuccess = "result" in bResult;
@@ -331,6 +340,9 @@ export async function executeMatch(matchId: string): Promise<void> {
     update.duration_a_ms = aResult.result.durationMs;
     update.verified_a = aResult.result.verified;
     update.cost_a = Number(agentA.rate_amount) || 0;
+  } else {
+    // Store error in response field so it's visible in match detail + DB
+    update.response_a = { _error: aResult.error, _agent: agentA.slug };
   }
 
   if (bSuccess) {
@@ -338,6 +350,9 @@ export async function executeMatch(matchId: string): Promise<void> {
     update.duration_b_ms = bResult.result.durationMs;
     update.verified_b = bResult.result.verified;
     update.cost_b = Number(agentB.rate_amount) || 0;
+  } else {
+    // Store error in response field so it's visible in match detail + DB
+    update.response_b = { _error: bResult.error, _agent: agentB.slug };
   }
 
   if (aSuccess && bSuccess) {
