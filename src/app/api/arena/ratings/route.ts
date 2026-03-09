@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 /**
  * GET /api/arena/ratings?agent=slug&capability=X
@@ -18,10 +18,10 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const admin = createAdminClient();
+  const supabase = await createClient();
 
   // Look up the agent ID from slug
-  const { data: agent } = await admin
+  const { data: agent } = await supabase
     .from("agents")
     .select("id")
     .eq("slug", agentSlug)
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
 
   // If capability specified, return single rating
   if (capability) {
-    const { data: rating } = await admin
+    const { data: rating } = await supabase
       .from("arena_ratings")
       .select("elo, matches_played, wins, losses, ties")
       .eq("agent_id", agent.id)
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
   }
 
   // No capability — return all ratings for this agent
-  const { data: ratings } = await admin
+  const { data: ratings } = await supabase
     .from("arena_ratings")
     .select("capability, elo, matches_played, wins, losses, ties")
     .eq("agent_id", agent.id)

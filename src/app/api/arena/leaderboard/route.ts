@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 /**
  * GET /api/arena/leaderboard — Public arena rankings
@@ -9,10 +9,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * recent completed matches with agent info.
  */
 export async function GET() {
-  const admin = createAdminClient();
+  const supabase = await createClient();
 
   // ── 1. Fetch all arena ratings joined with agent info ────────────
-  const { data: ratings, error: ratingsErr } = await admin
+  const { data: ratings, error: ratingsErr } = await supabase
     .from("arena_ratings")
     .select(
       `
@@ -169,7 +169,7 @@ export async function GET() {
     .map((a, i) => ({ ...a, rank: i + 1 }));
 
   // ── 4. Recent completed matches (last 5) ─────────────────────────
-  const { data: recentMatches, error: matchErr } = await admin
+  const { data: recentMatches, error: matchErr } = await supabase
     .from("arena_matches")
     .select(
       `

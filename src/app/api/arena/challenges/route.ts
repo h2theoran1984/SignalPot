@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 /**
  * GET /api/arena/challenges — List challenge prompts (public)
  */
 export async function GET(request: NextRequest) {
-  const admin = createAdminClient();
+  const supabase = await createClient();
   const url = new URL(request.url);
 
   const VALID_DIFFICULTIES = new Set(["easy", "medium", "hard"]);
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
   // Validate enum query params — ignore invalid values
   const difficulty = rawDifficulty && VALID_DIFFICULTIES.has(rawDifficulty) ? rawDifficulty : null;
 
-  let query = admin
+  let query = supabase
     .from("arena_challenges")
     .select("id, title, description, capability, difficulty, prompt, tags, featured, created_at", { count: "exact" })
     .order("created_at", { ascending: false })
