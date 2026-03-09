@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
   const admin = createAdminClient();
 
   // Fetch both agents (explicit columns — no select(*))
-  const AGENT_COLS = "id, name, slug, mcp_endpoint, rate_amount";
+  const AGENT_COLS = "id, name, slug, mcp_endpoint, rate_amount, owner_id";
 
   const { data: agentA } = await admin
     .from("agents")
@@ -214,6 +214,36 @@ export async function POST(request: NextRequest) {
         },
         { status: 403 }
       );
+    }
+  }
+
+  // Billing — deduct total fight cost upfront before calling agents
+  const costA = Number(agentA.rate_amount) || 0;
+  const costB = Number(agentB.rate_amount) || 0;
+  const totalCost = costA + costB;
+
+  if (totalCost > 0) {
+    const totalMillicents = Math.floor(totalCost * 100_000);
+    const { error: paymentError } = await admin.rpc("settle_user_payment", {
+      p_profile_id: auth.profileId,
+      p_amount_millicents: totalMillicents,
+    });
+
+    if (paymentError) {
+      const msg = paymentError.message ?? "";
+      if (msg.includes("INSUFFICIENT_BALANCE")) {
+        return NextResponse.json(
+          {
+            error: "Insufficient credits for arena fight",
+            total_cost: totalCost,
+            cost_a: costA,
+            cost_b: costB,
+            hint: "Top up at /dashboard",
+          },
+          { status: 402 }
+        );
+      }
+      return NextResponse.json({ error: "Payment failed" }, { status: 500 });
     }
   }
 
@@ -362,6 +392,44 @@ export async function POST(request: NextRequest) {
     await admin.from("arena_matches").update(matchUpdate).eq("id", matchId);
   }
 
+  // Billing — credit providers for successful calls, refund creator for failed agents
+  if (totalCost > 0) {
+    const rawPct = parseInt(process.env.PLATFORM_FEE_PCT ?? "10", 10);
+    const feePct = Number.isFinite(rawPct) && rawPct >= 0 && rawPct <= 100 ? rawPct : 10;
+
+    for (const { agent, ok, cost } of [
+      { agent: agentA, ok: aOk, cost: costA },
+      { agent: agentB, ok: bOk, cost: costB },
+    ]) {
+      if (cost <= 0) continue;
+      const costMillicents = Math.floor(cost * 100_000);
+
+      if (ok) {
+        // Agent responded — credit provider, log platform fee
+        const platformFee = Math.max(Math.floor((costMillicents * feePct) / 100), 100);
+        const providerCut = costMillicents - platformFee;
+
+        if (providerCut > 0) {
+          await admin.rpc("add_credits", {
+            p_user_id: agent.owner_id,
+            p_amount_millicents: providerCut,
+          });
+        }
+
+        await admin.from("platform_revenue").insert({
+          job_id: null,
+          amount_millicents: platformFee,
+        });
+      } else {
+        // Agent failed — refund creator for this agent's portion
+        await admin.rpc("add_credits", {
+          p_user_id: auth.profileId,
+          p_amount_millicents: costMillicents,
+        });
+      }
+    }
+  }
+
   return NextResponse.json({
     match_id: matchId,
     status: aOk && bOk ? "completed" : (!aOk && !bOk) ? "failed" : "completed",
@@ -385,6 +453,7 @@ export async function POST(request: NextRequest) {
       confidence: judgment.confidence,
       source: judgment.source,
     } : null,
+    cost: { total: totalCost, agent_a: costA, agent_b: costB },
     level: hasSparring ? level : null,
     elo: eloResult,
     prompt: actualPrompt,

@@ -207,7 +207,7 @@ export default function EditAgentForm({ agent }: { agent: Agent }) {
               <input
                 name="rate_amount"
                 type="number"
-                step="0.01"
+                step="0.0001"
                 min="0"
                 defaultValue={agent.rate_amount}
                 className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gray-500"

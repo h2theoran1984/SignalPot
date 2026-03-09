@@ -192,8 +192,8 @@ export default function NewAgentForm() {
               <input
                 name="rate_amount"
                 type="number"
-                step="0.001"
-                min="0.001"
+                step="0.0001"
+                min="0.0001"
                 defaultValue="0.001"
                 className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gray-500"
               />

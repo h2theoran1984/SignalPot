@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkAnonRateLimit, checkAnonAgentRateLimit } from "@/lib/rate-limit";
-import { rateLimitResponse } from "@/lib/auth";
+import { getAuthContext, rateLimitResponse } from "@/lib/auth";
 import { proxyCallSchema } from "@/lib/validations";
 import { wrapRequest, wrapResponse } from "@/lib/envelope";
 import { validateOutput } from "@/lib/schema-validator";
@@ -10,7 +10,7 @@ import { assertSafeUrl } from "@/lib/ssrf";
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
 function corsJson(body: unknown, init?: { status?: number }) {
@@ -24,8 +24,10 @@ export async function OPTIONS() {
 
 /**
  * POST /api/proxy/[slug]
- * Anonymous synchronous proxy — calls an agent and returns the result.
- * No auth required. Paid agents require a session_token (from /api/proxy/credits).
+ * Synchronous proxy — calls an agent and returns the result.
+ * Supports two modes:
+ *   1. Authenticated (Bearer token / session) — deducts from profile credits
+ *   2. Anonymous — paid agents require a session_token (from /api/proxy/credits)
  */
 export async function POST(
   request: NextRequest,
@@ -34,27 +36,34 @@ export async function POST(
   const { slug } = await params;
   const admin = createAdminClient();
 
-  // 1. Rate limit by IP (10 rpm for anonymous callers)
+  // 0. Check for authenticated caller (optional — falls back to anonymous)
+  const auth = await getAuthContext(request);
+  const isAuthenticated = auth !== null;
+
+  // 1. Rate limit — authenticated users are already rate-limited by getAuthContext;
+  //    anonymous callers use IP-based limits.
   const forwarded = request.headers.get("x-forwarded-for");
   const ip = forwarded
     ? forwarded.split(",").pop()!.trim()
     : request.headers.get("x-real-ip") || "unknown";
 
-  const rateCheck = await checkAnonRateLimit(ip);
-  if (!rateCheck.success) {
-    return rateLimitResponse(rateCheck.reset);
-  }
+  if (!isAuthenticated) {
+    const rateCheck = await checkAnonRateLimit(ip);
+    if (!rateCheck.success) {
+      return rateLimitResponse(rateCheck.reset);
+    }
 
-  // 1b. Per-agent global cap (100/hr) — prevents VPN swarm attacks
-  const agentRateCheck = await checkAnonAgentRateLimit(slug);
-  if (!agentRateCheck.success) {
-    return corsJson(
-      {
-        error: "This agent has reached its anonymous call limit — try again later",
-        retry_after: Math.ceil((agentRateCheck.reset - Date.now()) / 1000),
-      },
-      { status: 429 }
-    );
+    // Per-agent global cap (100/hr) — prevents VPN swarm attacks
+    const agentRateCheck = await checkAnonAgentRateLimit(slug);
+    if (!agentRateCheck.success) {
+      return corsJson(
+        {
+          error: "This agent has reached its anonymous call limit — try again later",
+          retry_after: Math.ceil((agentRateCheck.reset - Date.now()) / 1000),
+        },
+        { status: 429 }
+      );
+    }
   }
 
   // 2. Parse and validate body
@@ -125,50 +134,73 @@ export async function POST(
   const rateAmount = Number(agent.rate_amount) || 0;
 
   if (rateAmount > 0) {
-    if (!session_token) {
-      return corsJson(
-        {
-          error: "session_token required for paid agents",
-          hint: "Purchase credits via POST /api/proxy/credits",
-          cost: rateAmount,
-        },
-        { status: 402 }
-      );
-    }
-
     const rateMillicents = Math.floor(rateAmount * 100_000);
 
-    const { error: paymentError } = await admin.rpc("settle_anonymous_payment", {
-      p_session_token: session_token,
-      p_amount_millicents: rateMillicents,
-    });
+    if (isAuthenticated) {
+      // Authenticated caller — deduct from profile credits
+      const { error: paymentError } = await admin.rpc("settle_user_payment", {
+        p_profile_id: auth.profileId,
+        p_amount_millicents: rateMillicents,
+      });
 
-    if (paymentError) {
-      const msg = paymentError.message ?? "";
-      if (msg.includes("SESSION_NOT_FOUND_OR_EXPIRED")) {
-        return corsJson({ error: "Session expired or not found" }, { status: 401 });
+      if (paymentError) {
+        const msg = paymentError.message ?? "";
+        if (msg.includes("USER_NOT_FOUND")) {
+          return corsJson({ error: "User profile not found" }, { status: 401 });
+        }
+        if (msg.includes("INSUFFICIENT_BALANCE")) {
+          return corsJson(
+            { error: "Insufficient credits", cost: rateAmount, hint: "Top up at /dashboard" },
+            { status: 402 }
+          );
+        }
+        return corsJson({ error: "Payment failed" }, { status: 500 });
       }
-      if (msg.includes("DAILY_SPEND_CAP_EXCEEDED")) {
-        return corsJson({ error: "Daily spend cap ($5) exceeded" }, { status: 429 });
-      }
-      if (msg.includes("INSUFFICIENT_BALANCE")) {
+    } else {
+      // Anonymous caller — require session_token
+      if (!session_token) {
         return corsJson(
-          { error: "Insufficient credits", cost: rateAmount },
+          {
+            error: "session_token required for paid agents",
+            hint: "Purchase credits via POST /api/proxy/credits",
+            cost: rateAmount,
+          },
           { status: 402 }
         );
       }
-      return corsJson({ error: "Payment failed" }, { status: 500 });
-    }
 
-    anonymousSessionId = session_token;
+      const { error: paymentError } = await admin.rpc("settle_anonymous_payment", {
+        p_session_token: session_token,
+        p_amount_millicents: rateMillicents,
+      });
+
+      if (paymentError) {
+        const msg = paymentError.message ?? "";
+        if (msg.includes("SESSION_NOT_FOUND_OR_EXPIRED")) {
+          return corsJson({ error: "Session expired or not found" }, { status: 401 });
+        }
+        if (msg.includes("DAILY_SPEND_CAP_EXCEEDED")) {
+          return corsJson({ error: "Daily spend cap ($5) exceeded" }, { status: 429 });
+        }
+        if (msg.includes("INSUFFICIENT_BALANCE")) {
+          return corsJson(
+            { error: "Insufficient credits", cost: rateAmount },
+            { status: 402 }
+          );
+        }
+        return corsJson({ error: "Payment failed" }, { status: 500 });
+      }
+
+      anonymousSessionId = session_token;
+    }
   }
 
-  // 7. Create job record (requester_profile_id = null for anonymous)
+  // 7. Create job record
   const { data: job, error: jobError } = await admin
     .from("jobs")
     .insert({
       provider_agent_id: agent.id,
-      requester_profile_id: null,
+      requester_profile_id: isAuthenticated ? auth.profileId : null,
       requester_agent_id: null,
       anonymous_session_id: anonymousSessionId,
       job_type: "production",
@@ -188,7 +220,7 @@ export async function POST(
   // 8. Build request envelope for auditing
   const requestEnvelope = wrapRequest({
     jobId: job.id as string,
-    callerId: anonymousSessionId ?? `anon:${ip}`,
+    callerId: isAuthenticated ? auth.profileId : (anonymousSessionId ?? `anon:${ip}`),
     providerSlug: slug,
     capability,
     input,
