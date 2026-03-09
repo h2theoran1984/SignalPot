@@ -163,7 +163,7 @@ export function generateSyntheticPrompt(capability: string): {
     case "github-summary": {
       const repo = pickRandom(GITHUB_REPOS);
       return {
-        prompt: repo,
+        prompt: { repo_url: `https://github.com/${repo.owner}/${repo.repo}` },
         description: `Summarize ${repo.owner}/${repo.repo}`,
       };
     }
