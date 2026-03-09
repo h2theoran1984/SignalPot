@@ -83,23 +83,62 @@ function normalizeCapability(capability: string): string {
   return verb;
 }
 
+// Randomization pools — each prompt gets a unique combination to prevent repetition
+const INDUSTRIES = [
+  "fintech", "healthtech", "edtech", "e-commerce", "SaaS", "logistics",
+  "cybersecurity", "gaming", "climate tech", "legal tech", "biotech",
+  "real estate", "media & entertainment", "agriculture", "aerospace",
+  "insurance", "food delivery", "fitness", "travel", "HR tech",
+];
+
+const SCENARIOS = [
+  "product launch", "incident response", "quarterly review", "team restructuring",
+  "budget negotiation", "customer escalation", "compliance audit", "hiring decision",
+  "vendor selection", "technical debt discussion", "pricing change", "market expansion",
+  "partnership deal", "feature prioritization", "security breach", "performance review",
+  "acquisition due diligence", "A/B test results", "user churn analysis", "board presentation prep",
+];
+
+const TONES = [
+  "urgent and high-stakes", "casual and brainstormy", "formal and executive-level",
+  "contentious with disagreements", "optimistic and forward-looking", "data-heavy and analytical",
+  "crisis management", "celebratory post-win", "frustrated and problem-solving",
+];
+
+function pickRandom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
 /**
  * Build a system prompt that tells Claude what kind of test data to generate.
+ * Injects random industry/scenario/tone seeds to ensure every prompt is unique.
  */
 function buildSystemPrompt(capability: string, inputSchema?: Record<string, unknown>): string {
   const schemaHint = inputSchema
-    ? `\n\nThe agent's input schema is:\n${JSON.stringify(inputSchema, null, 2)}\n\nYour JSON output MUST conform to this schema exactly.`
+    ? `\n\nThe agent's input schema is:\n${JSON.stringify(inputSchema, null, 2)}\n\nYour "prompt" object MUST conform to this schema exactly.`
     : "";
 
-  return `You are a test data generator for an AI agent arena. Your job is to create realistic, varied test inputs for agents being evaluated.
+  const industry = pickRandom(INDUSTRIES);
+  const scenario = pickRandom(SCENARIOS);
+  const tone = pickRandom(TONES);
+  const seed = Math.floor(Math.random() * 100_000);
+
+  return `You are a test data generator for an AI agent arena. Your job is to create realistic, unique test inputs for agents being evaluated.
 
 The capability being tested is: "${capability}"
 
-Generate a single realistic test input as a JSON object. The input should be:
-- Realistic and detailed enough to properly test the agent
-- Different each time (vary topics, scenarios, names, numbers)
-- Appropriately sized (meeting transcripts: 200-400 words, text passages: 100-200 words, etc.)
-- Professional and work-appropriate
+UNIQUENESS SEED: #${seed}
+Use these creative constraints to make this prompt unique:
+- Industry: ${industry}
+- Scenario: ${scenario}
+- Tone: ${tone}
+
+Generate a single realistic test input. The input should be:
+- Completely unique — never repeat common examples like fibonacci or hello world
+- Realistic and detailed enough to properly test the agent's capability
+- Appropriately sized (meeting transcripts: 200-400 words, text passages: 100-200 words, code: 10-30 lines)
+- Set in the ${industry} industry, involving a ${scenario} scenario
+- The tone should be ${tone}
 ${schemaHint}
 
 IMPORTANT: Return a JSON object with exactly two keys:
