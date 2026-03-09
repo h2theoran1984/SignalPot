@@ -97,6 +97,36 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Billing — deduct total fight cost upfront before creating match
+  const costA = Number(agentA.rate_amount) || 0;
+  const costB = Number(agentB.rate_amount) || 0;
+  const totalCost = costA + costB;
+
+  if (totalCost > 0) {
+    const totalMillicents = Math.floor(totalCost * 100_000);
+    const { error: paymentError } = await admin.rpc("settle_user_payment", {
+      p_profile_id: auth.profileId,
+      p_amount_millicents: totalMillicents,
+    });
+
+    if (paymentError) {
+      const msg = paymentError.message ?? "";
+      if (msg.includes("INSUFFICIENT_BALANCE")) {
+        return NextResponse.json(
+          {
+            error: "Insufficient credits for arena match",
+            total_cost: totalCost,
+            cost_a: costA,
+            cost_b: costB,
+            hint: "Top up at /dashboard",
+          },
+          { status: 402 }
+        );
+      }
+      return NextResponse.json({ error: "Payment failed" }, { status: 500 });
+    }
+  }
+
   // Create the match
   const { data: match, error: insertError } = await admin
     .from("arena_matches")
@@ -128,6 +158,7 @@ export async function POST(request: NextRequest) {
     {
       match,
       stream_url: `/api/arena/matches/${match.id}/stream`,
+      cost: totalCost > 0 ? { total: totalCost, agent_a: costA, agent_b: costB } : undefined,
     },
     { status: 201 }
   );

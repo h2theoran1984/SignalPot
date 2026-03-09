@@ -240,7 +240,7 @@ export async function executeMatch(matchId: string): Promise<void> {
   // Fetch the match
   const { data: match, error: matchError } = await admin
     .from("arena_matches")
-    .select("id, status, agent_a_id, agent_b_id, capability, prompt, challenge_id, match_type")
+    .select("id, status, agent_a_id, agent_b_id, capability, prompt, challenge_id, match_type, creator_id")
     .eq("id", matchId)
     .single();
 
@@ -255,7 +255,7 @@ export async function executeMatch(matchId: string): Promise<void> {
   }
 
   // Fetch both agents
-  const AGENT_COLS = "id, name, slug, mcp_endpoint, rate_amount, capability_schema, status";
+  const AGENT_COLS = "id, name, slug, mcp_endpoint, rate_amount, capability_schema, status, owner_id";
 
   const { data: agentA } = await admin
     .from("agents")
@@ -372,6 +372,46 @@ export async function executeMatch(matchId: string): Promise<void> {
     .from("arena_matches")
     .update(update)
     .eq("id", matchId);
+
+  // Billing — credit providers for successful agents, refund creator for failed agents
+  // (Only for default wins and double failures. Both-succeed billing happens after judging.)
+  if (!aSuccess || !bSuccess) {
+    const creatorId = match.creator_id as string | null;
+    const rawPct = parseInt(process.env.PLATFORM_FEE_PCT ?? "10", 10);
+    const feePct = Number.isFinite(rawPct) && rawPct >= 0 && rawPct <= 100 ? rawPct : 10;
+
+    for (const { agent, ok, cost } of [
+      { agent: agentA, ok: aSuccess, cost: Number(agentA.rate_amount) || 0 },
+      { agent: agentB, ok: bSuccess, cost: Number(agentB.rate_amount) || 0 },
+    ]) {
+      if (cost <= 0) continue;
+      const costMillicents = Math.floor(cost * 100_000);
+
+      if (ok) {
+        // Agent responded — credit provider, log platform fee
+        const platformFee = Math.max(Math.floor((costMillicents * feePct) / 100), 100);
+        const providerCut = costMillicents - platformFee;
+
+        if (providerCut > 0 && agent.owner_id) {
+          await admin.rpc("add_credits", {
+            p_user_id: agent.owner_id,
+            p_amount_millicents: providerCut,
+          });
+        }
+
+        await admin.from("platform_revenue").insert({
+          job_id: null,
+          amount_millicents: platformFee,
+        });
+      } else if (creatorId) {
+        // Agent failed — refund creator for this agent's portion
+        await admin.rpc("add_credits", {
+          p_user_id: creatorId,
+          p_amount_millicents: costMillicents,
+        });
+      }
+    }
+  }
 
   // Fire judging event for undercard matches where both agents succeeded
   const matchType = (match.match_type as string) ?? "undercard";

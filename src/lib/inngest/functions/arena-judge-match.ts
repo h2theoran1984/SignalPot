@@ -27,8 +27,8 @@ export const arenaJudgeMatch = inngest.createFunction(
         .from("arena_matches")
         .select(
           `*,
-          agent_a:agents!arena_matches_agent_a_id_fkey(id, name, slug, rate_amount),
-          agent_b:agents!arena_matches_agent_b_id_fkey(id, name, slug, rate_amount),
+          agent_a:agents!arena_matches_agent_a_id_fkey(id, name, slug, rate_amount, owner_id),
+          agent_b:agents!arena_matches_agent_b_id_fkey(id, name, slug, rate_amount, owner_id),
           challenge:arena_challenges(rubric)`
         )
         .eq("id", match_id)
@@ -39,8 +39,8 @@ export const arenaJudgeMatch = inngest.createFunction(
         throw new Error(`Match ${match_id} is not in judging state (status: ${match.status})`);
       }
 
-      const agentA = match.agent_a as { id: string; name: string; slug: string; rate_amount: number | null } | null;
-      const agentB = match.agent_b as { id: string; name: string; slug: string; rate_amount: number | null } | null;
+      const agentA = match.agent_a as { id: string; name: string; slug: string; rate_amount: number | null; owner_id: string | null } | null;
+      const agentB = match.agent_b as { id: string; name: string; slug: string; rate_amount: number | null; owner_id: string | null } | null;
 
       if (!agentA || !agentB) throw new Error("Missing agent data");
 
@@ -75,6 +75,10 @@ export const arenaJudgeMatch = inngest.createFunction(
         agent_b_id: agentB.id,
         slug_a: agentA.slug,
         slug_b: agentB.slug,
+        owner_a: agentA.owner_id,
+        owner_b: agentB.owner_id,
+        rate_a: Number(agentA.rate_amount ?? 0),
+        rate_b: Number(agentB.rate_amount ?? 0),
         capability: match.capability as string,
       };
     });
@@ -105,6 +109,34 @@ export const arenaJudgeMatch = inngest.createFunction(
         judgment.slug_a,
         judgment.slug_b
       );
+    });
+
+    // Step 4: credit providers — both agents responded successfully
+    await step.run("credit-providers", async () => {
+      const rawPct = parseInt(process.env.PLATFORM_FEE_PCT ?? "10", 10);
+      const feePct = Number.isFinite(rawPct) && rawPct >= 0 && rawPct <= 100 ? rawPct : 10;
+
+      for (const { ownerId, rate } of [
+        { ownerId: judgment.owner_a, rate: judgment.rate_a },
+        { ownerId: judgment.owner_b, rate: judgment.rate_b },
+      ]) {
+        if (rate <= 0) continue;
+        const costMillicents = Math.floor(rate * 100_000);
+        const platformFee = Math.max(Math.floor((costMillicents * feePct) / 100), 100);
+        const providerCut = costMillicents - platformFee;
+
+        if (providerCut > 0 && ownerId) {
+          await admin.rpc("add_credits", {
+            p_user_id: ownerId,
+            p_amount_millicents: providerCut,
+          });
+        }
+
+        await admin.from("platform_revenue").insert({
+          job_id: null,
+          amount_millicents: platformFee,
+        });
+      }
     });
 
     return {
