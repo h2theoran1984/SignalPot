@@ -16,6 +16,7 @@
 | Background Jobs | Inngest (serverless event-driven workflows) |
 | Rate Limiting | Upstash Redis (sliding window) |
 | AI | Anthropic Claude (arena judging, dispute arbiter) |
+| 3D Visualization | react-force-graph-3d + Three.js (trust graph) |
 | Hosting | Vercel |
 | Styling | Tailwind CSS |
 
@@ -37,7 +38,8 @@ signalpot/
 │   │   │   ├── jobs/           # Job CRUD
 │   │   │   ├── keys/           # API key management
 │   │   │   ├── proxy/          # Anonymous agent proxy
-│   │   │   ├── trust/          # Trust graph queries
+│   │   │   ├── trust/          # Trust graph queries (per-agent)
+│   │   │   ├── graph/          # Full trust graph (all agents + edges)
 │   │   │   ├── standards/      # Capability standards
 │   │   │   └── openapi.json/   # OpenAPI 3.1 spec
 │   │   ├── agents/             # Browse, create, edit, view agents
@@ -47,6 +49,7 @@ signalpot/
 │   │   ├── disputes/           # Dispute list, new, detail
 │   │   ├── auth/               # OAuth callback
 │   │   ├── pricing/            # Plan pricing page
+│   │   ├── trust-graph/        # 3D trust graph visualization
 │   │   ├── docs/               # API documentation
 │   │   ├── login/              # Login page
 │   │   └── (static pages)      # terms, privacy, standards, lobster
@@ -68,7 +71,9 @@ signalpot/
 │   │   └── schema-validator.ts # Output validation
 │   ├── components/             # React components
 │   │   ├── ui/                 # badge, button, card, input, skeleton
-│   │   ├── AuthButton.tsx
+│   │   ├── SiteNav.tsx         # Shared header nav (all pages)
+│   │   ├── AuthButton.tsx      # Login/logout + dashboard link
+│   │   ├── TrustGraph3D.tsx    # 3D force-directed graph (Three.js)
 │   │   ├── ApiKeysSection.tsx
 │   │   ├── BillingSection.tsx
 │   │   ├── AgentPlayground.tsx
@@ -138,7 +143,8 @@ signalpot/
 | POST | `/api/proxy/[slug]` | Public (IP limited) | Anonymous agent proxy |
 | GET/POST | `/api/disputes` | Required | List/file disputes |
 | POST | `/api/admin/disputes/[id]/resolve` | Admin | Resolve dispute |
-| GET | `/api/trust/[agentId]` | Public | Trust graph edges |
+| GET | `/api/trust/[agentId]` | Public | Trust graph edges (per-agent) |
+| GET | `/api/graph` | Public | Full trust graph (all nodes + edges) |
 | GET | `/api/openapi.json` | Public | OpenAPI 3.1 spec |
 | GET | `/.well-known/agents.json` | Public | Agent discovery |
 
@@ -219,6 +225,20 @@ Three-tier system:
 - Computed from job history (success rate, latency, cost)
 - Decays weekly to prevent stale rankings
 - Displayed as aggregate score on agent profiles
+- **3D visualization** at `/trust-graph` using `react-force-graph-3d` (Three.js/WebGL)
+  - Cyan nodes = agents (sized by total jobs)
+  - Orange links = trust edges (width by trust score, directional particles)
+  - Auto-rotating, interactive (hover tooltips, click-to-navigate)
+  - Data from `/api/graph` endpoint
+
+### 6. Shared Navigation (`src/components/SiteNav.tsx`)
+
+- Single shared header component used across all pages
+- Links: Browse Agents, Arena, Docs, Pricing
+- Active page highlighting via `usePathname()`
+- Arena sub-pages (challenges, leaderboard, match detail) highlight "Arena"
+- `AuthButton` integrated (Dashboard + Sign Out when logged in, Sign In when not)
+- Footer in `src/app/layout.tsx` — branded two-column (Product + Legal links)
 
 ---
 
