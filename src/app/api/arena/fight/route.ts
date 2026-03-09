@@ -1,6 +1,7 @@
 // POST /api/arena/fight — Synchronous arena match endpoint.
 // Bypasses Inngest and runs execute → judge → ELO in a single request.
 // Used for testing and dev when Inngest isn't running.
+export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext, rateLimitResponse } from "@/lib/auth";

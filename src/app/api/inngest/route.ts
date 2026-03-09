@@ -14,6 +14,9 @@ import { resolveDisputeT3 } from "@/lib/inngest/functions/resolve-dispute-t3";
 
 // Inngest webhook handler — receives events from Inngest cloud and executes functions.
 // Vercel env vars needed: INNGEST_EVENT_KEY, INNGEST_SIGNING_KEY
+// Arena match execution calls agents (up to 30s each) + judging — needs more than 10s default.
+export const maxDuration = 60;
+
 export const { GET, POST, PUT } = serve({
   client: inngest,
   functions: [
