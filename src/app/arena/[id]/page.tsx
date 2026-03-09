@@ -268,7 +268,9 @@ function ResponsePanel({
         {!isRunning && !hasResponse && status !== "running" && (
           <div className="flex items-center justify-center h-48">
             <p className="text-sm text-gray-600">
-              {status === "failed" ? "Agent failed to respond" : "Waiting..."}
+              {status === "failed" || status === "completed" || status === "judging"
+                ? "⏱ Agent timed out or failed to respond"
+                : "Waiting..."}
             </p>
           </div>
         )}
