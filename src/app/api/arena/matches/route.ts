@@ -43,17 +43,6 @@ export async function POST(request: NextRequest) {
   const { agent_a_slug, agent_b_slug, capability, prompt: rawPrompt, prompt_text: rawPromptText, challenge_id } = parsed.data;
   const admin = createAdminClient();
 
-  // Generate synthetic prompt if none provided
-  let prompt: Record<string, unknown>;
-  let prompt_text: string | undefined = rawPromptText;
-  if (rawPrompt) {
-    prompt = rawPrompt;
-  } else {
-    const synthetic = generateSyntheticPrompt(capability);
-    prompt = synthetic.prompt;
-    prompt_text = prompt_text ?? synthetic.description;
-  }
-
   // Look up both agents
   const { data: agentA } = await admin
     .from("agents")
@@ -80,8 +69,8 @@ export async function POST(request: NextRequest) {
   // Verify both agents have the specified capability
   // The Sparring Partner is a universal opponent — skip capability check for it
   const SPARRING_SLUG = "sparring-partner";
-  const capsA = (agentA.capability_schema as Array<{ name: string }>) ?? [];
-  const capsB = (agentB.capability_schema as Array<{ name: string }>) ?? [];
+  const capsA = (agentA.capability_schema as Array<{ name: string; input_schema?: Record<string, unknown> }>) ?? [];
+  const capsB = (agentB.capability_schema as Array<{ name: string; input_schema?: Record<string, unknown> }>) ?? [];
 
   if (agent_a_slug !== SPARRING_SLUG && !capsA.find((c) => c.name === capability)) {
     return NextResponse.json(
@@ -95,6 +84,22 @@ export async function POST(request: NextRequest) {
       { error: `Agent '${agent_b_slug}' does not have capability '${capability}'`, available: capsB.map((c) => c.name) },
       { status: 400 }
     );
+  }
+
+  // Generate synthetic prompt if none provided — uses Claude Haiku with agent's input schema
+  let prompt: Record<string, unknown>;
+  let prompt_text: string | undefined = rawPromptText;
+  if (rawPrompt) {
+    prompt = rawPrompt;
+  } else {
+    // Find the challenger's input schema for this capability (non-sparring agent)
+    const challengerCaps = agent_a_slug === SPARRING_SLUG ? capsB : capsA;
+    const capDef = challengerCaps.find((c) => c.name === capability);
+    const inputSchema = capDef?.input_schema as Record<string, unknown> | undefined;
+
+    const synthetic = await generateSyntheticPrompt(capability, inputSchema);
+    prompt = synthetic.prompt;
+    prompt_text = prompt_text ?? synthetic.description;
   }
 
   // Billing — deduct total fight cost upfront before creating match

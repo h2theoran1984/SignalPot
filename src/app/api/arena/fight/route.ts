@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
   const admin = createAdminClient();
 
   // Fetch both agents (explicit columns — no select(*))
-  const AGENT_COLS = "id, name, slug, mcp_endpoint, rate_amount, owner_id";
+  const AGENT_COLS = "id, name, slug, mcp_endpoint, rate_amount, owner_id, capability_schema";
 
   const { data: agentA } = await admin
     .from("agents")
@@ -249,12 +249,21 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Resolve the prompt — generate synthetic data if none provided
+  // Resolve the prompt — generate synthetic data if none provided (uses Claude Haiku)
   let actualPrompt: Record<string, unknown>;
   if (prompt) {
     actualPrompt = prompt;
   } else {
-    const synthetic = generateSyntheticPrompt(capability);
+    // Find the challenger's input schema for this capability
+    const challengerCaps = (
+      agent_a_slug === "sparring-partner"
+        ? (agentB as Record<string, unknown>)
+        : (agentA as Record<string, unknown>)
+    ).capability_schema as Array<{ name: string; input_schema?: Record<string, unknown> }> | undefined;
+    const capDef = challengerCaps?.find((c) => c.name === capability);
+    const inputSchema = capDef?.input_schema as Record<string, unknown> | undefined;
+
+    const synthetic = await generateSyntheticPrompt(capability, inputSchema);
     actualPrompt = synthetic.prompt;
   }
 
