@@ -73,6 +73,8 @@ export const arenaJudgeMatch = inngest.createFunction(
         ...result,
         agent_a_id: agentA.id,
         agent_b_id: agentB.id,
+        slug_a: agentA.slug,
+        slug_b: agentB.slug,
         capability: match.capability as string,
       };
     });
@@ -99,7 +101,9 @@ export const arenaJudgeMatch = inngest.createFunction(
         judgment.agent_a_id,
         judgment.agent_b_id,
         judgment.capability,
-        judgment.winner
+        judgment.winner,
+        judgment.slug_a,
+        judgment.slug_b
       );
     });
 

@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 const K_FACTOR = 32;
 const DEFAULT_ELO = 1200;
+const SPARRING_PARTNER_ELO = 1200; // Fixed — never changes
 
 /**
  * Calculate new ELO ratings given current ratings and match result.
@@ -55,115 +56,136 @@ export async function updateElo(
   agentAId: string,
   agentBId: string,
   capability: string,
-  winner: "a" | "b" | "tie"
+  winner: "a" | "b" | "tie",
+  slugA?: string,
+  slugB?: string
 ): Promise<{ eloA: number; eloB: number; deltaA: number; deltaB: number }> {
   const admin = createAdminClient();
 
+  const SPARRING_SLUG = "sparring-partner";
+  const aIsSparring = slugA === SPARRING_SLUG;
+  const bIsSparring = slugB === SPARRING_SLUG;
+
   const RATING_COLS = "elo, matches_played, wins, losses, ties";
 
-  // Fetch or create rating for Agent A
-  let { data: ratingA } = await admin
-    .from("arena_ratings")
-    .select(RATING_COLS)
-    .eq("agent_id", agentAId)
-    .eq("capability", capability)
-    .single();
+  // Sparring Partner always plays at fixed 1200 — no DB row needed
+  let oldEloA = SPARRING_PARTNER_ELO;
+  let oldEloB = SPARRING_PARTNER_ELO;
 
-  if (!ratingA) {
-    const { data: created } = await admin
+  // Fetch or create rating for Agent A (skip if Sparring Partner)
+  let ratingA: Record<string, unknown> | null = null;
+  if (!aIsSparring) {
+    const { data } = await admin
       .from("arena_ratings")
-      .insert({
-        agent_id: agentAId,
-        capability,
-        elo: DEFAULT_ELO,
-        matches_played: 0,
-        wins: 0,
-        losses: 0,
-        ties: 0,
-      })
       .select(RATING_COLS)
+      .eq("agent_id", agentAId)
+      .eq("capability", capability)
       .single();
-    ratingA = created;
+    ratingA = data;
+
+    if (!ratingA) {
+      const { data: created } = await admin
+        .from("arena_ratings")
+        .insert({
+          agent_id: agentAId,
+          capability,
+          elo: DEFAULT_ELO,
+          matches_played: 0,
+          wins: 0,
+          losses: 0,
+          ties: 0,
+        })
+        .select(RATING_COLS)
+        .single();
+      ratingA = created;
+    }
+    oldEloA = (ratingA?.elo as number) ?? DEFAULT_ELO;
   }
 
-  // Fetch or create rating for Agent B
-  let { data: ratingB } = await admin
-    .from("arena_ratings")
-    .select(RATING_COLS)
-    .eq("agent_id", agentBId)
-    .eq("capability", capability)
-    .single();
-
-  if (!ratingB) {
-    const { data: created } = await admin
+  // Fetch or create rating for Agent B (skip if Sparring Partner)
+  let ratingB: Record<string, unknown> | null = null;
+  if (!bIsSparring) {
+    const { data } = await admin
       .from("arena_ratings")
-      .insert({
-        agent_id: agentBId,
-        capability,
-        elo: DEFAULT_ELO,
-        matches_played: 0,
-        wins: 0,
-        losses: 0,
-        ties: 0,
-      })
       .select(RATING_COLS)
+      .eq("agent_id", agentBId)
+      .eq("capability", capability)
       .single();
-    ratingB = created;
+    ratingB = data;
+
+    if (!ratingB) {
+      const { data: created } = await admin
+        .from("arena_ratings")
+        .insert({
+          agent_id: agentBId,
+          capability,
+          elo: DEFAULT_ELO,
+          matches_played: 0,
+          wins: 0,
+          losses: 0,
+          ties: 0,
+        })
+        .select(RATING_COLS)
+        .single();
+      ratingB = created;
+    }
+    oldEloB = (ratingB?.elo as number) ?? DEFAULT_ELO;
   }
 
-  const oldEloA = (ratingA?.elo as number) ?? DEFAULT_ELO;
-  const oldEloB = (ratingB?.elo as number) ?? DEFAULT_ELO;
-
-  // Calculate new ELO
+  // Calculate new ELO (Sparring Partner always anchored at 1200)
   const { newA, newB } = calculateElo(oldEloA, oldEloB, winner);
 
-  // Update Agent A
-  const updateA: Record<string, unknown> = {
-    elo: newA,
-    matches_played: ((ratingA?.matches_played as number) ?? 0) + 1,
-    updated_at: new Date().toISOString(),
-  };
+  // Update Agent A (skip if Sparring Partner — its ELO is fixed)
+  if (!aIsSparring) {
+    const updateA: Record<string, unknown> = {
+      elo: newA,
+      matches_played: ((ratingA?.matches_played as number) ?? 0) + 1,
+      updated_at: new Date().toISOString(),
+    };
 
-  if (winner === "a") {
-    updateA.wins = ((ratingA?.wins as number) ?? 0) + 1;
-  } else if (winner === "b") {
-    updateA.losses = ((ratingA?.losses as number) ?? 0) + 1;
-  } else {
-    updateA.ties = ((ratingA?.ties as number) ?? 0) + 1;
+    if (winner === "a") {
+      updateA.wins = ((ratingA?.wins as number) ?? 0) + 1;
+    } else if (winner === "b") {
+      updateA.losses = ((ratingA?.losses as number) ?? 0) + 1;
+    } else {
+      updateA.ties = ((ratingA?.ties as number) ?? 0) + 1;
+    }
+
+    await admin
+      .from("arena_ratings")
+      .update(updateA)
+      .eq("agent_id", agentAId)
+      .eq("capability", capability);
   }
 
-  await admin
-    .from("arena_ratings")
-    .update(updateA)
-    .eq("agent_id", agentAId)
-    .eq("capability", capability);
+  // Update Agent B (skip if Sparring Partner — its ELO is fixed)
+  if (!bIsSparring) {
+    const updateB: Record<string, unknown> = {
+      elo: newB,
+      matches_played: ((ratingB?.matches_played as number) ?? 0) + 1,
+      updated_at: new Date().toISOString(),
+    };
 
-  // Update Agent B
-  const updateB: Record<string, unknown> = {
-    elo: newB,
-    matches_played: ((ratingB?.matches_played as number) ?? 0) + 1,
-    updated_at: new Date().toISOString(),
-  };
+    if (winner === "b") {
+      updateB.wins = ((ratingB?.wins as number) ?? 0) + 1;
+    } else if (winner === "a") {
+      updateB.losses = ((ratingB?.losses as number) ?? 0) + 1;
+    } else {
+      updateB.ties = ((ratingB?.ties as number) ?? 0) + 1;
+    }
 
-  if (winner === "b") {
-    updateB.wins = ((ratingB?.wins as number) ?? 0) + 1;
-  } else if (winner === "a") {
-    updateB.losses = ((ratingB?.losses as number) ?? 0) + 1;
-  } else {
-    updateB.ties = ((ratingB?.ties as number) ?? 0) + 1;
+    await admin
+      .from("arena_ratings")
+      .update(updateB)
+      .eq("agent_id", agentBId)
+      .eq("capability", capability);
   }
-
-  await admin
-    .from("arena_ratings")
-    .update(updateB)
-    .eq("agent_id", agentBId)
-    .eq("capability", capability);
 
   return {
-    eloA: newA,
-    eloB: newB,
-    deltaA: newA - oldEloA,
-    deltaB: newB - oldEloB,
+    eloA: aIsSparring ? SPARRING_PARTNER_ELO : newA,
+    eloB: bIsSparring ? SPARRING_PARTNER_ELO : newB,
+    deltaA: aIsSparring ? 0 : newA - oldEloA,
+    deltaB: bIsSparring ? 0 : newB - oldEloB,
   };
 }
 

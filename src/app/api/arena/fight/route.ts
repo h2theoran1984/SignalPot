@@ -375,7 +375,9 @@ export async function POST(request: NextRequest) {
       agentA.id as string,
       agentB.id as string,
       capability,
-      judgment.winner
+      judgment.winner,
+      agent_a_slug,
+      agent_b_slug
     );
   } else if (aOk && !bOk) {
     matchUpdate.status = "completed";
@@ -384,7 +386,7 @@ export async function POST(request: NextRequest) {
     matchUpdate.completed_at = new Date().toISOString();
     await admin.from("arena_matches").update(matchUpdate).eq("id", matchId);
 
-    eloResult = await updateElo(agentA.id as string, agentB.id as string, capability, "a");
+    eloResult = await updateElo(agentA.id as string, agentB.id as string, capability, "a", agent_a_slug, agent_b_slug);
   } else if (!aOk && bOk) {
     matchUpdate.status = "completed";
     matchUpdate.winner = "b";
@@ -392,7 +394,7 @@ export async function POST(request: NextRequest) {
     matchUpdate.completed_at = new Date().toISOString();
     await admin.from("arena_matches").update(matchUpdate).eq("id", matchId);
 
-    eloResult = await updateElo(agentA.id as string, agentB.id as string, capability, "b");
+    eloResult = await updateElo(agentA.id as string, agentB.id as string, capability, "b", agent_a_slug, agent_b_slug);
   } else {
     matchUpdate.status = "failed";
     matchUpdate.completed_at = new Date().toISOString();
