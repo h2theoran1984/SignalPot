@@ -12,8 +12,8 @@ export default async function Image({ params }: { params: Promise<{ slug: string
     `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/agents?slug=eq.${slug}&select=name,description,rate_amount,tags`,
     {
       headers: {
-        apikey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY!}`,
+        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
       },
     }
   );

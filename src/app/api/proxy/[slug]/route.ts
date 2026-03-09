@@ -5,6 +5,7 @@ import { rateLimitResponse } from "@/lib/auth";
 import { proxyCallSchema } from "@/lib/validations";
 import { wrapRequest, wrapResponse } from "@/lib/envelope";
 import { validateOutput } from "@/lib/schema-validator";
+import { assertSafeUrl } from "@/lib/ssrf";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -199,7 +200,15 @@ export async function POST(
     .update({ input_summary: { ...input, _envelope: requestEnvelope } })
     .eq("id", job.id);
 
-  // 9. Forward to agent's MCP endpoint (synchronous)
+  // 9. SSRF check — block private IPs, localhost, cloud metadata
+  try {
+    assertSafeUrl(agent.mcp_endpoint);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Blocked endpoint";
+    return corsJson({ error: message }, { status: 400 });
+  }
+
+  // 10. Forward to agent's MCP endpoint (synchronous)
   let agentResponse: Record<string, unknown>;
   const startTime = Date.now();
 

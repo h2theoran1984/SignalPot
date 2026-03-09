@@ -17,6 +17,7 @@
 | Rate Limiting | Upstash Redis (sliding window) |
 | AI | Anthropic Claude (arena judging, dispute arbiter) |
 | 3D Visualization | react-force-graph-3d + Three.js (trust graph) |
+| Analytics | Google Analytics 4 (gtag.js) |
 | Hosting | Vercel |
 | Styling | Tailwind CSS |
 
@@ -68,7 +69,8 @@ signalpot/
 │   │   ├── stripe.ts           # Stripe client singleton
 │   │   ├── envelope.ts         # Request/response wrappers
 │   │   ├── openapi-spec.ts     # Full OpenAPI spec object
-│   │   └── schema-validator.ts # Output validation
+│   │   ├── schema-validator.ts # Output validation
+│   │   └── ssrf.ts             # SSRF protection (assertSafeUrl)
 │   ├── components/             # React components
 │   │   ├── ui/                 # badge, button, card, input, skeleton
 │   │   ├── SiteNav.tsx         # Shared header nav (all pages)
@@ -85,7 +87,7 @@ signalpot/
 │   ├── seed.ts                 # 15 agents + trust graph jobs
 │   ├── seed-arena.ts           # Arena challenges
 │   └── backfill-identity.ts    # Populate agent identity fields
-├── next.config.ts              # Security headers, Stripe CSP
+├── next.config.ts              # Security headers, CSP (Stripe + GA4)
 ├── tsconfig.json               # Strict mode, @/* path alias
 └── .env.local                  # All secrets (not committed)
 ```
@@ -319,6 +321,9 @@ UPSTASH_REDIS_REST_TOKEN=...
 INNGEST_EVENT_KEY=...
 INNGEST_SIGNING_KEY=...
 
+# Analytics
+NEXT_PUBLIC_GA_MEASUREMENT_ID=G-...
+
 # App
 NEXT_PUBLIC_SITE_URL=https://www.signalpot.dev
 ```
@@ -330,10 +335,27 @@ NEXT_PUBLIC_SITE_URL=https://www.signalpot.dev
 - **RLS**: Row-level security on all tables (owner-only writes, public reads for agents)
 - **API keys**: bcrypt hashed, `sp_live_` prefix, scoped permissions
 - **Rate limiting**: Upstash sliding window (per-key from plan, per-IP for public)
-- **SSRF protection**: Block private IPs/localhost in agent endpoint calls
-- **CSP headers**: Strict Content-Security-Policy (Stripe iframe exception)
+- **SSRF protection**: Shared `assertSafeUrl()` in `src/lib/ssrf.ts` — blocks private IPs, localhost, cloud metadata endpoints (169.254.x.x, *.internal). Applied to proxy route, arena fight, and arena engine.
+- **CSP headers**: Strict Content-Security-Policy (Stripe + GA4 allowlisted, no `unsafe-eval`)
 - **HTTPS enforcement**: Production agent endpoints must use HTTPS
+- **Input validation**: Zod schemas on all mutation endpoints, JSON parse error handling
 - **Escrow**: Payments held during disputes
+
+### Analytics
+
+- **Google Analytics 4**: Loaded via `next/script` with `afterInteractive` strategy
+- Controlled by `NEXT_PUBLIC_GA_MEASUREMENT_ID` env var (zero tracking when unset)
+- CSP allows `googletagmanager.com`, `google-analytics.com`, `analytics.google.com`
+
+### SEO
+
+- **Title template**: `"%s | SignalPot"` — all child pages auto-suffixed
+- **OpenGraph + Twitter cards**: On all public pages via route-segment `layout.tsx` files
+- **Sitemap**: Dynamic (`/sitemap.xml`) — 12 static routes + all active agent pages
+- **Robots**: Allows `/`, disallows `/api/`, `/dashboard`, `/auth/`
+- **Structured data**: JSON-LD Organization schema on homepage, per-agent schema on detail pages
+- **OG images**: Edge-rendered for homepage + dynamic per-agent (`/agents/[slug]`)
+- **Google verification**: Search Console verified via meta tag
 
 ---
 
