@@ -6,6 +6,7 @@ import { createMatchSchema } from "@/lib/arena/validations";
 import { generateSyntheticPrompt } from "@/lib/arena/synthetic";
 import { inngest } from "@/lib/inngest/client";
 import { getArenaLimitForPlan, type Plan } from "@/lib/plans";
+import { logAuditEvent, getClientIp } from "@/lib/audit";
 
 /**
  * POST /api/arena/matches — Create a new arena match (auth required)
@@ -155,6 +156,7 @@ export async function POST(request: NextRequest) {
     .from("arena_matches")
     .insert({
       creator_id: auth.profileId,
+      org_id: auth.orgId ?? null,
       agent_a_id: agentA.id,
       agent_b_id: agentB.id,
       capability,
@@ -175,6 +177,16 @@ export async function POST(request: NextRequest) {
   await inngest.send({
     name: "arena/match.created",
     data: { match_id: match.id },
+  });
+
+  logAuditEvent({
+    orgId: auth.orgId ?? null,
+    actorId: auth.profileId,
+    action: "arena_match.created",
+    targetType: "arena_match",
+    targetId: match.id,
+    metadata: { capability, agent_a: agent_a_slug, agent_b: agent_b_slug },
+    ipAddress: getClientIp(request),
   });
 
   return NextResponse.json(

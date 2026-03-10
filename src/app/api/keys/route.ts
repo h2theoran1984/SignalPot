@@ -1,26 +1,32 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { generateApiKey } from "@/lib/api-keys";
 import { createApiKeySchema } from "@/lib/validations";
 import { getRpmForPlan, type Plan } from "@/lib/plans";
-import { checkPublicRateLimit } from "@/lib/auth";
+import { getAuthContext, checkPublicRateLimit } from "@/lib/auth";
+import { canCreateOrgKey } from "@/lib/rbac";
+import { logAuditEvent, getClientIp } from "@/lib/audit";
 
-// GET /api/keys — List current user's API keys (session auth only)
-export async function GET() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
+// GET /api/keys — List current user's API keys (supports org context)
+export async function GET(request: Request) {
+  const auth = await getAuthContext(request);
+  if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { data, error } = await supabase
+  let query = auth.supabase
     .from("api_keys")
-    .select("id, name, key_prefix, scopes, rate_limit_rpm, last_used_at, expires_at, revoked, created_at")
-    .eq("profile_id", user.id)
+    .select("id, name, key_prefix, scopes, rate_limit_rpm, last_used_at, expires_at, revoked, org_id, created_at")
     .order("created_at", { ascending: false });
+
+  if (auth.orgId) {
+    // Org context: show org keys
+    query = query.eq("org_id", auth.orgId);
+  } else {
+    // Personal context: show personal keys only
+    query = query.eq("profile_id", auth.profileId).is("org_id", null);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     return NextResponse.json(
@@ -32,18 +38,22 @@ export async function GET() {
   return NextResponse.json({ keys: data ?? [] });
 }
 
-// POST /api/keys — Generate a new API key (session auth only)
+// POST /api/keys — Generate a new API key (supports org context)
 export async function POST(request: Request) {
   const rateLimited = await checkPublicRateLimit(request);
   if (rateLimited) return rateLimited;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
+  const auth = await getAuthContext(request);
+  if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Org key creation requires developer+ role
+  if (auth.orgId && !canCreateOrgKey(auth)) {
+    return NextResponse.json(
+      { error: "Requires developer+ role to create org API keys" },
+      { status: 403 }
+    );
   }
 
   let body: unknown;
@@ -61,12 +71,19 @@ export async function POST(request: Request) {
     );
   }
 
-  // Limit to 10 keys per user
-  const { count } = await supabase
+  // Limit to 10 keys per user (personal) or per org
+  let countQuery = auth.supabase
     .from("api_keys")
     .select("id", { count: "exact", head: true })
-    .eq("profile_id", user.id)
     .eq("revoked", false);
+
+  if (auth.orgId) {
+    countQuery = countQuery.eq("org_id", auth.orgId);
+  } else {
+    countQuery = countQuery.eq("profile_id", auth.profileId).is("org_id", null);
+  }
+
+  const { count } = await countQuery;
 
   if (count !== null && count >= 10) {
     return NextResponse.json(
@@ -75,11 +92,11 @@ export async function POST(request: Request) {
     );
   }
 
-  // Determine RPM from the user's plan (overrides any client-supplied value)
-  const { data: profile } = await supabase
+  // Determine RPM from the user's plan
+  const { data: profile } = await auth.supabase
     .from("profiles")
     .select("plan")
-    .eq("id", user.id)
+    .eq("id", auth.profileId)
     .single();
 
   const plan = (profile?.plan ?? "free") as Plan;
@@ -87,17 +104,18 @@ export async function POST(request: Request) {
 
   const { key, hash, prefix } = generateApiKey();
 
-  const { data, error } = await supabase
+  const { data, error } = await auth.supabase
     .from("api_keys")
     .insert({
-      profile_id: user.id,
+      profile_id: auth.profileId,
+      org_id: auth.orgId ?? null,
       name: result.data.name,
       key_hash: hash,
       key_prefix: prefix,
       scopes: result.data.scopes,
       rate_limit_rpm: rateLimit,
     })
-    .select("id, name, key_prefix, scopes, rate_limit_rpm, created_at")
+    .select("id, name, key_prefix, scopes, rate_limit_rpm, org_id, created_at")
     .single();
 
   if (error) {
@@ -106,6 +124,16 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+
+  logAuditEvent({
+    orgId: auth.orgId ?? null,
+    actorId: auth.profileId,
+    action: "api_key.created",
+    targetType: "api_key",
+    targetId: data.id,
+    metadata: { name: result.data.name },
+    ipAddress: getClientIp(request),
+  });
 
   // Return the full key ONCE — it cannot be retrieved again
   return NextResponse.json(

@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import AuthButton from "./AuthButton";
+import OrgSwitcher from "./OrgSwitcher";
 
 const NAV_LINKS = [
   { href: "/agents", label: "Browse Agents" },
@@ -45,6 +46,7 @@ export default function SiteNav() {
             </a>
           );
         })}
+        <OrgSwitcher />
         <AuthButton />
       </div>
     </nav>

@@ -8,6 +8,8 @@ import {
   agentIdentityRequired,
 } from "@/lib/validations";
 import { getAgentLimitForPlan, type Plan } from "@/lib/plans";
+import { canManageAgent } from "@/lib/rbac";
+import { logAuditEvent, getClientIp } from "@/lib/audit";
 
 // GET /api/agents — Search/filter agents
 export async function GET(request: Request) {
@@ -201,34 +203,64 @@ export async function POST(request: Request) {
     console.warn(`[agents] Registration without goal/decision_logic — slug: ${input.slug}`);
   }
 
-  // Check agent limit per user — based on billing plan
-  const { count } = await auth.supabase
-    .from("agents")
-    .select("id", { count: "exact", head: true })
-    .eq("owner_id", auth.profileId);
+  // Org context: if creating an org agent, verify permissions
+  const orgId = auth.orgId;
+  if (orgId) {
+    const allowed = canManageAgent(auth, { owner_id: auth.profileId, org_id: orgId });
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Requires developer+ role to create org agents" },
+        { status: 403 }
+      );
+    }
+  }
 
-  const { data: profile } = await auth.supabase
-    .from("profiles")
-    .select("plan")
-    .eq("id", auth.profileId)
-    .single();
+  // Check agent limit — personal agents count per user, org agents count per org
+  if (orgId) {
+    const { count } = await auth.supabase
+      .from("agents")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", orgId);
 
-  const plan = ((profile?.plan as Plan) ?? "free") as Plan;
-  const agentLimit = getAgentLimitForPlan(plan);
+    // Org uses team plan limits
+    const agentLimit = getAgentLimitForPlan("team");
+    if (count !== null && count >= agentLimit) {
+      return NextResponse.json(
+        { error: `Org agent limit reached (${agentLimit} agents max)` },
+        { status: 429 }
+      );
+    }
+  } else {
+    const { count } = await auth.supabase
+      .from("agents")
+      .select("id", { count: "exact", head: true })
+      .eq("owner_id", auth.profileId)
+      .is("org_id", null);
 
-  if (count !== null && count >= agentLimit) {
-    return NextResponse.json(
-      {
-        error: `Agent limit reached (${agentLimit} agents max on the ${plan} plan — upgrade to add more)`,
-      },
-      { status: 429 }
-    );
+    const { data: profile } = await auth.supabase
+      .from("profiles")
+      .select("plan")
+      .eq("id", auth.profileId)
+      .single();
+
+    const plan = ((profile?.plan as Plan) ?? "free") as Plan;
+    const agentLimit = getAgentLimitForPlan(plan);
+
+    if (count !== null && count >= agentLimit) {
+      return NextResponse.json(
+        {
+          error: `Agent limit reached (${agentLimit} agents max on the ${plan} plan — upgrade to add more)`,
+        },
+        { status: 429 }
+      );
+    }
   }
 
   const { data, error } = await auth.supabase
     .from("agents")
     .insert({
       owner_id: auth.profileId,
+      org_id: orgId ?? null,
       name: input.name,
       slug: input.slug,
       description: input.description ?? null,
@@ -259,6 +291,16 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+
+  logAuditEvent({
+    orgId: orgId ?? null,
+    actorId: auth.profileId,
+    action: "agent.created",
+    targetType: "agent",
+    targetId: data.id,
+    metadata: { slug: input.slug, name: input.name },
+    ipAddress: getClientIp(request),
+  });
 
   return NextResponse.json(data, { status: 201 });
 }

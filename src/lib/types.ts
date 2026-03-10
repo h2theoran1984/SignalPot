@@ -6,9 +6,46 @@ export interface AgentCapabilitySpec {
   examples?: { input: unknown; output: unknown }[];
 }
 
+export interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+  avatar_url: string | null;
+  created_by: string;
+  plan: "free" | "pro" | "team";
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  credit_balance_millicents: number;
+  settings: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrgMember {
+  id: string;
+  org_id: string;
+  profile_id: string;
+  role: "owner" | "admin" | "developer" | "viewer" | "auditor";
+  invited_by: string | null;
+  joined_at: string;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  org_id: string | null;
+  actor_id: string;
+  action: string;
+  target_type: string | null;
+  target_id: string | null;
+  metadata: Record<string, unknown>;
+  ip_address: string | null;
+  created_at: string;
+}
+
 export interface Agent {
   id: string;
   owner_id: string;
+  org_id?: string | null;
   name: string;
   slug: string;
   description: string | null;
@@ -71,6 +108,7 @@ export interface Profile {
 export interface ApiKey {
   id: string;
   profile_id: string;
+  org_id: string | null;
   name: string;
   key_prefix: string;
   scopes: string[];

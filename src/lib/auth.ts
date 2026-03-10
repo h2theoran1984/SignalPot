@@ -5,11 +5,15 @@ import { verifyApiKey } from "@/lib/api-keys";
 import { checkApiKeyRateLimit, checkIpRateLimit } from "@/lib/rate-limit";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+export type OrgRole = "owner" | "admin" | "developer" | "viewer" | "auditor";
+
 export interface AuthContext {
   profileId: string;
   authMethod: "session" | "api_key";
   scopes: string[];
   supabase: SupabaseClient;
+  orgId: string | null;
+  orgRole: OrgRole | null;
 }
 
 /**
@@ -34,11 +38,19 @@ export async function getAuthContext(
     );
     if (!rateCheck.success) return null; // Caller should check and return 429
 
+    // Resolve org context: key's org_id takes precedence, then X-Org-Id header
+    const orgContext = await resolveOrgContext(
+      verified.profileId,
+      verified.orgId || request.headers.get("x-org-id")
+    );
+
     return {
       profileId: verified.profileId,
       authMethod: "api_key",
       scopes: verified.scopes,
       supabase: createAdminClient(),
+      orgId: orgContext?.orgId ?? null,
+      orgRole: orgContext?.orgRole ?? null,
     };
   }
 
@@ -50,12 +62,43 @@ export async function getAuthContext(
 
   if (!user) return null;
 
+  // Resolve org context from X-Org-Id header
+  const orgContext = await resolveOrgContext(
+    user.id,
+    request.headers.get("x-org-id")
+  );
+
   return {
     profileId: user.id,
     authMethod: "session",
     scopes: ["agents:read", "agents:write", "jobs:read", "jobs:write", "trust:read"],
     supabase,
+    orgId: orgContext?.orgId ?? null,
+    orgRole: orgContext?.orgRole ?? null,
   };
+}
+
+/**
+ * Resolve org context for a user. Returns null if no org requested
+ * or if the user is not a member of the requested org.
+ */
+async function resolveOrgContext(
+  profileId: string,
+  orgIdHeader: string | null
+): Promise<{ orgId: string; orgRole: OrgRole } | null> {
+  if (!orgIdHeader) return null;
+
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("org_members")
+    .select("org_id, role")
+    .eq("profile_id", profileId)
+    .eq("org_id", orgIdHeader)
+    .single();
+
+  if (error || !data) return null;
+
+  return { orgId: data.org_id, orgRole: data.role as OrgRole };
 }
 
 /**

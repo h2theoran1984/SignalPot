@@ -160,6 +160,31 @@ export const anonTopupSchema = z.object({
   amount_usd: z.number().min(1).max(5),
 });
 
+// === Enterprise: Org schemas ===
+
+export const createOrgSchema = z.object({
+  name: z.string().min(2).max(100).trim(),
+  slug: z
+    .string()
+    .min(3)
+    .max(64)
+    .regex(SLUG_REGEX, "Slug must be lowercase alphanumeric with hyphens"),
+});
+
+export const updateOrgSchema = z.object({
+  name: z.string().min(2).max(100).trim().optional(),
+  avatar_url: z.string().url().nullable().optional(),
+});
+
+export const inviteMemberSchema = z.object({
+  email: z.string().email().max(255),
+  role: z.enum(["admin", "developer", "viewer", "auditor"]).optional().default("developer"),
+});
+
+export const updateMemberRoleSchema = z.object({
+  role: z.enum(["admin", "developer", "viewer", "auditor"]),
+});
+
 // Escape ILIKE special characters
 export function escapeIlike(str: string): string {
   return str.replace(/[%_\\]/g, "\\$&");

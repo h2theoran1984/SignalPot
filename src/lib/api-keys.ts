@@ -24,6 +24,7 @@ export async function verifyApiKey(key: string): Promise<{
   scopes: string[];
   rateLimitRpm: number;
   keyPrefix: string;
+  orgId: string | null;
 } | null> {
   if (!key.startsWith(KEY_PREFIX)) return null;
 
@@ -32,7 +33,7 @@ export async function verifyApiKey(key: string): Promise<{
 
   const { data, error } = await supabase
     .from("api_keys")
-    .select("profile_id, scopes, rate_limit_rpm, key_prefix, revoked, expires_at")
+    .select("profile_id, scopes, rate_limit_rpm, key_prefix, revoked, expires_at, org_id")
     .eq("key_hash", hash)
     .single();
 
@@ -53,5 +54,6 @@ export async function verifyApiKey(key: string): Promise<{
     scopes: data.scopes,
     rateLimitRpm: data.rate_limit_rpm,
     keyPrefix: data.key_prefix,
+    orgId: data.org_id ?? null,
   };
 }

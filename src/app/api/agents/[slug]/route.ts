@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthContext, hasScope } from "@/lib/auth";
 import { updateAgentSchema, stripSensitiveAgentFields } from "@/lib/validations";
+import { canManageAgent, canDeleteAgent } from "@/lib/rbac";
+import { logAuditEvent, getClientIp } from "@/lib/audit";
 
 // GET /api/agents/[slug] — Single agent detail with trust graph neighbors
 export async function GET(
@@ -97,11 +99,25 @@ export async function PATCH(
     return NextResponse.json({ error: "No fields to update" }, { status: 400 });
   }
 
+  // Fetch agent first to check permissions via RBAC
+  const { data: agent } = await auth.supabase
+    .from("agents")
+    .select("id, owner_id, org_id")
+    .eq("slug", slug)
+    .single();
+
+  if (!agent) {
+    return NextResponse.json({ error: "Agent not found" }, { status: 404 });
+  }
+
+  if (!canManageAgent(auth, agent)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const { data, error } = await auth.supabase
     .from("agents")
     .update(updates)
     .eq("slug", slug)
-    .eq("owner_id", auth.profileId)
     .select()
     .single();
 
@@ -118,12 +134,67 @@ export async function PATCH(
     );
   }
 
-  if (!data) {
-    return NextResponse.json(
-      { error: "Agent not found" },
-      { status: 404 }
-    );
-  }
+  logAuditEvent({
+    orgId: agent.org_id ?? null,
+    actorId: auth.profileId,
+    action: "agent.updated",
+    targetType: "agent",
+    targetId: agent.id,
+    metadata: { slug, fields: Object.keys(updates) },
+    ipAddress: getClientIp(request),
+  });
 
   return NextResponse.json(data);
+}
+
+// DELETE /api/agents/[slug] — Delete agent (owner or org admin+)
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ slug: string }> }
+) {
+  const { slug } = await params;
+
+  const auth = await getAuthContext(request);
+  if (!auth) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!hasScope(auth, "agents:write")) {
+    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+  }
+
+  const { data: agent } = await auth.supabase
+    .from("agents")
+    .select("id, owner_id, org_id")
+    .eq("slug", slug)
+    .single();
+
+  if (!agent) {
+    return NextResponse.json({ error: "Agent not found" }, { status: 404 });
+  }
+
+  if (!canDeleteAgent(auth, agent)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { error } = await auth.supabase
+    .from("agents")
+    .delete()
+    .eq("id", agent.id);
+
+  if (error) {
+    return NextResponse.json({ error: "Failed to delete agent" }, { status: 500 });
+  }
+
+  logAuditEvent({
+    orgId: agent.org_id ?? null,
+    actorId: auth.profileId,
+    action: "agent.deleted",
+    targetType: "agent",
+    targetId: agent.id,
+    metadata: { slug },
+    ipAddress: getClientIp(request),
+  });
+
+  return NextResponse.json({ ok: true });
 }
