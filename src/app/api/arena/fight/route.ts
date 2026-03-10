@@ -14,6 +14,7 @@ import { generateSyntheticPrompt } from "@/lib/arena/synthetic";
 import { isLevelUnlocked, LEVEL_CONFIGS, type ArenaLevel } from "@/lib/arena/levels";
 import { fightSchema } from "@/lib/arena/validations";
 import { checkArenaRateLimit } from "@/lib/rate-limit";
+import { getArenaLimitForPlan, type Plan } from "@/lib/plans";
 import { assertSafeUrl } from "@/lib/ssrf";
 
 const AGENT_TIMEOUT = 30_000;
@@ -141,9 +142,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Rate limit — 5 fights/hour per user
+  // Rate limit — tiered by plan (free: 5/hr, pro: 25/hr, team: 100/hr)
   if (auth.profileId) {
-    const rl = await checkArenaRateLimit(auth.profileId);
+    const admin = createAdminClient();
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("plan_type")
+      .eq("id", auth.profileId)
+      .single();
+    const plan = (profile?.plan_type as Plan) ?? "free";
+    const arenaLimit = getArenaLimitForPlan(plan);
+    const rl = await checkArenaRateLimit(auth.profileId, arenaLimit);
     if (!rl.success) return rateLimitResponse(rl.reset);
   }
 

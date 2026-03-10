@@ -24,3 +24,14 @@ export const AGENT_LIMITS = {
 export function getAgentLimitForPlan(plan: Plan): number {
   return AGENT_LIMITS[plan];
 }
+
+/** Arena matches per hour, by plan tier. */
+export const ARENA_LIMITS = {
+  free: 5,
+  pro: 25,
+  team: 100,
+} as const;
+
+export function getArenaLimitForPlan(plan: Plan): number {
+  return ARENA_LIMITS[plan];
+}

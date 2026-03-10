@@ -5,6 +5,7 @@ import { checkArenaRateLimit } from "@/lib/rate-limit";
 import { createMatchSchema } from "@/lib/arena/validations";
 import { generateSyntheticPrompt } from "@/lib/arena/synthetic";
 import { inngest } from "@/lib/inngest/client";
+import { getArenaLimitForPlan, type Plan } from "@/lib/plans";
 
 /**
  * POST /api/arena/matches — Create a new arena match (auth required)
@@ -15,11 +16,29 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Rate limit: 5 matches/hr per user
-  const rateCheck = await checkArenaRateLimit(auth.profileId);
+  const admin = createAdminClient();
+
+  // Look up user's plan for tiered rate limiting
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("plan_type")
+    .eq("id", auth.profileId)
+    .single();
+  const plan = (profile?.plan_type as Plan) ?? "free";
+  const arenaLimit = getArenaLimitForPlan(plan);
+
+  // Rate limit: tiered by plan (free: 5/hr, pro: 25/hr, team: 100/hr)
+  const rateCheck = await checkArenaRateLimit(auth.profileId, arenaLimit);
   if (!rateCheck.success) {
     return NextResponse.json(
-      { error: "Arena rate limit reached (5 matches/hour)", retry_after: Math.ceil((rateCheck.reset - Date.now()) / 1000) },
+      {
+        error: `Arena rate limit reached (${arenaLimit} matches/hour)`,
+        limit: arenaLimit,
+        plan,
+        remaining: 0,
+        retry_after: Math.ceil((rateCheck.reset - Date.now()) / 1000),
+        hint: plan === "free" ? "Upgrade to Pro for 25 matches/hour" : undefined,
+      },
       { status: 429 }
     );
   }
@@ -41,7 +60,6 @@ export async function POST(request: NextRequest) {
   }
 
   const { agent_a_slug, agent_b_slug, capability, prompt: rawPrompt, prompt_text: rawPromptText, challenge_id } = parsed.data;
-  const admin = createAdminClient();
 
   // Look up both agents
   const { data: agentA } = await admin
