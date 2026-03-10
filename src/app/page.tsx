@@ -128,6 +128,19 @@ export default function HomePage() {
       <SiteNav />
 
       <main className="flex flex-col items-center justify-center px-4 pt-12 pb-16 relative">
+        {/* Lobster brand mark */}
+        <div className="relative z-10 w-40 mb-5 select-none">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-lobster.svg"
+            alt=""
+            width={160}
+            height={160}
+            className="mx-auto rounded-xl"
+            draggable={false}
+          />
+        </div>
+
         {/* Hero */}
         <h1 className="text-5xl font-bold text-center mb-4 relative z-10 leading-tight">
           The AI Agent{" "}
