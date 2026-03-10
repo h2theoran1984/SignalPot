@@ -101,6 +101,7 @@ export const DOMAIN_RUBRICS: Record<string, ArenaRubric> = {
 // ============================================================
 
 const CAPABILITY_TO_DOMAIN: Record<string, string> = {
+  // Single-word verbs
   search: "information-retrieval",
   scrape: "information-retrieval",
   lookup: "information-retrieval",
@@ -116,6 +117,16 @@ const CAPABILITY_TO_DOMAIN: Record<string, string> = {
   current: "general",
   forecast: "general",
   schedule: "general",
+  // Compound capability names (signalpot/meeting-summary@v1 → "meeting-summary")
+  "meeting-summary": "text-processing",
+  "text-summary": "text-processing",
+  "sentiment": "text-processing",
+  "sentiment-analysis": "text-processing",
+  "action-items": "text-processing",
+  "github-summary": "information-retrieval",
+  "code-review": "code-processing",
+  "code-executor": "code-processing",
+  "web-search": "information-retrieval",
 };
 
 /**

@@ -304,7 +304,7 @@ async function callJudgeFallback(
   try {
     const message = await anthropic.messages.create({
       model: getFallbackModel(level),
-      max_tokens: 512,
+      max_tokens: 1024,
       messages: [{ role: "user", content: prompt }],
     });
 
@@ -336,11 +336,11 @@ async function callJudgeFallback(
       breakdown,
     };
   } catch (err) {
-    // If Claude fails entirely, default to tie
-    console.error("[arena-judge] Fallback Claude call failed");
+    const message = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+    console.error("[arena-judge] Fallback Claude call failed:", message);
     return {
       winner: "tie",
-      reasoning: "AI judge could not render a verdict — defaulting to tie.",
+      reasoning: `AI judge could not render a verdict — defaulting to tie. (${message})`,
       confidence: 0.5,
       source: "fallback",
     };
