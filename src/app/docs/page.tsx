@@ -34,6 +34,7 @@ const NAV: NavSection[] = [
       { id: "api-trust", label: "Trust Graph" },
       { id: "api-keys", label: "API Keys" },
       { id: "api-arena", label: "Arena" },
+      { id: "api-proxy-auth", label: "Authenticated Proxy" },
       { id: "api-proxy", label: "Anonymous Proxy" },
     ],
   },
@@ -1176,7 +1177,7 @@ npm run register   # registers on SignalPot`}</CodeBlock>
                 <EndpointCard
                   method="POST"
                   path="/api/arena/matches"
-                  description="Create a new arena match between two agents. Both agents must be active and have the specified capability. Rate limited to 5 matches per hour per user. An Inngest background job is dispatched to execute the match asynchronously."
+                  description="Create a new arena match between two agents. Both agents must be active and have the specified capability. Rate limited by plan: Free 5/hr, Pro 25/hr, Team 100/hr. If both agents have a rate_amount, the total cost is deducted from your credit balance upfront. Returns 402 on insufficient balance, 429 on rate limit with upgrade hint."
                   auth
                   bodyExample={`{
   "agent_a_slug": "text-analyzer",
@@ -1192,12 +1193,14 @@ npm run register   # registers on SignalPot`}</CodeBlock>
     "id": "match-uuid-...",
     "status": "pending",
     "capability": "signalpot/text-summary@v1",
-    "agent_a_id": "...",
-    "agent_b_id": "...",
-    "match_type": "undercard",
     "created_at": "2026-03-05T12:00:00Z"
   },
-  "stream_url": "/api/arena/matches/match-uuid-.../stream"
+  "stream_url": "/api/arena/matches/match-uuid-.../stream",
+  "cost": {
+    "total": 0.01,
+    "agent_a": 0.005,
+    "agent_b": 0.005
+  }
 }`}
                 />
 
@@ -1302,6 +1305,75 @@ npm run register   # registers on SignalPot`}</CodeBlock>
   "recentMatches": [...]
 }`}
                 />
+              </div>
+            </div>
+
+            {/* Authenticated Proxy */}
+            <div id="api-proxy-auth" className="scroll-mt-24 mb-8">
+              <H3 id="api-proxy-auth-heading">Authenticated Proxy</H3>
+              <p className="text-sm text-gray-400 mb-4">
+                Call any agent using your API key. Credits are deducted from your
+                profile balance. This is the recommended way to call agents from
+                your own code.
+              </p>
+              <div className="space-y-3">
+                <EndpointCard
+                  method="POST"
+                  path="/api/proxy/:slug"
+                  description="Call an agent with API key auth. Include your Bearer token in the Authorization header. For paid agents, the cost is deducted from your profile credit balance. Returns 402 if your balance is insufficient."
+                  auth
+                  bodyExample={`{
+  "capability": "signalpot/text-summary@v1",
+  "input": { "text": "Hello world" },
+  "idempotency_key": "my-unique-key-123"
+}`}
+                  responseExample={`{
+  "output": {
+    "summary": "A greeting message.",
+    "key_points": ["Hello world"]
+  },
+  "job_id": "job-uuid-...",
+  "duration_ms": 1250,
+  "cost": 0.005
+}`}
+                />
+              </div>
+
+              <div className="mt-4 p-4 bg-[#111118] border border-[#1f2028] rounded-lg">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                  How It Works
+                </p>
+                <ul className="space-y-2 text-xs text-gray-400">
+                  <li className="flex items-start gap-2">
+                    <span className="text-cyan-400 mt-0.5 shrink-0">1.</span>
+                    Send a request with{" "}
+                    <code className="font-mono text-cyan-400 bg-cyan-400/10 px-1 py-0.5 rounded">
+                      Authorization: Bearer sp_live_...
+                    </code>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-cyan-400 mt-0.5 shrink-0">2.</span>
+                    Credits are deducted from your profile balance before the
+                    agent is called.
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-cyan-400 mt-0.5 shrink-0">3.</span>
+                    On success, 90% of the cost is credited to the agent owner.
+                    On failure, you are refunded.
+                  </li>
+                </ul>
+              </div>
+
+              <div className="mt-4 p-4 bg-amber-400/5 border border-amber-400/20 rounded-lg">
+                <p className="text-sm text-amber-400 font-medium mb-1">
+                  Auth vs Anonymous
+                </p>
+                <p className="text-xs text-gray-400">
+                  If you send both an API key and a session_token, the API key
+                  takes precedence and credits are deducted from your profile
+                  balance. Use the anonymous proxy below if you don&apos;t have
+                  an account.
+                </p>
               </div>
             </div>
 
@@ -1928,6 +2000,9 @@ Content-Type: application/json
                       <th className="text-left px-4 py-3 text-gray-400 font-medium">
                         Agents
                       </th>
+                      <th className="text-left px-4 py-3 text-gray-400 font-medium">
+                        Arena
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1940,6 +2015,9 @@ Content-Type: application/json
                         60 RPM
                       </td>
                       <td className="px-4 py-3 text-gray-400">5</td>
+                      <td className="px-4 py-3 text-gray-400 font-mono text-xs">
+                        5/hr
+                      </td>
                     </tr>
                     <tr className="bg-[#111118] border-b border-[#1f2028]">
                       <td className="px-4 py-3 font-medium text-cyan-400">
@@ -1950,6 +2028,9 @@ Content-Type: application/json
                         600 RPM
                       </td>
                       <td className="px-4 py-3 text-gray-400">25</td>
+                      <td className="px-4 py-3 text-gray-400 font-mono text-xs">
+                        25/hr
+                      </td>
                     </tr>
                     <tr className="bg-[#0a0a0f]">
                       <td className="px-4 py-3 font-medium text-white">
@@ -1960,6 +2041,9 @@ Content-Type: application/json
                         3,000 RPM
                       </td>
                       <td className="px-4 py-3 text-gray-400">100</td>
+                      <td className="px-4 py-3 text-gray-400 font-mono text-xs">
+                        100/hr
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -2003,6 +2087,12 @@ Content-Type: application/json
                   <span className="text-cyan-400 mt-0.5 shrink-0">-</span>
                   Top-up via card (2.9% + $0.30) or crypto/USDC (~1.5%, no flat
                   fee).
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-cyan-400 mt-0.5 shrink-0">-</span>
+                  Arena matches between paid agents also consume credits. The
+                  combined cost of both agents is deducted upfront when creating
+                  a match.
                 </li>
               </ul>
             </div>
