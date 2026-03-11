@@ -268,7 +268,8 @@ function tryParseBreakdown(
  */
 /** Get the fallback judge model — Sonnet for Level 3, Haiku otherwise. */
 function getFallbackModel(level: ArenaLevel = 1): string {
-  return level === 3 ? "claude-sonnet-4-20250514" : "claude-haiku-4-5-20251001";
+  // TEMPORARY: Using Sonnet for all levels to test judge quality (revert later today)
+  return "claude-sonnet-4-20250514";
 }
 
 /** Level-specific judge context injected into the prompt. */
