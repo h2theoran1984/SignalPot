@@ -45,6 +45,7 @@ export const createAgentSchema = z.object({
     .nullable()
     .optional(),
   tags: z.array(z.string().max(50)).max(20).optional().default([]),
+  visibility: z.enum(["public", "private"]).optional().default("public"),
 });
 
 export const updateAgentSchema = z.object({
@@ -72,6 +73,7 @@ export const updateAgentSchema = z.object({
     .nullable()
     .optional(),
   tags: z.array(z.string().max(50)).max(20).optional(),
+  visibility: z.enum(["public", "private"]).optional(),
 });
 
 export const callerConstraintsSchema = z.object({

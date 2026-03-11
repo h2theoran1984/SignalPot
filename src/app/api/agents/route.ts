@@ -34,6 +34,7 @@ export async function GET(request: Request) {
   const requiredTags = searchParams.get("required_tags");   // comma-sep, agent must have ALL
   const blockedAgents = searchParams.get("blocked_agents"); // comma-sep slugs to exclude
   const maxCost = searchParams.get("max_cost");             // upper bound on rate_amount
+  const visibility = searchParams.get("visibility");         // 'public' (default), 'private', or 'all'
 
   const supabase = await createClient();
 
@@ -41,6 +42,12 @@ export async function GET(request: Request) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Resolve org context for private agent access
+  let authCtx: Awaited<ReturnType<typeof getAuthContext>> = null;
+  if (visibility === "private" || visibility === "all") {
+    authCtx = await getAuthContext(request);
+  }
 
   let query = supabase
     .from("agents")
@@ -55,6 +62,29 @@ export async function GET(request: Request) {
   } else {
     query = query.eq("status", "active");
   }
+
+  // Visibility filter: only applied when explicitly requested
+  // (the column won't exist until migration 00026 is run)
+  if (visibility === "private") {
+    // Show only private agents for the user's org
+    if (!authCtx?.orgId) {
+      return NextResponse.json(
+        { error: "Org context required to view private agents" },
+        { status: 400 }
+      );
+    }
+    query = query.eq("visibility", "private").eq("org_id", authCtx.orgId);
+  } else if (visibility === "all") {
+    // Show public + the user's org private agents (RLS handles access control)
+    if (authCtx?.orgId) {
+      query = query.or(`visibility.eq.public,and(visibility.eq.private,org_id.eq.${authCtx.orgId})`);
+    } else {
+      query = query.eq("visibility", "public");
+    }
+  } else if (visibility === "public") {
+    query = query.eq("visibility", "public");
+  }
+  // When visibility param is omitted, no filter applied — shows all accessible agents (RLS handles private)
 
   if (tags) {
     const tagArray = tags
@@ -203,6 +233,14 @@ export async function POST(request: Request) {
     console.warn(`[agents] Registration without goal/decision_logic — slug: ${input.slug}`);
   }
 
+  // Private agents must belong to an org
+  if (input.visibility === "private" && !auth.orgId) {
+    return NextResponse.json(
+      { error: "Private agents must belong to an organization" },
+      { status: 400 }
+    );
+  }
+
   // Org context: if creating an org agent, verify permissions
   const orgId = auth.orgId;
   if (orgId) {
@@ -275,6 +313,7 @@ export async function POST(request: Request) {
       auth_config: input.auth_config,
       mcp_endpoint: input.mcp_endpoint ?? null,
       tags: input.tags,
+      visibility: input.visibility,
     })
     .select()
     .single();

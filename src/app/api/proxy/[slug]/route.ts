@@ -97,6 +97,33 @@ export async function POST(
     }
   }
 
+  // 1b. Org-level monthly quota check
+  let orgQuotaRemaining: number | null = null;
+  let orgQuotaLimit: number | null = null;
+
+  if (isAuthenticated && auth.orgId) {
+    const { data: org } = await admin
+      .from("organizations")
+      .select("plan")
+      .eq("id", auth.orgId)
+      .single();
+
+    if (org) {
+      const { ORG_MONTHLY_QUOTAS } = await import("@/lib/plans");
+      const monthlyLimit = ORG_MONTHLY_QUOTAS[org.plan] ?? ORG_MONTHLY_QUOTAS.free;
+      const { checkOrgMonthlyQuota } = await import("@/lib/rate-limit");
+      const quotaCheck = await checkOrgMonthlyQuota(auth.orgId, monthlyLimit);
+      if (!quotaCheck.success) {
+        return corsJson(
+          { error: "Organization monthly API quota exceeded", remaining: 0, reset: quotaCheck.reset },
+          { status: 429 }
+        );
+      }
+      orgQuotaRemaining = quotaCheck.remaining;
+      orgQuotaLimit = monthlyLimit;
+    }
+  }
+
   // 2. Parse and validate body
   let rawBody: unknown;
   try {
@@ -405,5 +432,13 @@ export async function POST(
     .update({ job_id: job.id, response_body: responseBody })
     .eq("idempotency_key", idempotency_key);
 
-  return corsJson(responseBody);
+  const response = corsJson(responseBody);
+
+  // Append org quota headers when org context is active
+  if (orgQuotaRemaining !== null && orgQuotaLimit !== null) {
+    response.headers.set("X-Org-Quota-Remaining", String(orgQuotaRemaining));
+    response.headers.set("X-Org-Quota-Limit", String(orgQuotaLimit));
+  }
+
+  return response;
 }

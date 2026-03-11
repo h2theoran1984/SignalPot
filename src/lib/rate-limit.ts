@@ -99,6 +99,40 @@ export async function checkArenaRateLimit(
   };
 }
 
+// Org-level monthly quota: tracks total API calls per org per calendar month
+export async function checkOrgMonthlyQuota(
+  orgId: string,
+  monthlyLimit: number
+): Promise<{ success: boolean; remaining: number; reset: number }> {
+  const r = getRedis();
+  if (!r) return { success: false, remaining: 0, reset: Date.now() + 60_000 };
+
+  // Use a monthly key that resets each calendar month
+  const now = new Date();
+  const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const key = `sp:org-quota:${orgId}:${monthKey}`;
+
+  // Increment and check
+  const current = await r.incr(key);
+
+  // Set TTL on first use (expire after 35 days to cover month boundary)
+  if (current === 1) {
+    await r.expire(key, 35 * 24 * 60 * 60);
+  }
+
+  // Calculate reset time (start of next month)
+  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const reset = nextMonth.getTime();
+
+  if (current > monthlyLimit) {
+    // Over quota - decrement back since we pre-incremented
+    await r.decr(key);
+    return { success: false, remaining: 0, reset };
+  }
+
+  return { success: true, remaining: monthlyLimit - current, reset };
+}
+
 // Global IP-based rate limiter for unauthenticated endpoints
 export async function checkIpRateLimit(
   ip: string

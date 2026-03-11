@@ -35,3 +35,10 @@ export const ARENA_LIMITS = {
 export function getArenaLimitForPlan(plan: Plan): number {
   return ARENA_LIMITS[plan];
 }
+
+/** Monthly API call quotas per org plan tier. */
+export const ORG_MONTHLY_QUOTAS: Record<string, number> = {
+  free: 1_000,
+  pro: 50_000,
+  team: 500_000,
+};

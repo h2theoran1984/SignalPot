@@ -31,10 +31,10 @@
 1. [x] Run migration 00022_organizations.sql on Supabase
 2. [x] Run migration 00023_org_rls.sql on Supabase
 3. [x] Run migration 00024_security_hardening_v2.sql on Supabase
-4. [ ] Register Stripe webhook endpoint in Stripe Dashboard
+4. [x] Register Stripe webhook endpoint in Stripe Dashboard
    - URL: `https://www.signalpot.dev/api/billing/webhook`
    - Events: checkout.session.completed, customer.subscription.deleted, customer.subscription.updated
-5. [ ] Set STRIPE_WEBHOOK_SECRET env var in Vercel
+5. [x] Set STRIPE_WEBHOOK_SECRET env var in Vercel
 6. [ ] Verify Vercel deployment succeeded (check build logs)
 7. [ ] Smoke test: create org via /orgs/new while logged in
 
@@ -93,18 +93,19 @@
 **Goal:** SSO, private registries, advanced analytics — the premium enterprise features.
 
 1. [ ] SSO integration (SAML/OIDC) for org login
-2. [ ] Private agent registries (org-only agent visibility)
-3. [ ] Advanced analytics dashboard (usage metrics, cost breakdown, audit exports)
+2. [x] Private agent registries (org-only agent visibility) — migration 00026, visibility column + RLS
+3. [x] Advanced analytics dashboard (usage metrics, cost breakdown, audit exports) — migration 00027, GET /api/orgs/[slug]/analytics
 4. [ ] Org billing (Stripe per-seat pricing for Team/Enterprise plans)
-5. [ ] API usage quotas per org (beyond individual rate limits)
-6. [ ] Compliance exports (SOC2-ready audit log CSV/PDF downloads)
+5. [x] API usage quotas per org (beyond individual rate limits) — Redis monthly counters, enforced in proxy route
+6. [x] Compliance exports (SOC2-ready audit log CSV/PDF downloads) — GET /api/orgs/[slug]/audit/export + /jobs/export
 
 ---
 
 ## Notes
 
 - Migrations 00022-00024 are applied to Supabase ✓
-- Migration 00025 (trust cooldown) written but NOT yet applied to Supabase
-- STRIPE_WEBHOOK_SECRET is still empty — billing webhooks won't process until Sprint D1
+- Migration 00025 (trust cooldown) applied to Supabase ✓
+- Stripe webhook registered + STRIPE_WEBHOOK_SECRET set in Vercel ✓
+- Migrations 00026 (private agents) and 00027 (analytics views) written but NOT yet applied to Supabase
 - Showcase agents are deployed to Vercel but not registered on the marketplace
 - Enterprise strategy doc: signalpot/docs/enterprise-strategy.md

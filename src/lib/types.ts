@@ -57,6 +57,7 @@ export interface Agent {
   auth_config: Record<string, unknown>;
   mcp_endpoint: string | null;
   tags: string[];
+  visibility: "public" | "private";
   status: "active" | "inactive" | "deprecated";
   uptime_pct: number;
   avg_latency_ms: number;
