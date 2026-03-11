@@ -18,7 +18,7 @@ export async function checkApiKeyRateLimit(
   limitRpm: number
 ): Promise<{ success: boolean; remaining: number; reset: number }> {
   const r = getRedis();
-  if (!r) return { success: true, remaining: limitRpm, reset: 0 };
+  if (!r) return { success: false, remaining: 0, reset: Date.now() + 60_000 };
 
   const limiter = new Ratelimit({
     redis: r,
@@ -39,7 +39,7 @@ export async function checkAnonRateLimit(
   ip: string
 ): Promise<{ success: boolean; remaining: number; reset: number }> {
   const r = getRedis();
-  if (!r) return { success: true, remaining: 10, reset: 0 };
+  if (!r) return { success: false, remaining: 0, reset: Date.now() + 60_000 };
 
   const limiter = new Ratelimit({
     redis: r,
@@ -61,7 +61,7 @@ export async function checkAnonAgentRateLimit(
   agentSlug: string
 ): Promise<{ success: boolean; remaining: number; reset: number }> {
   const r = getRedis();
-  if (!r) return { success: true, remaining: 100, reset: 0 };
+  if (!r) return { success: false, remaining: 0, reset: Date.now() + 60_000 };
 
   const limiter = new Ratelimit({
     redis: r,
@@ -83,7 +83,7 @@ export async function checkArenaRateLimit(
   limitPerHour: number = 5
 ): Promise<{ success: boolean; remaining: number; reset: number }> {
   const r = getRedis();
-  if (!r) return { success: true, remaining: limitPerHour, reset: 0 };
+  if (!r) return { success: false, remaining: 0, reset: Date.now() + 60_000 };
 
   const limiter = new Ratelimit({
     redis: r,
@@ -104,7 +104,7 @@ export async function checkIpRateLimit(
   ip: string
 ): Promise<{ success: boolean; remaining: number; reset: number }> {
   const r = getRedis();
-  if (!r) return { success: true, remaining: 120, reset: 0 };
+  if (!r) return { success: false, remaining: 0, reset: Date.now() + 60_000 };
 
   const limiter = new Ratelimit({
     redis: r,

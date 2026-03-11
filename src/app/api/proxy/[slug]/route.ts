@@ -7,19 +7,30 @@ import { wrapRequest, wrapResponse } from "@/lib/envelope";
 import { validateOutput } from "@/lib/schema-validator";
 import { assertSafeUrl } from "@/lib/ssrf";
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-};
+// Allowed origins for CORS — proxy is a public API so agents call it cross-origin,
+// but we restrict to known domains rather than wildcard to prevent CSRF.
+const ALLOWED_ORIGINS = new Set([
+  "https://www.signalpot.dev",
+  "https://signalpot.dev",
+  "http://localhost:3000",
+  "http://localhost:3002",
+]);
 
-function corsJson(body: unknown, init?: { status?: number }) {
-  return NextResponse.json(body, { ...init, headers: CORS_HEADERS });
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const allowedOrigin = origin && ALLOWED_ORIGINS.has(origin)
+    ? origin
+    : "https://www.signalpot.dev";
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Vary": "Origin",
+  };
 }
 
 // Pre-flight CORS
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+export async function OPTIONS(request: Request) {
+  return new NextResponse(null, { status: 204, headers: getCorsHeaders(request.headers.get("origin")) });
 }
 
 /**
@@ -35,6 +46,9 @@ export async function POST(
 ) {
   const { slug } = await params;
   const admin = createAdminClient();
+  const headers = getCorsHeaders(request.headers.get("origin"));
+  const corsJson = (body: unknown, init?: { status?: number }) =>
+    NextResponse.json(body, { ...init, headers });
 
   // 0. Check for authenticated caller (optional — falls back to anonymous)
   const auth = await getAuthContext(request);
@@ -84,15 +98,34 @@ export async function POST(
 
   const { capability, input, session_token, idempotency_key } = parsed.data;
 
-  // 3. Idempotency check — return cached response for duplicate keys
+  // 3. Idempotency check — atomically claim the key to prevent double-processing.
+  //    We INSERT first (with ON CONFLICT DO NOTHING), then check if it already existed.
+  //    This prevents the race window where two concurrent requests both pass a SELECT check.
   const { data: existingKey } = await admin
     .from("idempotency_keys")
     .select("response_body")
     .eq("idempotency_key", idempotency_key)
     .maybeSingle();
 
-  if (existingKey) {
+  if (existingKey?.response_body) {
     return corsJson(existingKey.response_body);
+  }
+
+  // Atomically claim the idempotency key BEFORE payment.
+  // If a concurrent request already claimed it, the unique constraint
+  // will cause this to fail, and we return a 409.
+  if (!existingKey) {
+    const { error: claimError } = await admin
+      .from("idempotency_keys")
+      .insert({ idempotency_key, job_id: null, response_body: null });
+
+    if (claimError) {
+      // Unique constraint violation = concurrent duplicate request
+      return corsJson(
+        { error: "Duplicate request — processing in progress" },
+        { status: 409 }
+      );
+    }
   }
 
   // 4. Look up agent
@@ -349,12 +382,11 @@ export async function POST(
     cost: rateAmount,
   };
 
-  // 14. Store idempotency record
-  await admin.from("idempotency_keys").insert({
-    idempotency_key: idempotency_key,
-    job_id: job.id,
-    response_body: responseBody,
-  });
+  // 14. Store idempotency response (update the row we claimed earlier)
+  await admin
+    .from("idempotency_keys")
+    .update({ job_id: job.id, response_body: responseBody })
+    .eq("idempotency_key", idempotency_key);
 
   return corsJson(responseBody);
 }
