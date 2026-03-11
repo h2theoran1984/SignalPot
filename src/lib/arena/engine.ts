@@ -108,6 +108,7 @@ async function callAgent(
 
   try {
     let agentResponse: Record<string, unknown>;
+    let providerCostUsd: number | null = null;
 
     // ── Sparring Partner: call directly, no network hop ──────────
     if (agent.slug === SPARRING_SLUG) {
@@ -167,6 +168,13 @@ async function callAgent(
         // Extract the actual data from the A2A response wrapper
         const rpcResult = (json.result ?? json) as Record<string, unknown>;
         agentResponse = extractA2AResponse(rpcResult);
+
+        // Extract provider-reported API cost from _meta (if present)
+        const meta = rpcResult._meta as Record<string, unknown> | undefined;
+        const pc = meta?.provider_cost as Record<string, unknown> | undefined;
+        if (typeof pc?.api_cost_usd === "number") {
+          providerCostUsd = pc.api_cost_usd;
+        }
       } finally {
         clearTimeout(timeout);
       }
@@ -200,6 +208,7 @@ async function callAgent(
         output_summary: { ...agentResponse, _envelope: responseEnvelope },
         duration_ms: durationMs,
         verified: validation.valid,
+        provider_cost: providerCostUsd,
       })
       .eq("id", jobId);
 

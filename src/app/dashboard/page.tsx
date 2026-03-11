@@ -39,6 +39,25 @@ export default async function DashboardPage() {
     .order("created_at", { ascending: false })
     .limit(20);
 
+  // Fetch provider-side jobs (where user's agents served requests) with cost data
+  const agentIds = (agents ?? []).map((a) => a.id);
+  const { data: providerJobs } = agentIds.length > 0
+    ? await supabase
+        .from("jobs")
+        .select("id, cost, provider_cost, capability_used, provider_agent_id, created_at, status")
+        .in("provider_agent_id", agentIds)
+        .eq("status", "completed")
+        .order("created_at", { ascending: false })
+        .limit(50)
+    : { data: null };
+
+  // Compute aggregate economics
+  const economicsJobs = (providerJobs ?? []).filter((j) => j.provider_cost != null);
+  const totalRevenue = economicsJobs.reduce((sum, j) => sum + Number(j.cost), 0);
+  const totalApiCost = economicsJobs.reduce((sum, j) => sum + Number(j.provider_cost), 0);
+  const totalMargin = totalRevenue - totalApiCost;
+  const marginPct = totalRevenue > 0 ? (totalMargin / totalRevenue) * 100 : 0;
+
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
       <SiteNav />
@@ -200,6 +219,56 @@ export default async function DashboardPage() {
               </div>
             ))}
           </div>
+        )}
+
+        {agentIds.length > 0 && economicsJobs.length > 0 && (
+          <>
+            <h2 className="text-xl font-semibold mt-10 mb-4">Agent Economics</h2>
+            <div className="grid grid-cols-4 gap-3 mb-4">
+              <div className="p-4 bg-[#111118] border border-[#1f2028] rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">Calls Tracked</p>
+                <p className="text-lg font-bold">{economicsJobs.length}</p>
+              </div>
+              <div className="p-4 bg-[#111118] border border-[#1f2028] rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">Revenue</p>
+                <p className="text-lg font-bold text-cyan-400">${totalRevenue.toFixed(4)}</p>
+              </div>
+              <div className="p-4 bg-[#111118] border border-[#1f2028] rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">API Costs</p>
+                <p className="text-lg font-bold text-orange-400">${totalApiCost.toFixed(4)}</p>
+              </div>
+              <div className="p-4 bg-[#111118] border border-[#1f2028] rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">Net Margin</p>
+                <p className={`text-lg font-bold ${marginPct >= 0 ? "text-green-400" : "text-red-400"}`}>
+                  {marginPct.toFixed(1)}%
+                </p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {economicsJobs.slice(0, 10).map((j) => {
+                const rev = Number(j.cost);
+                const api = Number(j.provider_cost);
+                const m = rev > 0 ? ((rev - api) / rev) * 100 : 0;
+                return (
+                  <div
+                    key={j.id}
+                    className="flex items-center justify-between p-3 bg-[#111118] border border-[#1f2028] rounded-lg text-sm"
+                  >
+                    <span className="font-mono text-xs text-gray-500">
+                      {j.capability_used ?? "call"}
+                    </span>
+                    <div className="flex items-center gap-4">
+                      <span className="text-gray-400">rev <span className="text-cyan-400">${rev.toFixed(4)}</span></span>
+                      <span className="text-gray-400">cost <span className="text-orange-400">${api.toFixed(6)}</span></span>
+                      <span className={`font-mono ${m >= 0 ? "text-green-400" : "text-red-400"}`}>
+                        {m.toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </main>
     </div>

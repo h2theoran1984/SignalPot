@@ -78,6 +78,7 @@ export interface Job {
   status: "pending" | "running" | "completed" | "failed";
   duration_ms: number | null;
   cost: number;
+  provider_cost: number | null;
   verified: boolean;
   created_at: string;
   completed_at: string | null;

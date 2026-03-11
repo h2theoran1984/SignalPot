@@ -319,6 +319,7 @@ export async function POST(
 
   // 10. Forward to agent's MCP endpoint (synchronous)
   let agentResponse: Record<string, unknown>;
+  let providerCostUsd: number | null = null;
   const startTime = Date.now();
 
   try {
@@ -344,6 +345,14 @@ export async function POST(
     }
 
     agentResponse = (await res.json()) as Record<string, unknown>;
+
+    // Extract provider-reported API cost from _meta (if present)
+    // Check both top-level and JSON-RPC result wrapper locations
+    const metaSource = (agentResponse.result as Record<string, unknown>)?._meta ?? agentResponse._meta;
+    const pc = (metaSource as Record<string, unknown>)?.provider_cost as Record<string, unknown> | undefined;
+    if (typeof pc?.api_cost_usd === "number") {
+      providerCostUsd = pc.api_cost_usd;
+    }
   } catch (err) {
     // Mark job as failed
     await admin
@@ -386,6 +395,7 @@ export async function POST(
       output_summary: { ...agentResponse, _envelope: responseEnvelope },
       duration_ms: durationMs,
       verified: validation.valid,
+      provider_cost: providerCostUsd,
     })
     .eq("id", job.id);
 

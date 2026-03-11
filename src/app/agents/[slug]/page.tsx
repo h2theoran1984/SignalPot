@@ -86,6 +86,37 @@ export default async function AgentDetailPage({
     ? agent.capability_schema
     : [];
 
+  // Owner-only: fetch cost economics data
+  let economics: { totalRevenue: number; totalApiCost: number; marginPct: number; count: number; byCap: Record<string, { revenue: number; apiCost: number; count: number }> } | null = null;
+  if (isOwner) {
+    const { data: costJobs } = await supabase
+      .from("jobs")
+      .select("cost, provider_cost, capability_used")
+      .eq("provider_agent_id", agent.id)
+      .eq("status", "completed")
+      .not("provider_cost", "is", null);
+
+    if (costJobs && costJobs.length > 0) {
+      const totalRevenue = costJobs.reduce((s, j) => s + Number(j.cost), 0);
+      const totalApiCost = costJobs.reduce((s, j) => s + Number(j.provider_cost), 0);
+      const byCap: Record<string, { revenue: number; apiCost: number; count: number }> = {};
+      for (const j of costJobs) {
+        const cap = j.capability_used ?? "unknown";
+        if (!byCap[cap]) byCap[cap] = { revenue: 0, apiCost: 0, count: 0 };
+        byCap[cap].revenue += Number(j.cost);
+        byCap[cap].apiCost += Number(j.provider_cost);
+        byCap[cap].count++;
+      }
+      economics = {
+        totalRevenue,
+        totalApiCost,
+        marginPct: totalRevenue > 0 ? ((totalRevenue - totalApiCost) / totalRevenue) * 100 : 0,
+        count: costJobs.length,
+        byCap,
+      };
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
       <script
@@ -243,6 +274,51 @@ export default async function AgentDetailPage({
             capabilities={capabilities}
             rateAmount={Number(agent.rate_amount) || 0}
           />
+        )}
+
+        {isOwner && economics && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-4">Economics</h2>
+            <div className="grid grid-cols-4 gap-3 mb-4">
+              <div className="p-4 bg-[#111118] border border-[#1f2028] rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">Tracked Calls</p>
+                <p className="text-lg font-bold">{economics.count}</p>
+              </div>
+              <div className="p-4 bg-[#111118] border border-[#1f2028] rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">Revenue</p>
+                <p className="text-lg font-bold text-cyan-400">${economics.totalRevenue.toFixed(4)}</p>
+              </div>
+              <div className="p-4 bg-[#111118] border border-[#1f2028] rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">API Costs</p>
+                <p className="text-lg font-bold text-orange-400">${economics.totalApiCost.toFixed(4)}</p>
+              </div>
+              <div className="p-4 bg-[#111118] border border-[#1f2028] rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">Net Margin</p>
+                <p className={`text-lg font-bold ${economics.marginPct >= 0 ? "text-green-400" : "text-red-400"}`}>
+                  {economics.marginPct.toFixed(1)}%
+                </p>
+              </div>
+            </div>
+            {Object.keys(economics.byCap).length > 1 && (
+              <div className="space-y-2">
+                {Object.entries(economics.byCap).map(([cap, stats]) => {
+                  const m = stats.revenue > 0 ? ((stats.revenue - stats.apiCost) / stats.revenue) * 100 : 0;
+                  return (
+                    <div key={cap} className="flex items-center justify-between p-3 bg-[#111118] border border-[#1f2028] rounded-lg text-sm">
+                      <span className="font-mono text-xs text-gray-500">{cap}</span>
+                      <div className="flex items-center gap-4">
+                        <span className="text-gray-400">{stats.count} calls</span>
+                        <span className="text-gray-400">rev <span className="text-cyan-400">${stats.revenue.toFixed(4)}</span></span>
+                        <span className="text-gray-400">cost <span className="text-orange-400">${stats.apiCost.toFixed(6)}</span></span>
+                        <span className={`font-mono ${m >= 0 ? "text-green-400" : "text-red-400"}`}>{m.toFixed(1)}%</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <p className="text-xs text-gray-600 mt-2">Self-reported by agent. Only you can see this.</p>
+          </div>
         )}
 
         <div className="mb-8">
