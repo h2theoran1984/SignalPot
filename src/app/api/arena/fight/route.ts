@@ -11,7 +11,7 @@ import { callArenaJudge } from "@/lib/arena/judge";
 import { updateElo, getAgentElo } from "@/lib/arena/elo";
 import { inferRubric, applyLevelModifiers, resolveTemplate } from "@/lib/arena/rubric";
 import { generateSyntheticPrompt } from "@/lib/arena/synthetic";
-import { isLevelUnlocked, LEVEL_CONFIGS, type ArenaLevel } from "@/lib/arena/levels";
+import { isLevelUnlocked, LEVEL_CONFIGS, getLevelCostMultiplier, type ArenaLevel } from "@/lib/arena/levels";
 import { fightSchema } from "@/lib/arena/validations";
 import { checkArenaRateLimit } from "@/lib/rate-limit";
 import { getArenaLimitForPlan, type Plan } from "@/lib/plans";
@@ -229,8 +229,10 @@ export async function POST(request: NextRequest) {
   }
 
   // Billing — deduct total fight cost upfront before calling agents
-  const costA = Number(agentA.rate_amount) || 0;
-  const costB = Number(agentB.rate_amount) || 0;
+  // Apply level cost multiplier to sparring partner's rate (higher levels use pricier models)
+  const levelMultiplier = hasSparring ? getLevelCostMultiplier(level) : 1;
+  const costA = (Number(agentA.rate_amount) || 0) * (agent_a_slug === "sparring-partner" ? levelMultiplier : 1);
+  const costB = (Number(agentB.rate_amount) || 0) * (agent_b_slug === "sparring-partner" ? levelMultiplier : 1);
   const totalCost = costA + costB;
 
   if (totalCost > 0) {
@@ -338,13 +340,13 @@ export async function POST(request: NextRequest) {
     matchUpdate.response_a = aData.response;
     matchUpdate.duration_a_ms = aData.durationMs;
     matchUpdate.verified_a = aData.verified;
-    matchUpdate.cost_a = Number(agentA.rate_amount) || 0;
+    matchUpdate.cost_a = costA;
   }
   if (bData) {
     matchUpdate.response_b = bData.response;
     matchUpdate.duration_b_ms = bData.durationMs;
     matchUpdate.verified_b = bData.verified;
-    matchUpdate.cost_b = Number(agentB.rate_amount) || 0;
+    matchUpdate.cost_b = costB;
   }
 
   // === JUDGE ===
@@ -373,8 +375,8 @@ export async function POST(request: NextRequest) {
       verifiedA: aData!.verified,
       verifiedB: bData!.verified,
       rubric,
-      costACents: Math.round(Number(agentA.rate_amount ?? 0) * 100),
-      costBCents: Math.round(Number(agentB.rate_amount ?? 0) * 100),
+      costACents: Math.round(costA * 100),
+      costBCents: Math.round(costB * 100),
       level,
     });
 
