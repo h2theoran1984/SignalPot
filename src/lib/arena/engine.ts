@@ -112,7 +112,9 @@ async function callAgent(
 
     // ── Sparring Partner: call directly, no network hop ──────────
     if (agent.slug === SPARRING_SLUG) {
-      agentResponse = await handleSparringRequest(capability, prompt);
+      const sparringResult = await handleSparringRequest(capability, prompt);
+      agentResponse = sparringResult.data;
+      providerCostUsd = sparringResult.cost.api_cost_usd;
     }
     // ── External agent: call via A2A JSON-RPC 2.0 ────────────────
     else {

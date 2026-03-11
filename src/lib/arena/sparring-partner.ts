@@ -13,6 +13,19 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
+// Per-model pricing (per token)
+const MODEL_PRICING: Record<string, { input: number; output: number }> = {
+  "claude-haiku-4-5-20251001":  { input: 1.0 / 1_000_000, output: 5.0 / 1_000_000 },
+  "claude-sonnet-4-20250514":   { input: 3.0 / 1_000_000, output: 15.0 / 1_000_000 },
+  "claude-opus-4-20250514":     { input: 15.0 / 1_000_000, output: 75.0 / 1_000_000 },
+};
+
+export interface CostInfo {
+  api_cost_usd: number;
+  input_tokens: number;
+  output_tokens: number;
+}
+
 // Capability-specific system prompts for higher quality
 const SYSTEM_PROMPTS: Record<string, string> = {
   summarize:
@@ -208,7 +221,7 @@ export async function handleSparringRequest(
   capability: string,
   input: Record<string, unknown>,
   level: ArenaLevel = 1
-): Promise<Record<string, unknown>> {
+): Promise<{ data: Record<string, unknown>; cost: CostInfo }> {
   const config = LEVEL_CONFIGS[level];
   const systemPrompt = getSystemPrompt(capability, level);
   const outputSchema = OUTPUT_SCHEMAS[capability];
@@ -231,6 +244,18 @@ Respond with ONLY valid JSON matching the output schema. No markdown, no explana
     messages: [{ role: "user", content: userPrompt }],
   });
 
+  // Calculate API cost based on model pricing
+  const pricing = MODEL_PRICING[config.model] ?? MODEL_PRICING["claude-haiku-4-5-20251001"];
+  const apiCost = message.usage.input_tokens * pricing.input + message.usage.output_tokens * pricing.output;
+  console.log(
+    `[cost] sparring:${capability}@L${level} (${config.model.split("-").slice(1, 3).join("-")}) | in=${message.usage.input_tokens} out=${message.usage.output_tokens} | cost=$${apiCost.toFixed(6)}`
+  );
+  const cost: CostInfo = {
+    input_tokens: message.usage.input_tokens,
+    output_tokens: message.usage.output_tokens,
+    api_cost_usd: Math.round(apiCost * 1_000_000) / 1_000_000,
+  };
+
   const content = message.content[0];
   if (content.type !== "text") {
     throw new Error("Unexpected response type from Claude");
@@ -242,7 +267,7 @@ Respond with ONLY valid JSON matching the output schema. No markdown, no explana
     text = text.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
   }
 
-  return JSON.parse(text) as Record<string, unknown>;
+  return { data: JSON.parse(text) as Record<string, unknown>, cost };
 }
 
 /** The Sparring Partner's agent metadata for seeding/registration. */

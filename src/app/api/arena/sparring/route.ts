@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Handle the capability
-      const data = await handleSparringRequest(capability, input);
+      const { data, cost } = await handleSparringRequest(capability, input);
 
       return NextResponse.json({
         jsonrpc: "2.0",
@@ -62,6 +62,13 @@ export async function POST(request: NextRequest) {
           id: crypto.randomUUID(),
           status: { state: "completed" },
           artifacts: [{ parts: [{ type: "data", data }] }],
+          _meta: {
+            provider_cost: {
+              api_cost_usd: cost.api_cost_usd,
+              input_tokens: cost.input_tokens,
+              output_tokens: cost.output_tokens,
+            },
+          },
         },
       });
     }
