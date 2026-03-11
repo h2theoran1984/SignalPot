@@ -63,6 +63,35 @@
 
 ---
 
+## Sprint A1: Agent Optimization + Cost Tracking (completed March 10-11, 2026)
+
+**Goal:** Level up The Next Step agent for arena performance and build persistent cost visibility.
+
+### Agent Optimization (signalpot-agent-text-analyzer repo)
+- [x] Tighten system prompts for brevity (word limits on all output fields)
+- [x] Reduce max_tokens from 1024 to 512
+- [x] Add cost tracking via Upstash Redis (lib/cost-tracker.ts) + /costs endpoint
+- [x] Secure /costs endpoint with COSTS_SECRET env var
+- [x] Fix `await trackCost()` — unawaited promises killed by Vercel serverless freeze
+- [x] Raise rate from $0.001 to $0.003/call (positive margin at Haiku output pricing)
+- [x] Functions return `{ data, cost }` so RPC layer can report costs
+- [x] Attach `_meta.provider_cost` to every A2A response
+
+### Platform Cost Integration (signalpot repo)
+- [x] Migration 00028: Add `provider_cost` column to jobs table
+- [x] Proxy route extracts `_meta.provider_cost` from agent response, stores in jobs
+- [x] Arena engine extracts `_meta.provider_cost` from agent response, stores in jobs
+- [x] Job type updated with `provider_cost: number | null`
+- [x] Dashboard: "Agent Economics" section — revenue, API costs, margin %, per-call breakdown
+- [x] Agent detail page: Owner-only "Economics" panel with per-capability breakdown
+- [x] Works for ANY agent that reports `_meta.provider_cost` — generic platform feature
+
+### Still TODO
+- [ ] Update agent rate_amount in Supabase to $0.003: `UPDATE agents SET rate_amount = 0.003 WHERE slug = 'the-next-step';`
+- [ ] signalpot.config.json also says rate_amount: 0.003 but DB still has 0.002
+
+---
+
 ## Sprint D4: Register Showcase Agents
 
 **Goal:** Get the two deployed showcase agents registered on the live marketplace.
@@ -92,10 +121,10 @@
 
 **Goal:** SSO, private registries, advanced analytics — the premium enterprise features.
 
-1. [ ] SSO integration (SAML/OIDC) for org login
+1. [x] SSO integration (OIDC) for org login — config, login, callback routes with auto-provisioning
 2. [x] Private agent registries (org-only agent visibility) — migration 00026, visibility column + RLS
 3. [x] Advanced analytics dashboard (usage metrics, cost breakdown, audit exports) — migration 00027, GET /api/orgs/[slug]/analytics
-4. [ ] Org billing (Stripe per-seat pricing for Team/Enterprise plans)
+4. [x] Org billing (Stripe per-seat pricing for Team/Enterprise plans) — subscribe, portal, seat sync + webhook routing
 5. [x] API usage quotas per org (beyond individual rate limits) — Redis monthly counters, enforced in proxy route
 6. [x] Compliance exports (SOC2-ready audit log CSV/PDF downloads) — GET /api/orgs/[slug]/audit/export + /jobs/export
 
