@@ -22,10 +22,10 @@ export async function POST(request: NextRequest) {
   // Look up user's plan for tiered rate limiting
   const { data: profile } = await admin
     .from("profiles")
-    .select("plan_type")
+    .select("plan")
     .eq("id", auth.profileId)
     .single();
-  const plan = (profile?.plan_type as Plan) ?? "free";
+  const plan = (profile?.plan as Plan) ?? "free";
   const arenaLimit = getArenaLimitForPlan(plan);
 
   // Rate limit: tiered by plan (free: 5/hr, pro: 25/hr, team: 100/hr)

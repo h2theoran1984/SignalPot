@@ -147,10 +147,10 @@ export async function POST(request: NextRequest) {
     const admin = createAdminClient();
     const { data: profile } = await admin
       .from("profiles")
-      .select("plan_type")
+      .select("plan")
       .eq("id", auth.profileId)
       .single();
-    const plan = (profile?.plan_type as Plan) ?? "free";
+    const plan = (profile?.plan as Plan) ?? "free";
     const arenaLimit = getArenaLimitForPlan(plan);
     const rl = await checkArenaRateLimit(auth.profileId, arenaLimit);
     if (!rl.success) return rateLimitResponse(rl.reset);
