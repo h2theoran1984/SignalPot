@@ -41,8 +41,15 @@ interface IterationResult {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await getAuthContext(request);
-  if (!auth) {
+  // Accept service-role key for admin/CLI access (autotune is admin-only)
+  const authHeader = request.headers.get("authorization");
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const isServiceRole =
+    serviceRoleKey &&
+    authHeader === `Bearer ${serviceRoleKey}`;
+
+  const auth = isServiceRole ? null : await getAuthContext(request);
+  if (!isServiceRole && !auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

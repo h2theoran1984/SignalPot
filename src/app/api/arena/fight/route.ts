@@ -136,14 +136,21 @@ async function callFighter(
 }
 
 export async function POST(request: NextRequest) {
-  // Auth check
-  const auth = await getAuthContext(request);
-  if (!auth) {
+  // Auth check — accept service-role key for admin/CLI access (used by autotune loop)
+  const authHeaderVal = request.headers.get("authorization");
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const isServiceRole =
+    serviceRoleKey &&
+    authHeaderVal === `Bearer ${serviceRoleKey}`;
+
+  const auth = isServiceRole ? null : await getAuthContext(request);
+  if (!isServiceRole && !auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   // Rate limit — tiered by plan (free: 5/hr, pro: 25/hr, team: 100/hr)
-  if (auth.profileId) {
+  // Skip rate limiting for service-role (admin) access
+  if (auth?.profileId) {
     const admin = createAdminClient();
     const { data: profile } = await admin
       .from("profiles")
@@ -233,7 +240,7 @@ export async function POST(request: NextRequest) {
   const costB = Number(agentB.rate_amount) || 0;
   const totalCost = costA + costB;
 
-  if (totalCost > 0) {
+  if (totalCost > 0 && auth?.profileId) {
     const totalMillicents = Math.floor(totalCost * 100_000);
     const { error: paymentError } = await admin.rpc("settle_user_payment", {
       p_profile_id: auth.profileId,
@@ -298,7 +305,7 @@ export async function POST(request: NextRequest) {
   const { data: match, error: matchError } = await admin
     .from("arena_matches")
     .insert({
-      creator_id: auth.profileId ?? null,
+      creator_id: auth?.profileId ?? null,
       agent_a_id: agentA.id,
       agent_b_id: agentB.id,
       capability,
@@ -450,10 +457,12 @@ export async function POST(request: NextRequest) {
         });
       } else {
         // Agent failed — refund creator for this agent's portion
-        await admin.rpc("add_credits", {
-          p_user_id: auth.profileId,
-          p_amount_millicents: costMillicents,
-        });
+        if (auth?.profileId) {
+          await admin.rpc("add_credits", {
+            p_user_id: auth.profileId,
+            p_amount_millicents: costMillicents,
+          });
+        }
       }
     }
   }

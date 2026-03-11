@@ -33,8 +33,15 @@ interface RoundResult {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await getAuthContext(request);
-  if (!auth) {
+  // Accept service-role key for admin/CLI access (used by autotune loop)
+  const authHeader = request.headers.get("authorization");
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const isServiceRole =
+    serviceRoleKey &&
+    authHeader === `Bearer ${serviceRoleKey}`;
+
+  const auth = isServiceRole ? null : await getAuthContext(request);
+  if (!isServiceRole && !auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -68,15 +75,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: `Agent '${agent_slug}' not found or inactive` }, { status: 404 });
   }
 
-  // Check user's credit balance upfront
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("credit_balance_millicents")
-    .eq("id", auth.profileId)
-    .single();
+  // Check user's credit balance upfront (skip for service-role — unlimited budget)
+  let effectiveBudget = Infinity;
+  if (!isServiceRole && auth) {
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("credit_balance_millicents")
+      .eq("id", auth.profileId)
+      .single();
 
-  const balanceUsd = (profile?.credit_balance_millicents as number ?? 0) / 100_000;
-  const effectiveBudget = credit_limit !== undefined ? Math.min(credit_limit, balanceUsd) : balanceUsd;
+    const balanceUsd = (profile?.credit_balance_millicents as number ?? 0) / 100_000;
+    effectiveBudget = credit_limit !== undefined ? Math.min(credit_limit, balanceUsd) : balanceUsd;
+  }
 
   // Build the internal fight URL
   const baseUrl = request.url.replace(/\/api\/arena\/grind.*$/, "");
