@@ -8,6 +8,7 @@ import { inngest } from "@/lib/inngest/client";
 import { resolveTemplate } from "@/lib/arena/rubric";
 import { handleSparringRequest } from "@/lib/arena/sparring-partner";
 import { assertSafeUrl } from "@/lib/ssrf";
+import { getLevelCostMultiplier, type ArenaLevel } from "@/lib/arena/levels";
 import type { Agent } from "@/lib/types";
 
 /** How long to wait for an external agent response before aborting. */
@@ -245,7 +246,7 @@ export async function executeMatch(matchId: string): Promise<void> {
   // Fetch the match
   const { data: match, error: matchError } = await admin
     .from("arena_matches")
-    .select("id, status, agent_a_id, agent_b_id, capability, prompt, challenge_id, match_type, creator_id")
+    .select("id, status, agent_a_id, agent_b_id, capability, prompt, challenge_id, match_type, creator_id, level")
     .eq("id", matchId)
     .single();
 
@@ -335,11 +336,17 @@ export async function executeMatch(matchId: string): Promise<void> {
     job_b_id: bResult.jobId || null,
   };
 
+  // Apply level cost multiplier to sparring partner's rate
+  const matchLevel = (match.level as ArenaLevel) ?? 1;
+  const multiplier = getLevelCostMultiplier(matchLevel);
+  const effectiveCostA = (Number(agentA.rate_amount) || 0) * (agentA.slug === SPARRING_SLUG ? multiplier : 1);
+  const effectiveCostB = (Number(agentB.rate_amount) || 0) * (agentB.slug === SPARRING_SLUG ? multiplier : 1);
+
   if (aSuccess) {
     update.response_a = aResult.result.response;
     update.duration_a_ms = aResult.result.durationMs;
     update.verified_a = aResult.result.verified;
-    update.cost_a = Number(agentA.rate_amount) || 0;
+    update.cost_a = effectiveCostA;
   } else {
     // Store error in response field so it's visible in match detail + DB
     update.response_a = { _error: aResult.error, _agent: agentA.slug };
@@ -349,7 +356,7 @@ export async function executeMatch(matchId: string): Promise<void> {
     update.response_b = bResult.result.response;
     update.duration_b_ms = bResult.result.durationMs;
     update.verified_b = bResult.result.verified;
-    update.cost_b = Number(agentB.rate_amount) || 0;
+    update.cost_b = effectiveCostB;
   } else {
     // Store error in response field so it's visible in match detail + DB
     update.response_b = { _error: bResult.error, _agent: agentB.slug };
@@ -396,8 +403,8 @@ export async function executeMatch(matchId: string): Promise<void> {
     const feePct = Number.isFinite(rawPct) && rawPct >= 0 && rawPct <= 100 ? rawPct : 10;
 
     for (const { agent, ok, cost } of [
-      { agent: agentA, ok: aSuccess, cost: Number(agentA.rate_amount) || 0 },
-      { agent: agentB, ok: bSuccess, cost: Number(agentB.rate_amount) || 0 },
+      { agent: agentA, ok: aSuccess, cost: effectiveCostA },
+      { agent: agentB, ok: bSuccess, cost: effectiveCostB },
     ]) {
       if (cost <= 0) continue;
       const costMillicents = Math.floor(cost * 100_000);

@@ -16,6 +16,7 @@ export interface LevelConfig {
   promptStyle: "basic" | "enhanced" | "master";
   rubricStrictness: number;   // quality criteria weight multiplier
   speedTierScale: number;     // lower = tighter speed thresholds
+  costMultiplier: number;     // multiplier applied to sparring partner rate at this level
 }
 
 export const LEVEL_CONFIGS: Record<ArenaLevel, LevelConfig> = {
@@ -29,6 +30,7 @@ export const LEVEL_CONFIGS: Record<ArenaLevel, LevelConfig> = {
     promptStyle: "basic",
     rubricStrictness: 1.0,
     speedTierScale: 1.0,
+    costMultiplier: 1,
   },
   2: {
     level: 2,
@@ -40,6 +42,7 @@ export const LEVEL_CONFIGS: Record<ArenaLevel, LevelConfig> = {
     promptStyle: "enhanced",
     rubricStrictness: 1.3,
     speedTierScale: 0.75,
+    costMultiplier: 10,
   },
   3: {
     level: 3,
@@ -51,10 +54,16 @@ export const LEVEL_CONFIGS: Record<ArenaLevel, LevelConfig> = {
     promptStyle: "master",
     rubricStrictness: 1.6,
     speedTierScale: 0.5,
+    costMultiplier: 50,
   },
 };
 
 export const DEFAULT_LEVEL: ArenaLevel = 1;
+
+/** Return the cost multiplier for sparring partner matches at this level. */
+export function getLevelCostMultiplier(level: ArenaLevel): number {
+  return LEVEL_CONFIGS[level].costMultiplier;
+}
 
 /** Get the highest level an agent qualifies for at the given ELO. */
 export function getLevelForElo(elo: number): ArenaLevel {
