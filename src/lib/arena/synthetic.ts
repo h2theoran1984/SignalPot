@@ -10,6 +10,24 @@ import Anthropic from "@anthropic-ai/sdk";
 // Static fallback pools (used when Claude API is unavailable)
 // ---------------------------------------------------------------------------
 
+const GITHUB_REPOS = [
+  "anthropics/anthropic-sdk-python",
+  "vercel/next.js",
+  "supabase/supabase",
+  "langchain-ai/langchain",
+  "microsoft/TypeScript",
+  "facebook/react",
+  "pallets/flask",
+  "fastapi/fastapi",
+  "django/django",
+  "expressjs/express",
+  "rust-lang/rust",
+  "denoland/deno",
+  "tailwindlabs/tailwindcss",
+  "prisma/prisma",
+  "strapi/strapi",
+];
+
 const FALLBACK_PROMPTS: Record<string, () => { prompt: Record<string, unknown>; description: string }> = {
   "meeting-summary": () => ({
     prompt: { text: MEETING_TRANSCRIPT },
@@ -27,10 +45,13 @@ const FALLBACK_PROMPTS: Record<string, () => { prompt: Record<string, unknown>; 
     prompt: { text: "Retrieval-Augmented Generation (RAG) has become the dominant pattern for building LLM-powered applications that need access to current or proprietary data. Rather than fine-tuning a model on specific data, RAG retrieves relevant documents at query time and includes them in the context window." },
     description: "Summarize a text passage",
   }),
-  "github-summary": () => ({
-    prompt: { repo_url: "https://github.com/anthropics/anthropic-sdk-python" },
-    description: "Summarize anthropics/anthropic-sdk-python",
-  }),
+  "github-summary": () => {
+    const repo = pickRandom(GITHUB_REPOS);
+    return {
+      prompt: { repo_url: `https://github.com/${repo}` },
+      description: `Summarize ${repo}`,
+    };
+  },
   "run": () => ({
     prompt: { language: "python", code: "def fibonacci(n):\n    if n <= 1:\n        return n\n    a, b = 0, 1\n    for _ in range(2, n + 1):\n        a, b = b, a + b\n    return b\n\nprint([fibonacci(i) for i in range(15)])" },
     description: "Execute a code snippet",
@@ -109,6 +130,12 @@ function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+// Capability-specific hints to guide Haiku's dynamic generation
+const CAPABILITY_HINTS: Record<string, string> = {
+  "github-summary":
+    "The prompt must have a 'repo_url' field with a real, well-known public GitHub repository URL. Pick varied repos across languages and domains. The repo must actually exist on GitHub.",
+};
+
 /**
  * Build a system prompt that tells Claude what kind of test data to generate.
  * Injects random industry/scenario/tone seeds to ensure every prompt is unique.
@@ -118,6 +145,10 @@ function buildSystemPrompt(capability: string, inputSchema?: Record<string, unkn
     ? `\n\nThe agent's input schema is:\n${JSON.stringify(inputSchema, null, 2)}\n\nYour "prompt" object MUST conform to this schema exactly.`
     : "";
 
+  const capabilityHint = CAPABILITY_HINTS[capability]
+    ? `\n\nCAPABILITY-SPECIFIC REQUIREMENT: ${CAPABILITY_HINTS[capability]}`
+    : "";
+
   const industry = pickRandom(INDUSTRIES);
   const scenario = pickRandom(SCENARIOS);
   const tone = pickRandom(TONES);
@@ -125,7 +156,7 @@ function buildSystemPrompt(capability: string, inputSchema?: Record<string, unkn
 
   return `You are a test data generator for an AI agent arena. Your job is to create realistic, unique test inputs for agents being evaluated.
 
-The capability being tested is: "${capability}"
+The capability being tested is: "${capability}"${capabilityHint}
 
 UNIQUENESS SEED: #${seed}
 Use these creative constraints to make this prompt unique:
