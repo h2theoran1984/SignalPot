@@ -34,7 +34,9 @@ export async function GET(
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
 
-  return NextResponse.json(data);
+  // Strip anonymous_session_id to prevent session token exposure
+  const { anonymous_session_id: _, ...safeData } = data;
+  return NextResponse.json(safeData);
 }
 
 // PATCH /api/jobs/[id] — Update job status (provider owner only)

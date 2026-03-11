@@ -67,6 +67,41 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  // Fetch current dispute to validate status transitions
+  const { data: currentDispute } = await admin
+    .from("disputes")
+    .select("status")
+    .eq("id", id)
+    .single();
+
+  if (!currentDispute) {
+    return NextResponse.json({ error: "Dispute not found" }, { status: 404 });
+  }
+
+  // Validate status transitions
+  const validTransitions: Record<string, string[]> = {
+    open: ["reviewing", "resolved"],
+    reviewing: ["resolved", "open"],
+    resolved: ["appealed"],
+    appealed: ["reviewing", "resolved"],
+  };
+
+  const allowed = validTransitions[currentDispute.status] ?? [];
+  if (!allowed.includes(body.status)) {
+    return NextResponse.json(
+      { error: `Cannot transition from '${currentDispute.status}' to '${body.status}'` },
+      { status: 400 }
+    );
+  }
+
+  // Require resolution when resolving
+  if (body.status === "resolved" && !body.resolution) {
+    return NextResponse.json(
+      { error: "Resolution is required when resolving a dispute" },
+      { status: 400 }
+    );
+  }
+
   const { data: dispute, error } = await admin
     .from("disputes")
     .update({

@@ -26,6 +26,27 @@ CREATE TABLE organizations (
 
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
 
+-- ============================================================
+-- 3. Org members table (created BEFORE org policies that reference it)
+-- ============================================================
+CREATE TABLE org_members (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id      UUID        NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  profile_id  UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  role        org_role    NOT NULL DEFAULT 'developer',
+  invited_by  UUID        REFERENCES profiles(id) ON DELETE SET NULL,
+  joined_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(org_id, profile_id)
+);
+
+ALTER TABLE org_members ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX idx_org_members_profile ON org_members(profile_id);
+CREATE INDEX idx_org_members_org ON org_members(org_id);
+
+-- ============================================================
+-- 4. RLS policies for organizations (org_members exists now)
+-- ============================================================
 CREATE POLICY "Org members can view their orgs"
   ON organizations FOR SELECT
   USING (
@@ -47,20 +68,8 @@ CREATE POLICY "Authenticated users can create orgs"
   WITH CHECK (auth.uid() = created_by);
 
 -- ============================================================
--- 3. Org members table
+-- 5. RLS policies for org_members
 -- ============================================================
-CREATE TABLE org_members (
-  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  org_id      UUID        NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  profile_id  UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  role        org_role    NOT NULL DEFAULT 'developer',
-  invited_by  UUID        REFERENCES profiles(id) ON DELETE SET NULL,
-  joined_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE(org_id, profile_id)
-);
-
-ALTER TABLE org_members ENABLE ROW LEVEL SECURITY;
-
 -- Members can see their co-members
 CREATE POLICY "Members can view co-members"
   ON org_members FOR SELECT
@@ -100,12 +109,8 @@ CREATE POLICY "Admins can remove members"
     )
   );
 
--- Performance index for RLS subqueries (every org-scoped policy hits this)
-CREATE INDEX idx_org_members_profile ON org_members(profile_id);
-CREATE INDEX idx_org_members_org ON org_members(org_id);
-
 -- ============================================================
--- 4. Audit log table (append-only)
+-- 6. Audit log table (append-only)
 -- ============================================================
 CREATE TABLE audit_log (
   id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -134,7 +139,7 @@ CREATE INDEX idx_audit_log_org_time ON audit_log(org_id, created_at DESC);
 CREATE INDEX idx_audit_log_actor ON audit_log(actor_id);
 
 -- ============================================================
--- 5. Add nullable org_id to existing tables
+-- 7. Add nullable org_id to existing tables
 --    Existing rows get NULL (personal context, unchanged behavior)
 -- ============================================================
 ALTER TABLE agents
@@ -151,7 +156,7 @@ CREATE INDEX idx_api_keys_org ON api_keys(org_id);
 CREATE INDEX idx_arena_matches_org ON arena_matches(org_id);
 
 -- ============================================================
--- 6. Grants
+-- 8. Grants
 -- ============================================================
 GRANT ALL ON organizations TO authenticated;
 GRANT ALL ON org_members TO authenticated;

@@ -54,12 +54,29 @@ export async function POST(
   const auth = await getAuthContext(request);
   const isAuthenticated = auth !== null;
 
-  // 1. Rate limit — authenticated users are already rate-limited by getAuthContext;
-  //    anonymous callers use IP-based limits.
+  // 1. Rate limit — all callers are rate-limited.
+  //    API key users are limited by getAuthContext (checkApiKeyRateLimit).
+  //    Session users get a per-user rate limit here.
+  //    Anonymous callers use IP-based limits.
   const forwarded = request.headers.get("x-forwarded-for");
   const ip = forwarded
     ? forwarded.split(",").pop()!.trim()
     : request.headers.get("x-real-ip") || "unknown";
+
+  if (isAuthenticated && auth.authMethod === "session") {
+    // Session-based auth: apply per-user rate limit (60 rpm)
+    const { checkApiKeyRateLimit } = await import("@/lib/rate-limit");
+    const sessionRateCheck = await checkApiKeyRateLimit(
+      `session:${auth.profileId}`,
+      60
+    );
+    if (!sessionRateCheck.success) {
+      return corsJson(
+        { error: "Rate limit exceeded" },
+        { status: 429 }
+      );
+    }
+  }
 
   if (!isAuthenticated) {
     const rateCheck = await checkAnonRateLimit(ip);
