@@ -59,7 +59,7 @@ export default function EditAgentForm({ agent }: { agent: Agent }) {
 
     if (!res.ok) {
       const data = await res.json();
-      setError(data.error || "Failed to update agent");
+      setError(data.detail || data.error || "Failed to update agent");
       setLoading(false);
       return;
     }
