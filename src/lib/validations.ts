@@ -187,6 +187,24 @@ export const updateMemberRoleSchema = z.object({
   role: z.enum(["admin", "developer", "viewer", "auditor"]),
 });
 
+// === Enterprise: SSO schemas ===
+
+export const ssoConfigSchema = z.object({
+  enabled: z.boolean().optional().default(false),
+  provider: z.enum(["google", "microsoft", "okta", "custom"]),
+  client_id: z.string().min(1).max(500),
+  issuer_url: z
+    .string()
+    .url()
+    .refine((url) => url.startsWith("https://"), { message: "Issuer URL must use HTTPS" }),
+  allowed_domains: z
+    .array(z.string().min(3).max(253).regex(/^[a-z0-9.-]+\.[a-z]{2,}$/, "Invalid domain"))
+    .min(1, "At least one allowed domain is required")
+    .max(20),
+  auto_provision: z.boolean().optional().default(false),
+  default_role: z.enum(["developer", "viewer"]).optional().default("developer"),
+});
+
 // Escape ILIKE special characters
 export function escapeIlike(str: string): string {
   return str.replace(/[%_\\]/g, "\\$&");

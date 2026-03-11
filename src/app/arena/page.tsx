@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import SiteNav from "@/components/SiteNav";
 import { ArenaMatchCard } from "@/components/ArenaMatchCard";
+import { ArenaGrindPanel } from "@/components/ArenaGrindPanel";
 import type { ArenaMatchStatus, ArenaMatchType } from "@/lib/arena/types";
 
 interface MatchRow {
@@ -259,6 +260,9 @@ export default function ArenaPage() {
             </div>
           </section>
         )}
+
+        {/* Grind Mode */}
+        {!loading && <ArenaGrindPanel />}
 
         {/* Recent Matches */}
         {!loading && (

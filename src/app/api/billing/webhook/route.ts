@@ -65,6 +65,24 @@ export async function POST(request: Request) {
           break;
         }
 
+        // Org subscription checkout
+        const orgId = session.metadata?.org_id;
+        if (orgId && session.mode === "subscription") {
+          const plan = session.metadata?.plan as "pro" | "team" | undefined;
+          if (!plan || !["pro", "team"].includes(plan)) break;
+
+          await admin
+            .from("organizations")
+            .update({
+              plan,
+              stripe_customer_id: session.customer as string,
+              stripe_subscription_id: session.subscription as string,
+            })
+            .eq("id", orgId);
+          break;
+        }
+
+        // Personal billing
         const userId = session.metadata?.supabase_user_id;
 
         if (!userId) break;
@@ -106,10 +124,24 @@ export async function POST(request: Request) {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
 
-        await admin
-          .from("profiles")
-          .update({ plan: "free", stripe_subscription_id: null })
-          .eq("stripe_customer_id", customerId);
+        // Check if this customer belongs to an org
+        const { data: deletedOrg } = await admin
+          .from("organizations")
+          .select("id")
+          .eq("stripe_customer_id", customerId)
+          .maybeSingle();
+
+        if (deletedOrg) {
+          await admin
+            .from("organizations")
+            .update({ plan: "free", stripe_subscription_id: null })
+            .eq("id", deletedOrg.id);
+        } else {
+          await admin
+            .from("profiles")
+            .update({ plan: "free", stripe_subscription_id: null })
+            .eq("stripe_customer_id", customerId);
+        }
         break;
       }
 
@@ -117,19 +149,35 @@ export async function POST(request: Request) {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
 
+        // Check if this customer belongs to an org
+        const { data: updatedOrg } = await admin
+          .from("organizations")
+          .select("id")
+          .eq("stripe_customer_id", customerId)
+          .maybeSingle();
+
         // Determine plan from price ID
         const priceId = subscription.items.data[0]?.price?.id;
         const proPriceId = process.env.STRIPE_PRO_PRICE_ID;
         const teamPriceId = process.env.STRIPE_TEAM_PRICE_ID;
+        const orgProPriceId = process.env.STRIPE_ORG_PRO_PRICE_ID;
+        const orgTeamPriceId = process.env.STRIPE_ORG_TEAM_PRICE_ID;
 
         let plan: "free" | "pro" | "team" = "free";
-        if (priceId === proPriceId) plan = "pro";
-        else if (priceId === teamPriceId) plan = "team";
+        if (priceId === proPriceId || priceId === orgProPriceId) plan = "pro";
+        else if (priceId === teamPriceId || priceId === orgTeamPriceId) plan = "team";
 
-        await admin
-          .from("profiles")
-          .update({ plan })
-          .eq("stripe_customer_id", customerId);
+        if (updatedOrg) {
+          await admin
+            .from("organizations")
+            .update({ plan })
+            .eq("id", updatedOrg.id);
+        } else {
+          await admin
+            .from("profiles")
+            .update({ plan })
+            .eq("stripe_customer_id", customerId);
+        }
         break;
       }
 

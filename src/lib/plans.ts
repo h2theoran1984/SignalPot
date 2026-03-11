@@ -42,3 +42,9 @@ export const ORG_MONTHLY_QUOTAS: Record<string, number> = {
   pro: 50_000,
   team: 500_000,
 };
+
+/** Per-seat pricing for org plans (USD). */
+export const ORG_PLAN_PRICES: Record<string, { monthly: number; per_seat: number }> = {
+  pro: { monthly: 29, per_seat: 9 },
+  team: { monthly: 99, per_seat: 15 },
+};
