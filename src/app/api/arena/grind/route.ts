@@ -92,9 +92,8 @@ export async function POST(request: NextRequest) {
   const baseUrl = request.url.replace(/\/api\/arena\/grind.*$/, "");
   const fightUrl = `${baseUrl}/api/arena/fight`;
 
-  // Extract auth headers to forward
+  // Extract auth headers to forward (reuse authHeader from above)
   const authHeaders: Record<string, string> = {};
-  const authHeader = request.headers.get("authorization");
   if (authHeader) authHeaders["Authorization"] = authHeader;
   const cookieHeader = request.headers.get("cookie");
   if (cookieHeader) authHeaders["Cookie"] = cookieHeader;

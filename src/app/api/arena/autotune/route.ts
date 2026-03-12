@@ -97,7 +97,6 @@ export async function POST(request: NextRequest) {
   const grindUrl = `${baseUrl}/api/arena/grind`;
 
   const authHeaders: Record<string, string> = {};
-  const authHeader = request.headers.get("authorization");
   if (authHeader) authHeaders["Authorization"] = authHeader;
   const cookieHeader = request.headers.get("cookie");
   if (cookieHeader) authHeaders["Cookie"] = cookieHeader;
