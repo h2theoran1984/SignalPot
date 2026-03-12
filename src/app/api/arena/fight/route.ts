@@ -193,8 +193,8 @@ export async function POST(request: NextRequest) {
 
   const { agent_a_slug, agent_b_slug, capability, prompt, challenge_id, level: rawLevel } = parsed.data;
 
-  // Validate level (default 1, must be 1-3)
-  const level: ArenaLevel = (rawLevel === 2 || rawLevel === 3) ? rawLevel : 1;
+  // Validate level (default 1, must be 1-4)
+  const level: ArenaLevel = (rawLevel && rawLevel >= 2 && rawLevel <= 4) ? rawLevel as ArenaLevel : 1;
 
   const admin = createAdminClient();
 

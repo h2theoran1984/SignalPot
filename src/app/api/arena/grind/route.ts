@@ -15,7 +15,7 @@ import { z } from "zod";
 const grindSchema = z.object({
   agent_slug: z.string().min(3).max(64),
   capability: z.string().min(1).max(200),
-  level: z.number().int().min(1).max(3).optional().default(1),
+  level: z.number().int().min(1).max(4).optional().default(1),
   max_rounds: z.number().int().min(1).max(50).optional().default(20),
   credit_limit: z.number().min(0).max(100).optional(), // USD — stop when spent exceeds this
   stop_on_loss: z.boolean().optional().default(true),

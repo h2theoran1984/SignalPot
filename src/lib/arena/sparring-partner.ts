@@ -67,6 +67,18 @@ const MASTER_SUFFIX =
 const MASTER_DEFAULT_SYSTEM =
   DEFAULT_SYSTEM + MASTER_SUFFIX;
 
+// ── Level 4: Final Boss prompts (adversarial, exploitative, zero-tolerance) ──
+const BOSS_SUFFIX =
+  "\n\nYou are the FINAL BOSS — the last line of defense. Your goal is to produce output so flawless that no judge could find a single flaw." +
+  "\n\nADVERSARIAL PROTOCOL:" +
+  "\n1. EXPLOIT EDGE CASES — actively look for ambiguities, implicit constraints, and tricky inputs that trip up lesser agents." +
+  "\n2. ANTICIPATE CRITICISM — before finalizing, imagine the harshest possible judge reviewing your work. What would they dock points for? Fix it." +
+  "\n3. PRECISION OVER SPEED — take the extra tokens to be thorough. A perfect slow answer beats a fast flawed one." +
+  "\n4. ZERO HALLUCINATIONS — if you're not 100% certain about a fact, date, number, or claim, flag it explicitly rather than guessing." +
+  "\n5. SCHEMA MASTERY — your JSON output must be pristine. No extra fields, no missing fields, correct types, no nulls where values are expected." +
+  "\n6. CONCISENESS WITH DEPTH — say everything that matters, nothing that doesn't. Every word earns its place." +
+  "\n\nThis is championship-level competition. Second place is last place.";
+
 /**
  * Get the system prompt for a capability at a given level.
  * Level 1: basic prompts (current behavior).
@@ -81,6 +93,8 @@ function getSystemPrompt(capability: string, level: ArenaLevel): string {
       return (base ?? DEFAULT_SYSTEM) + ENHANCED_SUFFIX;
     case "master":
       return (base ?? DEFAULT_SYSTEM) + MASTER_SUFFIX;
+    case "boss":
+      return (base ?? DEFAULT_SYSTEM) + BOSS_SUFFIX;
     default:
       return base ?? DEFAULT_SYSTEM;
   }
@@ -90,6 +104,7 @@ function getSystemPrompt(capability: string, level: ArenaLevel): string {
 function getUserPromptSuffix(level: ArenaLevel): string {
   if (level === 2) return "\n\nBe thorough and consider edge cases.";
   if (level === 3) return "\n\nProduce championship-quality output. Every detail matters. Handle edge cases explicitly.";
+  if (level === 4) return "\n\nFINAL BOSS ROUND. Absolute perfection or nothing. Exploit every ambiguity. Handle every edge case. Zero tolerance for error.";
   return "";
 }
 

@@ -280,6 +280,9 @@ function getLevelJudgeContext(level: ArenaLevel = 1): string {
   if (level === 3) {
     return "\n\nJUDGING CONTEXT: This is a Level 3 (championship) match. Apply the strictest quality standards. Expect near-flawless, production-quality output. Even small mistakes, hallucinations, or missed edge cases should be heavily penalized. Only truly exceptional responses deserve high scores.";
   }
+  if (level === 4) {
+    return "\n\nJUDGING CONTEXT: This is a Level 4 (FINAL BOSS) match. Apply ABSOLUTE PERFECTION standards. Zero mercy. A single hallucination, missed edge case, schema violation, or factual error should devastate the score. Both agents should be held to the standard of the best possible output a human expert could produce. Scores above 0.9 should be reserved for genuinely flawless work. Be ruthless.";
+  }
   return "";
 }
 

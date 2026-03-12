@@ -69,6 +69,7 @@ function NewMatchPage() {
     { level: 1, label: "Level 1", description: "Haiku · Basic prompts", elo: 0 },
     { level: 2, label: "Level 2", description: "Sonnet · Enhanced prompts", elo: 1300 },
     { level: 3, label: "Level 3", description: "Opus · Master prompts", elo: 1500 },
+    { level: 4, label: "Final Boss", description: "Opus · Adversarial perfection", elo: 1700 },
   ];
 
   // Fetch challenger ELO when sparring partner is involved
@@ -278,7 +279,7 @@ function NewMatchPage() {
                   {challengerSlug} has <span className="text-cyan-400 font-semibold">{challengerElo}</span> ELO in {capability}
                 </p>
               )}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {LEVELS.map((l) => {
                   const unlocked = challengerElo !== null ? challengerElo >= l.elo : l.level === 1;
                   const isSelected = selectedLevel === l.level;

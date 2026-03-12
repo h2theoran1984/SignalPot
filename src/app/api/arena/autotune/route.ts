@@ -24,7 +24,7 @@ const autotuneSchema = z.object({
   capability: z.string().min(1).max(200),
   rounds_per_phase: z.number().int().min(3).max(30).default(10),
   max_iterations: z.number().int().min(1).max(5).default(3),
-  level: z.number().int().min(1).max(3).default(1),
+  level: z.number().int().min(1).max(4).default(1),
 });
 
 interface IterationResult {

@@ -59,11 +59,13 @@ export function ArenaMatchCard({ match }: ArenaMatchCardProps) {
           <Badge variant="tag">{match.capability}</Badge>
           {match.level && match.level > 1 && (
             <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${
-              match.level === 3
-                ? "bg-purple-900/50 text-purple-400 border border-purple-700/50"
-                : "bg-blue-900/50 text-blue-400 border border-blue-700/50"
+              match.level === 4
+                ? "bg-red-950/70 text-yellow-300 border border-yellow-700/50"
+                : match.level === 3
+                  ? "bg-purple-900/50 text-purple-400 border border-purple-700/50"
+                  : "bg-blue-900/50 text-blue-400 border border-blue-700/50"
             }`}>
-              LVL {match.level}
+              {match.level === 4 ? "BOSS" : `LVL ${match.level}`}
             </span>
           )}
         </div>

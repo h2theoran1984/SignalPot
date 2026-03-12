@@ -135,21 +135,23 @@ export function ArenaGrindPanel() {
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium text-gray-300">Level</label>
                 <div className="flex items-center gap-2">
-                  {[1, 2, 3].map((l) => (
+                  {[1, 2, 3, 4].map((l) => (
                     <button
                       key={l}
                       onClick={() => setLevel(l)}
                       className={`px-4 py-2 text-sm rounded-lg border font-medium transition-colors cursor-pointer ${
                         level === l
-                          ? l === 3
-                            ? "bg-purple-900/50 text-purple-400 border-purple-700/50"
-                            : l === 2
-                              ? "bg-blue-900/50 text-blue-400 border-blue-700/50"
-                              : "bg-cyan-900/30 text-cyan-400 border-cyan-700/50"
+                          ? l === 4
+                            ? "bg-red-950/70 text-yellow-300 border-yellow-700/50"
+                            : l === 3
+                              ? "bg-purple-900/50 text-purple-400 border-purple-700/50"
+                              : l === 2
+                                ? "bg-blue-900/50 text-blue-400 border-blue-700/50"
+                                : "bg-cyan-900/30 text-cyan-400 border-cyan-700/50"
                           : "bg-transparent text-gray-500 border-[#1f2028] hover:border-gray-600"
                       }`}
                     >
-                      Level {l}
+                      {l === 4 ? "Final Boss" : `Level ${l}`}
                     </button>
                   ))}
                 </div>

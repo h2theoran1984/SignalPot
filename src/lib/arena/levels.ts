@@ -1,10 +1,10 @@
-// Arena Leveling System — 3-level progression for the house agent.
+// Arena Leveling System — 4-level progression for the house agent.
 // Higher levels use smarter models, better prompts, and stricter judging.
 // Agents unlock levels by reaching per-capability ELO thresholds.
 
-export type ArenaLevel = 1 | 2 | 3;
+export type ArenaLevel = 1 | 2 | 3 | 4;
 
-export const ARENA_LEVELS = [1, 2, 3] as const;
+export const ARENA_LEVELS = [1, 2, 3, 4] as const;
 
 export interface LevelConfig {
   level: ArenaLevel;
@@ -13,7 +13,7 @@ export interface LevelConfig {
   model: string;
   maxTokens: number;
   eloThreshold: number;
-  promptStyle: "basic" | "enhanced" | "master";
+  promptStyle: "basic" | "enhanced" | "master" | "boss";
   rubricStrictness: number;   // quality criteria weight multiplier
   speedTierScale: number;     // lower = tighter speed thresholds
 }
@@ -52,12 +52,24 @@ export const LEVEL_CONFIGS: Record<ArenaLevel, LevelConfig> = {
     rubricStrictness: 1.6,
     speedTierScale: 0.5,
   },
+  4: {
+    level: 4,
+    label: "Final Boss",
+    description: "Final Boss. Opus with adversarial prompts, edge-case exploitation, and zero-tolerance judging.",
+    model: "claude-opus-4-20250514",
+    maxTokens: 8192,
+    eloThreshold: 1700,
+    promptStyle: "boss",
+    rubricStrictness: 2.0,
+    speedTierScale: 0.35,
+  },
 };
 
 export const DEFAULT_LEVEL: ArenaLevel = 1;
 
 /** Get the highest level an agent qualifies for at the given ELO. */
 export function getLevelForElo(elo: number): ArenaLevel {
+  if (elo >= LEVEL_CONFIGS[4].eloThreshold) return 4;
   if (elo >= LEVEL_CONFIGS[3].eloThreshold) return 3;
   if (elo >= LEVEL_CONFIGS[2].eloThreshold) return 2;
   return 1;
