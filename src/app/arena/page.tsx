@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import SiteNav from "@/components/SiteNav";
 import { ArenaMatchCard } from "@/components/ArenaMatchCard";
 import { ArenaGrindPanel } from "@/components/ArenaGrindPanel";
+import { ArenaAutoTunePanel } from "@/components/ArenaAutoTunePanel";
 import type { ArenaMatchStatus, ArenaMatchType } from "@/lib/arena/types";
 
 interface MatchRow {
@@ -263,6 +264,9 @@ export default function ArenaPage() {
 
         {/* Grind Mode */}
         {!loading && <ArenaGrindPanel />}
+
+        {/* AutoTune */}
+        {!loading && <ArenaAutoTunePanel />}
 
         {/* Recent Matches */}
         {!loading && (
