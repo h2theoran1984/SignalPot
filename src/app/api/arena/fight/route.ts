@@ -453,10 +453,11 @@ export async function POST(request: NextRequest) {
 
       if (ok) {
         // Agent responded — credit provider, log platform fee
+        // Skip crediting the fight creator (they paid the full cost; platform keeps its fee)
         const platformFee = Math.max(Math.floor((costMillicents * feePct) / 100), 100);
         const providerCut = costMillicents - platformFee;
 
-        if (providerCut > 0) {
+        if (providerCut > 0 && agent.owner_id && agent.owner_id !== effectiveProfileId) {
           await admin.rpc("add_credits", {
             p_user_id: agent.owner_id,
             p_amount_millicents: providerCut,

@@ -80,6 +80,7 @@ export const arenaJudgeMatch = inngest.createFunction(
         rate_a: Number(agentA.rate_amount ?? 0),
         rate_b: Number(agentB.rate_amount ?? 0),
         capability: match.capability as string,
+        creator_id: match.creator_id as string | null,
       };
     });
 
@@ -112,6 +113,7 @@ export const arenaJudgeMatch = inngest.createFunction(
     });
 
     // Step 4: credit providers — both agents responded successfully
+    // Skip crediting the fight creator (they paid the full cost; platform keeps its fee)
     await step.run("credit-providers", async () => {
       const rawPct = parseInt(process.env.PLATFORM_FEE_PCT ?? "10", 10);
       const feePct = Number.isFinite(rawPct) && rawPct >= 0 && rawPct <= 100 ? rawPct : 10;
@@ -125,7 +127,7 @@ export const arenaJudgeMatch = inngest.createFunction(
         const platformFee = Math.max(Math.floor((costMillicents * feePct) / 100), 100);
         const providerCut = costMillicents - platformFee;
 
-        if (providerCut > 0 && ownerId) {
+        if (providerCut > 0 && ownerId && ownerId !== judgment.creator_id) {
           await admin.rpc("add_credits", {
             p_user_id: ownerId,
             p_amount_millicents: providerCut,
