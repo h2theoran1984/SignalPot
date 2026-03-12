@@ -155,6 +155,9 @@ export function ArenaGrindPanel() {
                     </button>
                   ))}
                 </div>
+                <p className="text-xs text-gray-600 mt-1">
+                  Arena fee: ${[0.005, 0.01, 0.03, 0.05][level - 1]}/match
+                </p>
               </div>
 
               {/* Max rounds slider */}

@@ -247,10 +247,11 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Billing — deduct total fight cost upfront before calling agents
+  // Billing — deduct agent costs + arena match fee upfront
   const costA = Number(agentA.rate_amount) || 0;
   const costB = Number(agentB.rate_amount) || 0;
-  const totalCost = costA + costB;
+  const matchFee = hasSparring ? LEVEL_CONFIGS[level].matchFeeUsd : 0;
+  const totalCost = costA + costB + matchFee;
 
   if (totalCost > 0 && effectiveProfileId && !isServiceRole) {
     const totalMillicents = Math.floor(totalCost * 100_000);
@@ -268,6 +269,7 @@ export async function POST(request: NextRequest) {
             total_cost: totalCost,
             cost_a: costA,
             cost_b: costB,
+            match_fee: matchFee,
             hint: "Top up at /dashboard",
           },
           { status: 402 }
@@ -448,6 +450,15 @@ export async function POST(request: NextRequest) {
     await admin.from("arena_matches").update(matchUpdate).eq("id", matchId);
   }
 
+  // Billing — record match fee as platform revenue (non-refundable, covers judge + sparring costs)
+  if (matchFee > 0) {
+    const matchFeeMillicents = Math.floor(matchFee * 100_000);
+    await admin.from("platform_revenue").insert({
+      job_id: null,
+      amount_millicents: matchFeeMillicents,
+    });
+  }
+
   // Billing — credit providers for successful calls, refund creator for failed agents
   if (totalCost > 0) {
     const rawPct = parseInt(process.env.PLATFORM_FEE_PCT ?? "10", 10);
@@ -512,7 +523,7 @@ export async function POST(request: NextRequest) {
       confidence: judgment.confidence,
       source: judgment.source,
     } : null,
-    cost: { total: totalCost, agent_a: costA, agent_b: costB },
+    cost: { total: totalCost, agent_a: costA, agent_b: costB, match_fee: matchFee },
     level: hasSparring ? level : null,
     elo: eloResult,
     prompt: actualPrompt,

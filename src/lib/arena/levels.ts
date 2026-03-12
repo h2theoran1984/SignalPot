@@ -16,6 +16,7 @@ export interface LevelConfig {
   promptStyle: "basic" | "enhanced" | "master" | "boss";
   rubricStrictness: number;   // quality criteria weight multiplier
   speedTierScale: number;     // lower = tighter speed thresholds
+  matchFeeUsd: number;        // per-match arena fee to cover judge + sparring partner costs
 }
 
 export const LEVEL_CONFIGS: Record<ArenaLevel, LevelConfig> = {
@@ -29,6 +30,7 @@ export const LEVEL_CONFIGS: Record<ArenaLevel, LevelConfig> = {
     promptStyle: "basic",
     rubricStrictness: 1.0,
     speedTierScale: 1.0,
+    matchFeeUsd: 0.005,
   },
   2: {
     level: 2,
@@ -40,6 +42,7 @@ export const LEVEL_CONFIGS: Record<ArenaLevel, LevelConfig> = {
     promptStyle: "enhanced",
     rubricStrictness: 1.3,
     speedTierScale: 0.75,
+    matchFeeUsd: 0.01,
   },
   3: {
     level: 3,
@@ -51,6 +54,7 @@ export const LEVEL_CONFIGS: Record<ArenaLevel, LevelConfig> = {
     promptStyle: "master",
     rubricStrictness: 1.6,
     speedTierScale: 0.5,
+    matchFeeUsd: 0.03,
   },
   4: {
     level: 4,
@@ -62,6 +66,7 @@ export const LEVEL_CONFIGS: Record<ArenaLevel, LevelConfig> = {
     promptStyle: "boss",
     rubricStrictness: 2.0,
     speedTierScale: 0.35,
+    matchFeeUsd: 0.05,
   },
 };
 

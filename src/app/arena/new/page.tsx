@@ -123,10 +123,12 @@ function NewMatchPage() {
       })
     : agents;
 
-  // Estimate cost
+  // Estimate cost — includes arena match fee for sparring matches
+  const MATCH_FEES = [0.005, 0.01, 0.03, 0.05]; // L1-L4
   const costA = agentAObj ? Number(agentAObj.rate_amount) || 0 : 0;
   const costB = agentBObj ? Number(agentBObj.rate_amount) || 0 : 0;
-  const totalCost = costA + costB;
+  const matchFee = hasSparring ? MATCH_FEES[selectedLevel - 1] : 0;
+  const totalCost = costA + costB + matchFee;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -329,6 +331,7 @@ function NewMatchPage() {
             {totalCost > 0 && (
               <p className="text-xs text-gray-600 mt-1">
                 Agent A: ${costA.toFixed(4)} + Agent B: ${costB.toFixed(4)}
+                {matchFee > 0 && <> + Arena fee: ${matchFee.toFixed(3)}</>}
               </p>
             )}
           </div>
