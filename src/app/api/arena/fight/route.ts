@@ -17,7 +17,7 @@ import { checkArenaRateLimit } from "@/lib/rate-limit";
 import { getArenaLimitForPlan, type Plan } from "@/lib/plans";
 import { assertSafeUrl } from "@/lib/ssrf";
 
-const AGENT_TIMEOUT = 30_000;
+const AGENT_TIMEOUT = 45_000; // 45s — Opus-level prompts at L3/L4 can be slow
 
 interface AgentResult {
   response: Record<string, unknown>;
@@ -418,21 +418,30 @@ export async function POST(request: NextRequest) {
       agent_b_slug
     );
   } else if (aOk && !bOk) {
-    matchUpdate.status = "completed";
-    matchUpdate.winner = "a";
-    matchUpdate.judgment_reasoning = `Agent B (${agent_b_slug}) failed to respond`;
-    matchUpdate.completed_at = new Date().toISOString();
-    await admin.from("arena_matches").update(matchUpdate).eq("id", matchId);
-
-    eloResult = await updateElo(agentA.id as string, agentB.id as string, capability, "a", agent_a_slug, agent_b_slug);
+    // Only count as a win if the failing agent is an external agent (not sparring partner).
+    // Sparring partner runs in-process and should never fail, so that's a real win.
+    // But if an external agent times out / errors, don't penalize either side — mark as failed.
+    if (agent_b_slug === "sparring-partner") {
+      // Sparring partner failure is unexpected — treat match as failed, no ELO change
+      matchUpdate.status = "failed";
+      matchUpdate.judgment_reasoning = `Sparring Partner failed unexpectedly: ${bError}`;
+      matchUpdate.completed_at = new Date().toISOString();
+      await admin.from("arena_matches").update(matchUpdate).eq("id", matchId);
+    } else {
+      matchUpdate.status = "completed";
+      matchUpdate.winner = "a";
+      matchUpdate.judgment_reasoning = `Agent B (${agent_b_slug}) failed to respond`;
+      matchUpdate.completed_at = new Date().toISOString();
+      await admin.from("arena_matches").update(matchUpdate).eq("id", matchId);
+      eloResult = await updateElo(agentA.id as string, agentB.id as string, capability, "a", agent_a_slug, agent_b_slug);
+    }
   } else if (!aOk && bOk) {
-    matchUpdate.status = "completed";
-    matchUpdate.winner = "b";
-    matchUpdate.judgment_reasoning = `Agent A (${agent_a_slug}) failed to respond`;
+    // Agent A failed — if it's a timeout/error, mark as failed instead of a loss.
+    // This prevents ELO tanking from transient API errors (Anthropic 529, timeouts, etc.)
+    matchUpdate.status = "failed";
+    matchUpdate.judgment_reasoning = `Agent A (${agent_a_slug}) failed to respond: ${aError}. No ELO change.`;
     matchUpdate.completed_at = new Date().toISOString();
     await admin.from("arena_matches").update(matchUpdate).eq("id", matchId);
-
-    eloResult = await updateElo(agentA.id as string, agentB.id as string, capability, "b", agent_a_slug, agent_b_slug);
   } else {
     matchUpdate.status = "failed";
     matchUpdate.completed_at = new Date().toISOString();
