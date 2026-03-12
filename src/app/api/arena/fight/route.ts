@@ -148,6 +148,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // For service-role calls, resolve a system profile ID for creator_id (NOT NULL column)
+  let effectiveProfileId = auth?.profileId ?? null;
+  if (isServiceRole && !effectiveProfileId) {
+    const adminLookup = createAdminClient();
+    const { data: sysProfile } = await adminLookup
+      .from("profiles")
+      .select("id")
+      .limit(1)
+      .single();
+    effectiveProfileId = sysProfile?.id as string ?? null;
+  }
+
   // Rate limit — tiered by plan (free: 5/hr, pro: 25/hr, team: 100/hr)
   // Skip rate limiting for service-role (admin) access
   if (auth?.profileId) {
@@ -240,10 +252,10 @@ export async function POST(request: NextRequest) {
   const costB = Number(agentB.rate_amount) || 0;
   const totalCost = costA + costB;
 
-  if (totalCost > 0 && auth?.profileId) {
+  if (totalCost > 0 && effectiveProfileId && !isServiceRole) {
     const totalMillicents = Math.floor(totalCost * 100_000);
     const { error: paymentError } = await admin.rpc("settle_user_payment", {
-      p_profile_id: auth.profileId,
+      p_profile_id: effectiveProfileId,
       p_amount_millicents: totalMillicents,
     });
 
@@ -305,7 +317,7 @@ export async function POST(request: NextRequest) {
   const { data: match, error: matchError } = await admin
     .from("arena_matches")
     .insert({
-      creator_id: auth?.profileId ?? null,
+      creator_id: effectiveProfileId,
       agent_a_id: agentA.id,
       agent_b_id: agentB.id,
       capability,
@@ -457,9 +469,9 @@ export async function POST(request: NextRequest) {
         });
       } else {
         // Agent failed — refund creator for this agent's portion
-        if (auth?.profileId) {
+        if (effectiveProfileId && !isServiceRole) {
           await admin.rpc("add_credits", {
-            p_user_id: auth.profileId,
+            p_user_id: effectiveProfileId,
             p_amount_millicents: costMillicents,
           });
         }
