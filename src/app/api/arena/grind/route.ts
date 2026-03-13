@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
+import { verifyArenaAdminAuth } from "@/lib/arena/admin-auth";
 
 const grindSchema = z.object({
   agent_slug: z.string().min(3).max(64),
@@ -33,12 +34,9 @@ interface RoundResult {
 }
 
 export async function POST(request: NextRequest) {
-  // Accept service-role key for admin/CLI access (used by autotune loop)
+  // Accept dedicated arena admin secret for internal/CLI access (used by autotune loop)
   const authHeader = request.headers.get("authorization");
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const isServiceRole =
-    serviceRoleKey &&
-    authHeader === `Bearer ${serviceRoleKey}`;
+  const isServiceRole = await verifyArenaAdminAuth(request);
 
   const auth = isServiceRole ? null : await getAuthContext(request);
   if (!isServiceRole && !auth) {

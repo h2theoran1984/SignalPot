@@ -16,6 +16,7 @@ import { fightSchema } from "@/lib/arena/validations";
 import { checkArenaRateLimit } from "@/lib/rate-limit";
 import { getArenaLimitForPlan, type Plan } from "@/lib/plans";
 import { assertSafeUrl } from "@/lib/ssrf";
+import { verifyArenaAdminAuth } from "@/lib/arena/admin-auth";
 
 const AGENT_TIMEOUT = 45_000; // 45s — Opus-level prompts at L3/L4 can be slow
 
@@ -136,12 +137,8 @@ async function callFighter(
 }
 
 export async function POST(request: NextRequest) {
-  // Auth check — accept service-role key for admin/CLI access (used by autotune loop)
-  const authHeaderVal = request.headers.get("authorization");
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const isServiceRole =
-    serviceRoleKey &&
-    authHeaderVal === `Bearer ${serviceRoleKey}`;
+  // Auth check — accept dedicated arena admin secret for internal/CLI access (used by autotune loop)
+  const isServiceRole = await verifyArenaAdminAuth(request);
 
   const auth = isServiceRole ? null : await getAuthContext(request);
   if (!isServiceRole && !auth) {
@@ -420,26 +417,16 @@ export async function POST(request: NextRequest) {
       agent_b_slug
     );
   } else if (aOk && !bOk) {
-    // Only count as a win if the failing agent is an external agent (not sparring partner).
-    // Sparring partner runs in-process and should never fail, so that's a real win.
-    // But if an external agent times out / errors, don't penalize either side — mark as failed.
-    if (agent_b_slug === "sparring-partner") {
-      // Sparring partner failure is unexpected — treat match as failed, no ELO change
-      matchUpdate.status = "failed";
-      matchUpdate.judgment_reasoning = `Sparring Partner failed unexpectedly: ${bError}`;
-      matchUpdate.completed_at = new Date().toISOString();
-      await admin.from("arena_matches").update(matchUpdate).eq("id", matchId);
-    } else {
-      matchUpdate.status = "completed";
-      matchUpdate.winner = "a";
-      matchUpdate.judgment_reasoning = `Agent B (${agent_b_slug}) failed to respond`;
-      matchUpdate.completed_at = new Date().toISOString();
-      await admin.from("arena_matches").update(matchUpdate).eq("id", matchId);
-      eloResult = await updateElo(agentA.id as string, agentB.id as string, capability, "a", agent_a_slug, agent_b_slug);
-    }
+    // Agent B failed (timeout/error) — mark as failed, no ELO change for either side.
+    // This prevents gaming via intentionally broken agents and ensures symmetric handling.
+    matchUpdate.status = "failed";
+    matchUpdate.judgment_reasoning = agent_b_slug === "sparring-partner"
+      ? `Sparring Partner failed unexpectedly: ${bError}. No ELO change.`
+      : `Agent B (${agent_b_slug}) failed to respond: ${bError}. No ELO change.`;
+    matchUpdate.completed_at = new Date().toISOString();
+    await admin.from("arena_matches").update(matchUpdate).eq("id", matchId);
   } else if (!aOk && bOk) {
-    // Agent A failed — if it's a timeout/error, mark as failed instead of a loss.
-    // This prevents ELO tanking from transient API errors (Anthropic 529, timeouts, etc.)
+    // Agent A failed (timeout/error) — mark as failed, no ELO change for either side.
     matchUpdate.status = "failed";
     matchUpdate.judgment_reasoning = `Agent A (${agent_a_slug}) failed to respond: ${aError}. No ELO change.`;
     matchUpdate.completed_at = new Date().toISOString();
@@ -460,13 +447,14 @@ export async function POST(request: NextRequest) {
   }
 
   // Billing — credit providers for successful calls, refund creator for failed agents
+  const billingErrors: Array<{ op: string; agent: string; amount: number; error: string }> = [];
   if (totalCost > 0) {
     const rawPct = parseInt(process.env.PLATFORM_FEE_PCT ?? "10", 10);
     const feePct = Number.isFinite(rawPct) && rawPct >= 0 && rawPct <= 100 ? rawPct : 10;
 
-    for (const { agent, ok, cost } of [
-      { agent: agentA, ok: aOk, cost: costA },
-      { agent: agentB, ok: bOk, cost: costB },
+    for (const { agent, slug, ok, cost } of [
+      { agent: agentA, slug: agent_a_slug, ok: aOk, cost: costA },
+      { agent: agentB, slug: agent_b_slug, ok: bOk, cost: costB },
     ]) {
       if (cost <= 0) continue;
       const costMillicents = Math.floor(cost * 100_000);
@@ -478,10 +466,14 @@ export async function POST(request: NextRequest) {
         const providerCut = costMillicents - platformFee;
 
         if (providerCut > 0 && agent.owner_id && agent.owner_id !== effectiveProfileId) {
-          await admin.rpc("add_credits", {
+          const { error: creditError } = await admin.rpc("add_credits", {
             p_user_id: agent.owner_id,
             p_amount_millicents: providerCut,
           });
+          if (creditError) {
+            console.error(`[arena-fight] BILLING ERROR: Failed to credit provider ${agent.owner_id} for agent ${slug}, match ${matchId}, amount ${providerCut} millicents:`, creditError.message);
+            billingErrors.push({ op: "provider_credit", agent: slug, amount: providerCut, error: creditError.message });
+          }
         }
 
         await admin.from("platform_revenue").insert({
@@ -489,15 +481,26 @@ export async function POST(request: NextRequest) {
           amount_millicents: platformFee,
         });
       } else {
-        // Agent failed — refund creator for this agent's portion
-        if (effectiveProfileId && !isServiceRole) {
-          await admin.rpc("add_credits", {
+        // Agent failed — refund creator for this agent's portion (regardless of auth method)
+        if (effectiveProfileId) {
+          const { error: refundError } = await admin.rpc("add_credits", {
             p_user_id: effectiveProfileId,
             p_amount_millicents: costMillicents,
           });
+          if (refundError) {
+            console.error(`[arena-fight] BILLING ERROR: Failed to refund creator ${effectiveProfileId} for agent ${slug}, match ${matchId}, amount ${costMillicents} millicents:`, refundError.message);
+            billingErrors.push({ op: "creator_refund", agent: slug, amount: costMillicents, error: refundError.message });
+          }
         }
       }
     }
+  }
+
+  // Persist billing errors to the match record for audit trail
+  if (billingErrors.length > 0) {
+    await admin.from("arena_matches").update({
+      billing_notes: billingErrors,
+    }).eq("id", matchId);
   }
 
   return NextResponse.json({

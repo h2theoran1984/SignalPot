@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createHmac } from "crypto";
 import { logAuditEvent } from "@/lib/audit";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 
 interface SsoConfig {
   enabled: boolean;
   provider: string;
   client_id: string;
+  client_secret?: string;
   issuer_url: string;
   allowed_domains: string[];
   auto_provision: boolean;
@@ -24,8 +26,15 @@ interface StatePayload {
  * Verify the HMAC-signed state parameter.
  * Returns the decoded payload or null if invalid.
  */
+function getSsoStateSecret(): string {
+  const dedicated = process.env.SSO_STATE_SECRET;
+  if (dedicated) return dedicated;
+  console.warn("[sso] SSO_STATE_SECRET not set — falling back to SUPABASE_SERVICE_ROLE_KEY. Set a dedicated secret for production.");
+  return process.env.SUPABASE_SERVICE_ROLE_KEY!;
+}
+
 function verifyState(state: string): StatePayload | null {
-  const secret = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  const secret = getSsoStateSecret();
   const parts = state.split(".");
   if (parts.length !== 2) return null;
 
@@ -54,16 +63,24 @@ function verifyState(state: string): StatePayload | null {
 }
 
 /**
- * Decode a JWT payload without signature verification.
- * The token came directly from the OIDC provider over HTTPS.
- * TODO: Add signature verification using the provider's JWKS for production.
+ * Verify a JWT ID token using the provider's JWKS endpoint.
+ * Fetches the public keys from the provider's jwks_uri and validates the signature.
  */
-function decodeJwtPayload(token: string): Record<string, unknown> | null {
+async function verifyIdToken(
+  token: string,
+  jwksUri: string,
+  expectedIssuer: string,
+  expectedAudience: string
+): Promise<Record<string, unknown> | null> {
   try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return null;
-    return JSON.parse(Buffer.from(parts[1], "base64url").toString("utf-8"));
-  } catch {
+    const JWKS = createRemoteJWKSet(new URL(jwksUri));
+    const { payload } = await jwtVerify(token, JWKS, {
+      issuer: expectedIssuer,
+      audience: expectedAudience,
+    });
+    return payload as Record<string, unknown>;
+  } catch (err) {
+    console.error("[sso] JWT verification failed:", err);
     return null;
   }
 }
@@ -119,9 +136,9 @@ export async function GET(
     return NextResponse.redirect(new URL(`/login?error=sso_not_enabled`, url.origin));
   }
 
-  // Fetch OIDC discovery document for token endpoint
+  // Fetch OIDC discovery document for token endpoint and JWKS URI
   const discoveryUrl = `${ssoConfig.issuer_url.replace(/\/$/, "")}/.well-known/openid-configuration`;
-  let discovery: { token_endpoint?: string };
+  let discovery: { token_endpoint?: string; jwks_uri?: string; issuer?: string };
   try {
     const res = await fetch(discoveryUrl, { next: { revalidate: 3600 } });
     if (!res.ok) throw new Error(`Discovery fetch failed: ${res.status}`);
@@ -131,7 +148,7 @@ export async function GET(
     return NextResponse.redirect(new URL(`/login?error=sso_provider_error`, url.origin));
   }
 
-  if (!discovery.token_endpoint) {
+  if (!discovery.token_endpoint || !discovery.jwks_uri || !discovery.issuer) {
     return NextResponse.redirect(new URL(`/login?error=sso_provider_error`, url.origin));
   }
 
@@ -139,17 +156,21 @@ export async function GET(
   const redirectUri = `${url.origin}/api/orgs/${slug}/sso/callback`;
   let tokenData: { id_token?: string; access_token?: string };
   try {
-    // Note: client_secret should be stored securely. For MVP, we rely on the code exchange
-    // being server-side. In production, store client_secret in encrypted settings.
+    const tokenParams: Record<string, string> = {
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: redirectUri,
+      client_id: ssoConfig.client_id,
+    };
+    if (ssoConfig.client_secret) {
+      tokenParams.client_secret = ssoConfig.client_secret;
+    } else {
+      console.warn("[sso] No client_secret configured for org", slug, "— token exchange may be rejected by strict providers");
+    }
     const tokenRes = await fetch(discovery.token_endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        grant_type: "authorization_code",
-        code,
-        redirect_uri: redirectUri,
-        client_id: ssoConfig.client_id,
-      }),
+      body: new URLSearchParams(tokenParams),
     });
 
     if (!tokenRes.ok) {
@@ -168,9 +189,13 @@ export async function GET(
     return NextResponse.redirect(new URL(`/login?error=sso_no_id_token`, url.origin));
   }
 
-  // Decode the ID token to get user info
-  // TODO: Verify JWT signature against provider's JWKS in production
-  const claims = decodeJwtPayload(tokenData.id_token);
+  // Verify the ID token signature against the provider's JWKS
+  const claims = await verifyIdToken(
+    tokenData.id_token,
+    discovery.jwks_uri,
+    discovery.issuer,
+    ssoConfig.client_id
+  );
   if (!claims) {
     return NextResponse.redirect(new URL(`/login?error=sso_invalid_token`, url.origin));
   }

@@ -82,7 +82,28 @@ export async function POST(req: NextRequest) {
     rate_amount: job.rate_amount,
   };
 
-  // Create dispute
+  // Stake deposit: 2x rate_amount from requester (atomic deduction)
+  // Deduct BEFORE creating the dispute to prevent TOCTOU race conditions
+  const depositMillicents = Math.floor((job.rate_amount ?? 0) * 100000 * 2);
+  if (depositMillicents > 0) {
+    const { error: depositError } = await admin.rpc("deduct_dispute_deposit", {
+      p_profile_id: auth.profileId,
+      p_amount_millicents: depositMillicents,
+    });
+
+    if (depositError) {
+      const msg = depositError.message ?? "";
+      if (msg.includes("INSUFFICIENT_BALANCE")) {
+        return NextResponse.json(
+          { error: "Insufficient balance for dispute deposit (requires 2x job cost)" },
+          { status: 400 }
+        );
+      }
+      return NextResponse.json({ error: "Deposit deduction failed" }, { status: 500 });
+    }
+  }
+
+  // Create dispute — deposit already secured above
   const { data: dispute, error: disputeError } = await admin
     .from("disputes")
     .insert({
@@ -96,37 +117,18 @@ export async function POST(req: NextRequest) {
     .select()
     .single();
 
-  if (disputeError || !dispute)
-    return NextResponse.json({ error: "Failed to create dispute" }, { status: 500 });
-
-  // Stake deposit: 2x rate_amount from requester (deduct from balance)
-  const depositMillicents = Math.floor((job.rate_amount ?? 0) * 100000 * 2);
-  if (depositMillicents > 0) {
-    // Check balance
-    const { data: profile } = await admin
-      .from("profiles")
-      .select("credit_balance_millicents")
-      .eq("id", auth.profileId)
-      .single();
-
-    if ((profile?.credit_balance_millicents ?? 0) < depositMillicents) {
-      // Delete the dispute and return error
-      await admin.from("disputes").delete().eq("id", dispute.id);
-      return NextResponse.json(
-        { error: "Insufficient balance for dispute deposit (requires 2x job cost)" },
-        { status: 400 }
-      );
+  if (disputeError || !dispute) {
+    // Refund the deposit if dispute creation fails
+    if (depositMillicents > 0) {
+      await admin.rpc("add_credits", {
+        p_user_id: auth.profileId,
+        p_amount_millicents: depositMillicents,
+      });
     }
+    return NextResponse.json({ error: "Failed to create dispute" }, { status: 500 });
+  }
 
-    // Deduct and record deposit
-    await admin
-      .from("profiles")
-      .update({
-        credit_balance_millicents:
-          profile!.credit_balance_millicents - depositMillicents,
-      })
-      .eq("id", auth.profileId);
-
+  if (depositMillicents > 0) {
     await admin.from("dispute_deposits").insert({
       dispute_id: dispute.id,
       profile_id: auth.profileId,

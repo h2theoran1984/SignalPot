@@ -133,6 +133,27 @@ export async function checkOrgMonthlyQuota(
   return { success: true, remaining: monthlyLimit - current, reset };
 }
 
+// Admin auth rate limiter: 10 attempts per minute per IP
+export async function checkAdminAuthRateLimit(
+  ip: string
+): Promise<{ success: boolean; remaining: number; reset: number }> {
+  const r = getRedis();
+  if (!r) return { success: false, remaining: 0, reset: Date.now() + 60_000 };
+
+  const limiter = new Ratelimit({
+    redis: r,
+    limiter: Ratelimit.slidingWindow(10, "1 m"),
+    prefix: "sp:admin-auth",
+  });
+
+  const result = await limiter.limit(ip);
+  return {
+    success: result.success,
+    remaining: result.remaining,
+    reset: result.reset,
+  };
+}
+
 // Global IP-based rate limiter for unauthenticated endpoints
 export async function checkIpRateLimit(
   ip: string

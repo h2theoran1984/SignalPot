@@ -12,12 +12,18 @@ interface SsoConfig {
   default_role: string;
 }
 
+function getSsoStateSecret(): string {
+  const dedicated = process.env.SSO_STATE_SECRET;
+  if (dedicated) return dedicated;
+  console.warn("[sso] SSO_STATE_SECRET not set — falling back to SUPABASE_SERVICE_ROLE_KEY. Set a dedicated secret for production.");
+  return process.env.SUPABASE_SERVICE_ROLE_KEY!;
+}
+
 /**
  * Sign a state parameter using HMAC-SHA256.
- * Uses SUPABASE_SERVICE_ROLE_KEY as the signing secret.
  */
 function signState(payload: Record<string, unknown>): string {
-  const secret = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  const secret = getSsoStateSecret();
   const data = Buffer.from(JSON.stringify(payload)).toString("base64url");
   const signature = createHmac("sha256", secret).update(data).digest("base64url");
   return `${data}.${signature}`;
