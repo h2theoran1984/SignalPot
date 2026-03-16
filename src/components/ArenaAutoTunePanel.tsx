@@ -7,6 +7,7 @@ interface AgentOption {
   id: string;
   name: string;
   slug: string;
+  capability_schema: { name: string }[];
 }
 
 interface IterationResult {
@@ -59,6 +60,10 @@ export function ArenaAutoTunePanel() {
   const [result, setResult] = useState<AutoTuneResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Derived: capabilities for selected agent
+  const selectedAgent = agents.find((a) => a.slug === selectedSlug);
+  const capabilities = selectedAgent?.capability_schema ?? [];
+
   // Fetch agents when panel opens
   useEffect(() => {
     if (!isOpen || agents.length > 0) return;
@@ -74,6 +79,7 @@ export function ArenaAutoTunePanel() {
               id: a.id,
               name: a.name,
               slug: a.slug,
+              capability_schema: a.capability_schema ?? [],
             }))
           );
         }
@@ -154,7 +160,10 @@ export function ArenaAutoTunePanel() {
                   <label className="text-sm font-medium text-gray-300">Agent</label>
                   <select
                     value={selectedSlug}
-                    onChange={(e) => setSelectedSlug(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedSlug(e.target.value);
+                      setCapability("");
+                    }}
                     className="w-full px-4 py-2.5 bg-[#111118] border border-[#1f2028] rounded-lg text-white transition-colors focus:outline-none focus:border-cyan-700 appearance-none cursor-pointer"
                     style={{
                       backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
@@ -177,16 +186,33 @@ export function ArenaAutoTunePanel() {
                   </select>
                 </div>
 
-                {/* Capability input */}
+                {/* Capability dropdown */}
                 <div className="flex flex-col gap-1">
                   <label className="text-sm font-medium text-gray-300">Capability</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. meeting-summary@v1"
+                  <select
                     value={capability}
                     onChange={(e) => setCapability(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-[#111118] border border-[#1f2028] rounded-lg text-white placeholder-gray-600 transition-colors focus:outline-none focus:border-cyan-700"
-                  />
+                    disabled={!selectedSlug || capabilities.length === 0}
+                    className="w-full px-4 py-2.5 bg-[#111118] border border-[#1f2028] rounded-lg text-white transition-colors focus:outline-none focus:border-cyan-700 appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+                      backgroundRepeat: "no-repeat",
+                      backgroundPosition: "right 12px center",
+                    }}
+                  >
+                    <option value="" className="bg-[#0a0a0f] text-gray-500">
+                      {!selectedSlug ? "Select an agent first" : capabilities.length === 0 ? "No capabilities" : "Select a capability"}
+                    </option>
+                    {capabilities.map((cap) => (
+                      <option
+                        key={cap.name}
+                        value={cap.name}
+                        className="bg-[#0a0a0f] text-white"
+                      >
+                        {cap.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

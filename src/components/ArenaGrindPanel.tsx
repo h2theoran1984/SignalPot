@@ -1,9 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+
+interface AgentOption {
+  id: string;
+  name: string;
+  slug: string;
+  capability_schema: { name: string }[];
+}
 
 interface GrindRound {
   round: number;
@@ -35,6 +42,10 @@ const STOP_REASON_COLORS: Record<string, string> = {
 };
 
 export function ArenaGrindPanel() {
+  // Agent list
+  const [agents, setAgents] = useState<AgentOption[]>([]);
+  const [agentsLoading, setAgentsLoading] = useState(false);
+
   // Form state
   const [agentSlug, setAgentSlug] = useState("");
   const [capability, setCapability] = useState("");
@@ -49,6 +60,39 @@ export function ArenaGrindPanel() {
   const [result, setResult] = useState<GrindResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [roundsExpanded, setRoundsExpanded] = useState(false);
+
+  // Derived: capabilities for selected agent
+  const selectedAgent = agents.find((a) => a.slug === agentSlug);
+  const capabilities = selectedAgent?.capability_schema ?? [];
+
+  // Fetch agents when panel opens
+  useEffect(() => {
+    if (!isOpen || agents.length > 0) return;
+
+    async function loadAgents() {
+      setAgentsLoading(true);
+      try {
+        const res = await fetch("/api/agents?limit=100&status=active");
+        if (res.ok) {
+          const data = await res.json();
+          setAgents(
+            (data.agents ?? []).map((a: AgentOption) => ({
+              id: a.id,
+              name: a.name,
+              slug: a.slug,
+              capability_schema: a.capability_schema ?? [],
+            }))
+          );
+        }
+      } catch {
+        // Silently fail — user can still type
+      } finally {
+        setAgentsLoading(false);
+      }
+    }
+
+    loadAgents();
+  }, [isOpen, agents.length]);
 
   async function handleGrind() {
     if (!agentSlug.trim() || !capability.trim()) return;
@@ -117,18 +161,65 @@ export function ArenaGrindPanel() {
           {!grinding && !result && (
             <div className="space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="Agent Slug"
-                  placeholder="e.g. the-next-step"
-                  value={agentSlug}
-                  onChange={(e) => setAgentSlug(e.target.value)}
-                />
-                <Input
-                  label="Capability"
-                  placeholder="e.g. summary"
-                  value={capability}
-                  onChange={(e) => setCapability(e.target.value)}
-                />
+                {/* Agent dropdown */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-gray-300">Agent</label>
+                  <select
+                    value={agentSlug}
+                    onChange={(e) => {
+                      setAgentSlug(e.target.value);
+                      setCapability("");
+                    }}
+                    className="w-full px-4 py-2.5 bg-[#111118] border border-[#1f2028] rounded-lg text-white transition-colors focus:outline-none focus:border-cyan-700 appearance-none cursor-pointer"
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+                      backgroundRepeat: "no-repeat",
+                      backgroundPosition: "right 12px center",
+                    }}
+                  >
+                    <option value="" className="bg-[#0a0a0f] text-gray-500">
+                      {agentsLoading ? "Loading agents..." : "Select an agent"}
+                    </option>
+                    {agents.map((agent) => (
+                      <option
+                        key={agent.id}
+                        value={agent.slug}
+                        className="bg-[#0a0a0f] text-white"
+                      >
+                        {agent.name} ({agent.slug})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Capability dropdown */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-gray-300">Capability</label>
+                  <select
+                    value={capability}
+                    onChange={(e) => setCapability(e.target.value)}
+                    disabled={!agentSlug || capabilities.length === 0}
+                    className="w-full px-4 py-2.5 bg-[#111118] border border-[#1f2028] rounded-lg text-white transition-colors focus:outline-none focus:border-cyan-700 appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+                      backgroundRepeat: "no-repeat",
+                      backgroundPosition: "right 12px center",
+                    }}
+                  >
+                    <option value="" className="bg-[#0a0a0f] text-gray-500">
+                      {!agentSlug ? "Select an agent first" : capabilities.length === 0 ? "No capabilities" : "Select a capability"}
+                    </option>
+                    {capabilities.map((cap) => (
+                      <option
+                        key={cap.name}
+                        value={cap.name}
+                        className="bg-[#0a0a0f] text-white"
+                      >
+                        {cap.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Level selector */}
