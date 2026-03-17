@@ -25,7 +25,7 @@ const INFORMATION_RETRIEVAL: ArenaRubric = {
 const TEXT_PROCESSING: ArenaRubric = {
   domain: "text-processing",
   criteria: [
-    { name: "accuracy", weight: 0.25, description: "Is the output factually correct? Does it faithfully represent the source? For meeting summaries, verify dates are arithmetically correct (e.g., Tuesday after Monday March 9 = March 10, not March 11). Prefer precise YYYY-MM-DD dates over vague relative references." },
+    { name: "accuracy", weight: 0.25, description: "Is the output factually correct? Does it faithfully represent the source? For meeting summaries, check whether dates are arithmetically correct. A DATE ACCURACY CHECK may be provided in the Verification Reference section." },
     { name: "coherence", weight: 0.15, description: "Is the output well-structured and logically organized?" },
     { name: "conciseness", weight: 0.15, description: "Does it avoid redundancy and unnecessary padding?" },
   ],
@@ -407,16 +407,17 @@ function buildDateAccuracyReport(
   const scoreA = scoreAgent(responseA, "A");
   const scoreB = scoreAgent(responseB, "B");
 
-  return `DATE ACCURACY REPORT (pre-computed by server — these results are AUTHORITATIVE):
-Meeting: ${toISO(meetingDate)} (${dowName}) | Correct dates: ${gtEntries}
+  return `DATE ACCURACY CHECK (computed from transcript using calendar arithmetic):
+Meeting held: ${toISO(meetingDate)} (${dowName})
+Ground truth dates: ${gtEntries}
 
-Agent A: ${scoreA.correct}/${scoreA.total} dates match ground truth${scoreA.vague ? " — USES VAGUE TEXT DATES" : ""}
+Agent A: ${scoreA.correct}/${scoreA.total} dates correct${scoreA.vague ? " | uses vague text dates" : ""}
   ${scoreA.details.join("\n  ")}
 
-Agent B: ${scoreB.correct}/${scoreB.total} dates match ground truth${scoreB.vague ? " — USES VAGUE TEXT DATES" : ""}
+Agent B: ${scoreB.correct}/${scoreB.total} dates correct${scoreB.vague ? " | uses vague text dates" : ""}
   ${scoreB.details.join("\n  ")}
 
-SCORING INSTRUCTION: Use this report directly for the accuracy criterion. The agent with MORE correct dates and FEWER vague references should score HIGHER on accuracy. These results are computed by the server and are CORRECT — do not override them.`;
+Factor this into the accuracy criterion alongside other quality dimensions.`;
 }
 
 /**
