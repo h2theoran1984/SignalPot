@@ -298,80 +298,144 @@ function addDays(d: Date, n: number): Date {
 }
 
 /**
- * Build a ground truth answer key for the judge by pre-computing
- * correct dates from the transcript. The judge uses this to verify
- * agent responses without doing any date arithmetic itself.
+ * Compute ground truth dates from a transcript.
+ * Returns a Map of correct ISO dates found in the text.
  */
-function buildDateGroundTruth(promptObj: Record<string, unknown>): string | null {
-  // Extract text from the prompt object
-  const text = typeof promptObj.text === "string" ? promptObj.text : JSON.stringify(promptObj);
+function computeGroundTruthDates(text: string): Map<string, string> {
   const meetingDate = parseMeetingDate(text);
-  if (!meetingDate) return null;
+  const dates = new Map<string, string>();
+  if (!meetingDate) return dates;
 
   const meetingDow = meetingDate.getDay();
-  const dowName = DAY_NAMES[meetingDow].charAt(0).toUpperCase() + DAY_NAMES[meetingDow].slice(1);
   const lowerText = text.toLowerCase();
-  const entries: string[] = [];
-  const seen = new Set<string>();
 
-  const add = (label: string, date: Date) => {
-    const iso = toISO(date);
-    const key = `${label}=${iso}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      entries.push(`- "${label}" → ${iso}`);
-    }
-  };
-
-  // Always include today/tomorrow if referenced
   if (/\btoday\b|\bend of day\b|\bby eod\b|\beod\b/i.test(text)) {
-    add("today / end of day / EOD", meetingDate);
+    dates.set("today/EOD", toISO(meetingDate));
   }
   if (/\btomorrow\b/i.test(text)) {
-    add("tomorrow", addDays(meetingDate, 1));
+    dates.set("tomorrow", toISO(addDays(meetingDate, 1)));
   }
-
-  // Named days
   for (let i = 0; i < 7; i++) {
     const dayName = DAY_NAMES[i];
     if (new RegExp(`\\b${dayName}\\b`, "i").test(lowerText)) {
       const offset = (i - meetingDow + 7) % 7;
       if (offset > 0) {
-        add(dayName.charAt(0).toUpperCase() + dayName.slice(1), addDays(meetingDate, offset));
+        dates.set(dayName.charAt(0).toUpperCase() + dayName.slice(1), toISO(addDays(meetingDate, offset)));
       }
     }
   }
-
-  // Next week
   if (/\bnext week\b/i.test(text)) {
-    add("next week (Monday)", addDays(meetingDate, 7 - meetingDow + 1));
+    dates.set("next week", toISO(addDays(meetingDate, 7 - meetingDow + 1)));
+  }
+  return dates;
+}
+
+/**
+ * Extract all YYYY-MM-DD dates from an agent's response.
+ * Searches action_items[].due, action_items[].due_date, and deadline fields.
+ */
+function extractAgentDates(response: Record<string, unknown>): string[] {
+  const dates: string[] = [];
+  const text = JSON.stringify(response);
+  const matches = text.match(/\d{4}-\d{2}-\d{2}/g);
+  if (matches) {
+    for (const m of matches) dates.push(m);
+  }
+  return Array.from(new Set(dates));
+}
+
+/**
+ * Check if an agent uses vague relative date text instead of ISO dates.
+ */
+function usesVagueDates(response: Record<string, unknown>): boolean {
+  const text = JSON.stringify(response);
+  return /\b(Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Monday)\s+(EOD|at|by)\b/i.test(text)
+    || /\b(End of day|Tomorrow noon|Tomorrow)\b/i.test(text);
+}
+
+/**
+ * Build a pre-computed DATE ACCURACY REPORT comparing both agents' dates
+ * against ground truth. The judge doesn't need to do any date math — just
+ * read the verdict.
+ */
+function buildDateAccuracyReport(
+  promptObj: Record<string, unknown>,
+  responseA: Record<string, unknown>,
+  responseB: Record<string, unknown>,
+): string | null {
+  const text = typeof promptObj.text === "string" ? promptObj.text : JSON.stringify(promptObj);
+  const groundTruth = computeGroundTruthDates(text);
+  if (groundTruth.size === 0) return null;
+
+  const meetingDate = parseMeetingDate(text)!;
+  const meetingDow = meetingDate.getDay();
+  const dowName = DAY_NAMES[meetingDow].charAt(0).toUpperCase() + DAY_NAMES[meetingDow].slice(1);
+
+  const gtValues = new Set(groundTruth.values());
+  const gtEntries = Array.from(groundTruth.entries()).map(([k, v]) => `${k}=${v}`).join(", ");
+
+  function scoreAgent(response: Record<string, unknown>, label: string): { correct: number; total: number; details: string[]; vague: boolean } {
+    const agentDates = extractAgentDates(response);
+    const vague = usesVagueDates(response);
+    let correct = 0;
+    const details: string[] = [];
+
+    for (const d of agentDates) {
+      if (gtValues.has(d)) {
+        correct++;
+        details.push(`${d} ✓`);
+      } else {
+        // Find what it should have been
+        const closest = Array.from(gtValues).find(gt => Math.abs(
+          new Date(d).getTime() - new Date(gt).getTime()
+        ) <= 2 * 86400000); // within 2 days
+        if (closest) {
+          details.push(`${d} ✗ (should be ${closest})`);
+        } else {
+          details.push(`${d} ?`);
+        }
+      }
+    }
+
+    if (vague) {
+      details.push("⚠ Uses vague text dates instead of YYYY-MM-DD");
+    }
+
+    return { correct, total: agentDates.length, details, vague };
   }
 
-  if (entries.length === 0) return null;
+  const scoreA = scoreAgent(responseA, "A");
+  const scoreB = scoreAgent(responseB, "B");
 
-  return `GROUND TRUTH — CORRECT DATE ANSWERS (pre-computed, use these to verify agent accuracy):
-Meeting date: ${toISO(meetingDate)} (${dowName})
-${entries.join("\n")}
+  return `DATE ACCURACY REPORT (pre-computed by server — these results are AUTHORITATIVE):
+Meeting: ${toISO(meetingDate)} (${dowName}) | Correct dates: ${gtEntries}
 
-SCORING RULES:
-- An agent whose due dates MATCH these ground truth dates scores HIGH on accuracy.
-- An agent whose due dates are OFF BY EVEN ONE DAY scores LOW on accuracy.
-- Agents that output precise YYYY-MM-DD dates should score HIGHER than agents using vague text like "Tuesday EOD" or "End of day".
-- These ground truth dates are CORRECT — do not second-guess them.`;
+Agent A: ${scoreA.correct}/${scoreA.total} dates match ground truth${scoreA.vague ? " — USES VAGUE TEXT DATES" : ""}
+  ${scoreA.details.join("\n  ")}
+
+Agent B: ${scoreB.correct}/${scoreB.total} dates match ground truth${scoreB.vague ? " — USES VAGUE TEXT DATES" : ""}
+  ${scoreB.details.join("\n  ")}
+
+SCORING INSTRUCTION: Use this report directly for the accuracy criterion. The agent with MORE correct dates and FEWER vague references should score HIGHER on accuracy. These results are computed by the server and are CORRECT — do not override them.`;
 }
 
 /**
  * Get capability-specific verification context for the judge prompt.
- * For meeting-summary/action-items, computes ground truth dates from the transcript.
- * For other capabilities, returns null (no special hints needed).
+ * For meeting-summary/action-items, computes a date accuracy report.
+ * For other capabilities, returns null.
  */
-function getCapabilityHints(capability: string, promptObj: Record<string, unknown>): string | null {
+function getCapabilityHints(
+  capability: string,
+  promptObj: Record<string, unknown>,
+  responseA: Record<string, unknown>,
+  responseB: Record<string, unknown>,
+): string | null {
   let verb = capability;
   if (verb.includes("/")) {
     verb = verb.split("/").pop()?.split("@")[0] ?? verb;
   }
   if (verb === "meeting-summary" || verb === "action-items") {
-    return buildDateGroundTruth(promptObj);
+    return buildDateAccuracyReport(promptObj, responseA, responseB);
   }
   return null;
 }
@@ -443,7 +507,7 @@ ${JSON.stringify(ctx.responseB, null, 2)}
 <END_AGENT_B_RESPONSE>
 
 ## Domain Rubric: ${rubric.domain}
-${(() => { const hints = getCapabilityHints(ctx.capability, ctx.prompt); return hints ? `\n### Verification Reference\n${hints}\n` : ""; })()}
+${(() => { const hints = getCapabilityHints(ctx.capability, ctx.prompt, ctx.responseA, ctx.responseB); return hints ? `\n### Verification Reference\n${hints}\n` : ""; })()}
 ### Quality Criteria (${(rubric.criteria.reduce((s, c) => s + c.weight, 0) * 100).toFixed(0)}% of total)
 ${criteriaList}
 
