@@ -25,7 +25,7 @@ const INFORMATION_RETRIEVAL: ArenaRubric = {
 const TEXT_PROCESSING: ArenaRubric = {
   domain: "text-processing",
   criteria: [
-    { name: "accuracy", weight: 0.25, description: "Is the output factually correct? Does it faithfully represent the source?" },
+    { name: "accuracy", weight: 0.25, description: "Is the output factually correct? Does it faithfully represent the source? For meeting summaries, verify dates are arithmetically correct (e.g., Tuesday after Monday March 9 = March 10, not March 11). Prefer precise YYYY-MM-DD dates over vague relative references." },
     { name: "coherence", weight: 0.15, description: "Is the output well-structured and logically organized?" },
     { name: "conciseness", weight: 0.15, description: "Does it avoid redundancy and unnecessary padding?" },
   ],
@@ -258,6 +258,44 @@ export function computeTotalScore(params: {
 }
 
 // ============================================================
+// Capability-Specific Judge Hints
+// ============================================================
+
+/**
+ * Extra context injected into the judge prompt for specific capabilities.
+ * Helps the judge verify domain-specific correctness (e.g. date arithmetic).
+ */
+const CAPABILITY_JUDGE_HINTS: Record<string, string> = {
+  "meeting-summary": `DATE VERIFICATION (use this to check accuracy of due dates):
+- Identify the meeting date and its day-of-week from the transcript.
+- Count forward from the meeting date: +1 day = next calendar day, +2 = two days later, etc.
+- Monday=+0, Tuesday=+1, Wednesday=+2, Thursday=+3, Friday=+4, Saturday=+5, Sunday=+6 (if meeting is on Monday).
+- "today" / "EOD" / "end of day" = the meeting date itself (+0).
+- "tomorrow" = meeting date + 1 day.
+- Example: If meeting is Monday 2026-03-09, then Tuesday=2026-03-10, Wednesday=2026-03-11, Friday=2026-03-13.
+- Agents that output correct YYYY-MM-DD dates should score HIGHER on accuracy than agents using vague text like "Tuesday EOD" or "End of day".
+- Penalize agents whose computed dates are arithmetically wrong.`,
+  "action-items": `DATE VERIFICATION (use this to check accuracy of due dates):
+- Identify the meeting date and its day-of-week from the transcript.
+- Count forward: Monday+1=Tuesday, Monday+2=Wednesday, etc.
+- "today" / "EOD" = meeting date. "tomorrow" = meeting date + 1.
+- Example: Monday 2026-03-09 → Tuesday=2026-03-10, Wednesday=2026-03-11, Friday=2026-03-13.
+- Prefer precise YYYY-MM-DD dates over vague relative references.`,
+};
+
+/**
+ * Get capability-specific hints for the judge prompt.
+ * Extracts the capability verb from full names like "signalpot/meeting-summary@v1".
+ */
+function getCapabilityHints(capability: string): string | null {
+  let verb = capability;
+  if (verb.includes("/")) {
+    verb = verb.split("/").pop()?.split("@")[0] ?? verb;
+  }
+  return CAPABILITY_JUDGE_HINTS[verb] ?? null;
+}
+
+// ============================================================
 // Judge Prompt Builder
 // ============================================================
 
@@ -324,7 +362,7 @@ ${JSON.stringify(ctx.responseB, null, 2)}
 <END_AGENT_B_RESPONSE>
 
 ## Domain Rubric: ${rubric.domain}
-
+${(() => { const hints = getCapabilityHints(ctx.capability); return hints ? `\n### Verification Reference\n${hints}\n` : ""; })()}
 ### Quality Criteria (${(rubric.criteria.reduce((s, c) => s + c.weight, 0) * 100).toFixed(0)}% of total)
 ${criteriaList}
 
