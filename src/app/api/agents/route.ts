@@ -35,6 +35,8 @@ export async function GET(request: Request) {
   const blockedAgents = searchParams.get("blocked_agents"); // comma-sep slugs to exclude
   const maxCost = searchParams.get("max_cost");             // upper bound on rate_amount
   const visibility = searchParams.get("visibility");         // 'public' (default), 'private', or 'all'
+  const parentAgentId = searchParams.get("parent_agent_id"); // filter children of a suite
+  const listingType = searchParams.get("listing_type");       // 'standard' or 'suite'
 
   const supabase = await createClient();
 
@@ -85,6 +87,14 @@ export async function GET(request: Request) {
     query = query.eq("visibility", "public");
   }
   // When visibility param is omitted, no filter applied — shows all accessible agents (RLS handles private)
+
+  // Suite filters
+  if (parentAgentId) {
+    query = query.eq("parent_agent_id", parentAgentId);
+  }
+  if (listingType === "standard" || listingType === "suite") {
+    query = query.eq("listing_type", listingType);
+  }
 
   if (tags) {
     const tagArray = tags
@@ -253,6 +263,31 @@ export async function POST(request: Request) {
     }
   }
 
+  // Validate parent_agent_id references an active suite owned by same user/org
+  if (input.parent_agent_id) {
+    const { data: parentAgent } = await auth.supabase
+      .from("agents")
+      .select("id, listing_type, owner_id, org_id")
+      .eq("id", input.parent_agent_id)
+      .single();
+
+    if (!parentAgent || parentAgent.listing_type !== "suite") {
+      return NextResponse.json(
+        { error: "parent_agent_id must reference an existing suite agent" },
+        { status: 400 }
+      );
+    }
+
+    const sameOwner = parentAgent.owner_id === auth.profileId;
+    const sameOrg = orgId && parentAgent.org_id === orgId;
+    if (!sameOwner && !sameOrg) {
+      return NextResponse.json(
+        { error: "Cannot add sub-agent to a suite you don't own" },
+        { status: 403 }
+      );
+    }
+  }
+
   // Check agent limit — personal agents count per user, org agents count per org
   if (orgId) {
     const { count } = await auth.supabase
@@ -314,6 +349,8 @@ export async function POST(request: Request) {
       mcp_endpoint: input.mcp_endpoint ?? null,
       tags: input.tags,
       visibility: input.visibility,
+      listing_type: input.listing_type,
+      parent_agent_id: input.parent_agent_id ?? null,
     })
     .select()
     .single();

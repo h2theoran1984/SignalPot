@@ -175,7 +175,7 @@ export async function POST(
   // 4. Look up agent
   const { data: agent } = await admin
     .from("agents")
-    .select("id, slug, owner_id, status, rate_amount, mcp_endpoint, capability_schema")
+    .select("id, slug, owner_id, status, rate_amount, mcp_endpoint, capability_schema, listing_type, parent_agent_id")
     .eq("slug", slug)
     .eq("status", "active")
     .single();
@@ -184,7 +184,51 @@ export async function POST(
     return corsJson({ error: "Agent not found or inactive" }, { status: 404 });
   }
 
-  if (!agent.mcp_endpoint) {
+  // Block direct calls to suite agents — they're containers, not callable
+  if (agent.listing_type === "suite") {
+    return corsJson(
+      {
+        error: "Suite agents are not directly callable. Call a sub-agent instead.",
+        hint: `GET /api/agents?parent_agent_id=${agent.id} to list sub-agents`,
+      },
+      { status: 400 }
+    );
+  }
+
+  // If this is a sub-agent, route through the parent suite's endpoint
+  let effectiveEndpoint = agent.mcp_endpoint;
+  let suiteRouting: { child_slug: string; child_id: string } | null = null;
+
+  if (agent.parent_agent_id) {
+    const { data: parentAgent } = await admin
+      .from("agents")
+      .select("id, slug, mcp_endpoint, status, listing_type")
+      .eq("id", agent.parent_agent_id)
+      .eq("status", "active")
+      .single();
+
+    if (!parentAgent || parentAgent.listing_type !== "suite") {
+      return corsJson(
+        { error: "Parent suite agent not found or inactive" },
+        { status: 502 }
+      );
+    }
+
+    if (!parentAgent.mcp_endpoint) {
+      return corsJson(
+        { error: "Parent suite agent has no endpoint configured" },
+        { status: 502 }
+      );
+    }
+
+    effectiveEndpoint = parentAgent.mcp_endpoint;
+    suiteRouting = {
+      child_slug: agent.slug,
+      child_id: agent.id,
+    };
+  }
+
+  if (!effectiveEndpoint) {
     return corsJson(
       { error: "Agent has no endpoint configured" },
       { status: 502 }
@@ -311,7 +355,7 @@ export async function POST(
 
   // 9. SSRF check — block private IPs, localhost, cloud metadata
   try {
-    assertSafeUrl(agent.mcp_endpoint);
+    assertSafeUrl(effectiveEndpoint);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Blocked endpoint";
     return corsJson({ error: message }, { status: 400 });
@@ -326,7 +370,7 @@ export async function POST(
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30_000);
 
-    const res = await fetch(agent.mcp_endpoint, {
+    const res = await fetch(effectiveEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -334,6 +378,7 @@ export async function POST(
         input,
         job_id: job.id,
         _envelope: requestEnvelope,
+        ...(suiteRouting && { _suite: suiteRouting }),
       }),
       signal: controller.signal,
     });

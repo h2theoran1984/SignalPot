@@ -161,9 +161,81 @@ export const computeTrustSignals = inngest.createFunction(
       return { processed: agents.length };
     });
 
+    // Step 6: Roll up child trust signals to parent suite agents
+    const suiteCount = await step.run("signal-suite-rollup", async () => {
+      const { data: suites } = await admin
+        .from("agents")
+        .select("id")
+        .eq("listing_type", "suite")
+        .eq("status", "active");
+
+      if (!suites?.length) return 0;
+
+      for (const suite of suites) {
+        const { data: children } = await admin
+          .from("agents")
+          .select("id")
+          .eq("parent_agent_id", suite.id)
+          .eq("status", "active");
+
+        if (!children?.length) continue;
+
+        const childIds = children.map((c: { id: string }) => c.id);
+
+        const { data: childSignals } = await admin
+          .from("trust_signals")
+          .select("signal_type, value")
+          .in("agent_id", childIds);
+
+        if (!childSignals?.length) continue;
+
+        // Group by signal_type
+        const byType: Record<string, number[]> = {};
+        for (const sig of childSignals) {
+          const t = sig.signal_type as string;
+          if (!byType[t]) byType[t] = [];
+          byType[t].push(Number(sig.value));
+        }
+
+        // unique_callers: sum across children
+        if (byType["unique_callers"]) {
+          const total = byType["unique_callers"].reduce((a, b) => a + b, 0);
+          await admin.from("trust_signals").upsert(
+            {
+              agent_id: suite.id,
+              signal_type: "unique_callers",
+              value: total,
+              measured_at: new Date().toISOString(),
+            },
+            { onConflict: "agent_id,signal_type" }
+          );
+        }
+
+        // dispute_wins: average across children
+        if (byType["dispute_wins"]) {
+          const vals = byType["dispute_wins"];
+          const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+          await admin.from("trust_signals").upsert(
+            {
+              agent_id: suite.id,
+              signal_type: "dispute_wins",
+              value: Math.round(avg * 1000) / 1000,
+              measured_at: new Date().toISOString(),
+            },
+            { onConflict: "agent_id,signal_type" }
+          );
+        }
+
+        // agent_age and github_activity: keep suite's own values (already computed in Steps 2 & 5)
+      }
+
+      return suites.length;
+    });
+
     return {
       message: "Trust signals computed",
       agents_processed: agents.length,
+      suites_rolled_up: suiteCount,
     };
   }
 );

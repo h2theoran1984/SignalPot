@@ -46,7 +46,12 @@ export const createAgentSchema = z.object({
     .optional(),
   tags: z.array(z.string().max(50)).max(20).optional().default([]),
   visibility: z.enum(["public", "private"]).optional().default("public"),
-});
+  listing_type: z.enum(["standard", "suite"]).optional().default("standard"),
+  parent_agent_id: z.string().uuid().nullable().optional(),
+}).refine(
+  (data) => data.listing_type !== "suite" || !data.parent_agent_id,
+  { message: "Suite agents cannot have a parent", path: ["parent_agent_id"] }
+);
 
 export const updateAgentSchema = z.object({
   name: z.string().min(1).max(200).trim().optional(),
@@ -75,7 +80,12 @@ export const updateAgentSchema = z.object({
     .optional(),
   tags: z.array(z.string().max(50)).max(20).optional(),
   visibility: z.enum(["public", "private"]).optional(),
-});
+  listing_type: z.enum(["standard", "suite"]).optional(),
+  parent_agent_id: z.string().uuid().nullable().optional(),
+}).refine(
+  (data) => data.listing_type !== "suite" || !data.parent_agent_id,
+  { message: "Suite agents cannot have a parent", path: ["parent_agent_id"] }
+);
 
 export const callerConstraintsSchema = z.object({
   min_trust: z.number().min(0).max(1).optional(),

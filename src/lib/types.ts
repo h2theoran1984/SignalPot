@@ -57,6 +57,8 @@ export interface Agent {
   auth_config: Record<string, unknown>;
   mcp_endpoint: string | null;
   tags: string[];
+  listing_type: "standard" | "suite";
+  parent_agent_id: string | null;
   visibility: "public" | "private";
   status: "active" | "inactive" | "deprecated";
   uptime_pct: number;
