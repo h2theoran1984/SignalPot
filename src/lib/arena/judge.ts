@@ -266,9 +266,9 @@ function tryParseBreakdown(
  * Claude Haiku fallback — uses domain-specific rubric prompt.
  * Falls back to winner/reasoning/confidence if breakdown parsing fails.
  */
-/** Get the fallback judge model — Sonnet for Level 3, Haiku otherwise. */
+/** Get the fallback judge model — Sonnet for all levels (reliable rubric adherence). */
 function getFallbackModel(level: ArenaLevel = 1): string {
-  return level === 3 ? "claude-sonnet-4-20250514" : "claude-haiku-4-5-20251001";
+  return "claude-sonnet-4-20250514";
 }
 
 /** Level-specific judge context injected into the prompt. */
