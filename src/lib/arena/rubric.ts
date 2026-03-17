@@ -258,41 +258,122 @@ export function computeTotalScore(params: {
 }
 
 // ============================================================
-// Capability-Specific Judge Hints
+// Ground Truth Date Resolver for Judge
 // ============================================================
 
-/**
- * Extra context injected into the judge prompt for specific capabilities.
- * Helps the judge verify domain-specific correctness (e.g. date arithmetic).
- */
-const CAPABILITY_JUDGE_HINTS: Record<string, string> = {
-  "meeting-summary": `DATE VERIFICATION (use this to check accuracy of due dates):
-- Identify the meeting date and its day-of-week from the transcript.
-- Count forward from the meeting date: +1 day = next calendar day, +2 = two days later, etc.
-- Monday=+0, Tuesday=+1, Wednesday=+2, Thursday=+3, Friday=+4, Saturday=+5, Sunday=+6 (if meeting is on Monday).
-- "today" / "EOD" / "end of day" = the meeting date itself (+0).
-- "tomorrow" = meeting date + 1 day.
-- Example: If meeting is Monday 2026-03-09, then Tuesday=2026-03-10, Wednesday=2026-03-11, Friday=2026-03-13.
-- Agents that output correct YYYY-MM-DD dates should score HIGHER on accuracy than agents using vague text like "Tuesday EOD" or "End of day".
-- Penalize agents whose computed dates are arithmetically wrong.`,
-  "action-items": `DATE VERIFICATION (use this to check accuracy of due dates):
-- Identify the meeting date and its day-of-week from the transcript.
-- Count forward: Monday+1=Tuesday, Monday+2=Wednesday, etc.
-- "today" / "EOD" = meeting date. "tomorrow" = meeting date + 1.
-- Example: Monday 2026-03-09 → Tuesday=2026-03-10, Wednesday=2026-03-11, Friday=2026-03-13.
-- Prefer precise YYYY-MM-DD dates over vague relative references.`,
+const MONTH_MAP: Record<string, number> = {
+  january: 0, february: 1, march: 2, april: 3, may: 4, june: 5,
+  july: 6, august: 7, september: 8, october: 9, november: 10, december: 11,
 };
 
+const DAY_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+
+/** Parse a meeting date from transcript text. */
+function parseMeetingDate(text: string): Date | null {
+  const monthFirst = text.match(
+    /\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2}),?\s+(\d{4})\b/i
+  );
+  if (monthFirst) {
+    return new Date(parseInt(monthFirst[3], 10), MONTH_MAP[monthFirst[1].toLowerCase()], parseInt(monthFirst[2], 10));
+  }
+  const dayFirst = text.match(
+    /\b(\d{1,2})\s+(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{4})\b/i
+  );
+  if (dayFirst) {
+    return new Date(parseInt(dayFirst[3], 10), MONTH_MAP[dayFirst[2].toLowerCase()], parseInt(dayFirst[1], 10));
+  }
+  const iso = text.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
+  if (iso) return new Date(parseInt(iso[1], 10), parseInt(iso[2], 10) - 1, parseInt(iso[3], 10));
+  return null;
+}
+
+function toISO(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function addDays(d: Date, n: number): Date {
+  const result = new Date(d);
+  result.setDate(result.getDate() + n);
+  return result;
+}
+
 /**
- * Get capability-specific hints for the judge prompt.
- * Extracts the capability verb from full names like "signalpot/meeting-summary@v1".
+ * Build a ground truth answer key for the judge by pre-computing
+ * correct dates from the transcript. The judge uses this to verify
+ * agent responses without doing any date arithmetic itself.
  */
-function getCapabilityHints(capability: string): string | null {
+function buildDateGroundTruth(promptObj: Record<string, unknown>): string | null {
+  // Extract text from the prompt object
+  const text = typeof promptObj.text === "string" ? promptObj.text : JSON.stringify(promptObj);
+  const meetingDate = parseMeetingDate(text);
+  if (!meetingDate) return null;
+
+  const meetingDow = meetingDate.getDay();
+  const dowName = DAY_NAMES[meetingDow].charAt(0).toUpperCase() + DAY_NAMES[meetingDow].slice(1);
+  const lowerText = text.toLowerCase();
+  const entries: string[] = [];
+  const seen = new Set<string>();
+
+  const add = (label: string, date: Date) => {
+    const iso = toISO(date);
+    const key = `${label}=${iso}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      entries.push(`- "${label}" → ${iso}`);
+    }
+  };
+
+  // Always include today/tomorrow if referenced
+  if (/\btoday\b|\bend of day\b|\bby eod\b|\beod\b/i.test(text)) {
+    add("today / end of day / EOD", meetingDate);
+  }
+  if (/\btomorrow\b/i.test(text)) {
+    add("tomorrow", addDays(meetingDate, 1));
+  }
+
+  // Named days
+  for (let i = 0; i < 7; i++) {
+    const dayName = DAY_NAMES[i];
+    if (new RegExp(`\\b${dayName}\\b`, "i").test(lowerText)) {
+      const offset = (i - meetingDow + 7) % 7;
+      if (offset > 0) {
+        add(dayName.charAt(0).toUpperCase() + dayName.slice(1), addDays(meetingDate, offset));
+      }
+    }
+  }
+
+  // Next week
+  if (/\bnext week\b/i.test(text)) {
+    add("next week (Monday)", addDays(meetingDate, 7 - meetingDow + 1));
+  }
+
+  if (entries.length === 0) return null;
+
+  return `GROUND TRUTH — CORRECT DATE ANSWERS (pre-computed, use these to verify agent accuracy):
+Meeting date: ${toISO(meetingDate)} (${dowName})
+${entries.join("\n")}
+
+SCORING RULES:
+- An agent whose due dates MATCH these ground truth dates scores HIGH on accuracy.
+- An agent whose due dates are OFF BY EVEN ONE DAY scores LOW on accuracy.
+- Agents that output precise YYYY-MM-DD dates should score HIGHER than agents using vague text like "Tuesday EOD" or "End of day".
+- These ground truth dates are CORRECT — do not second-guess them.`;
+}
+
+/**
+ * Get capability-specific verification context for the judge prompt.
+ * For meeting-summary/action-items, computes ground truth dates from the transcript.
+ * For other capabilities, returns null (no special hints needed).
+ */
+function getCapabilityHints(capability: string, promptObj: Record<string, unknown>): string | null {
   let verb = capability;
   if (verb.includes("/")) {
     verb = verb.split("/").pop()?.split("@")[0] ?? verb;
   }
-  return CAPABILITY_JUDGE_HINTS[verb] ?? null;
+  if (verb === "meeting-summary" || verb === "action-items") {
+    return buildDateGroundTruth(promptObj);
+  }
+  return null;
 }
 
 // ============================================================
@@ -362,7 +443,7 @@ ${JSON.stringify(ctx.responseB, null, 2)}
 <END_AGENT_B_RESPONSE>
 
 ## Domain Rubric: ${rubric.domain}
-${(() => { const hints = getCapabilityHints(ctx.capability); return hints ? `\n### Verification Reference\n${hints}\n` : ""; })()}
+${(() => { const hints = getCapabilityHints(ctx.capability, ctx.prompt); return hints ? `\n### Verification Reference\n${hints}\n` : ""; })()}
 ### Quality Criteria (${(rubric.criteria.reduce((s, c) => s + c.weight, 0) * 100).toFixed(0)}% of total)
 ${criteriaList}
 
