@@ -3,7 +3,7 @@
  * Validates external URLs before server-side fetch.
  */
 
-const BLOCKED_HOSTNAMES = ["localhost", "0.0.0.0", "[::1]"];
+const BLOCKED_HOSTNAMES = ["localhost", "0.0.0.0", "::1"];
 
 const PRIVATE_IP_PREFIXES = [
   "10.",

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createHmac } from "crypto";
 import { logAuditEvent } from "@/lib/audit";
 import { createRemoteJWKSet, jwtVerify } from "jose";
+import { verifyState } from "@/lib/sso-state";
 
 interface SsoConfig {
   enabled: boolean;
@@ -13,53 +13,6 @@ interface SsoConfig {
   allowed_domains: string[];
   auto_provision: boolean;
   default_role: string;
-}
-
-interface StatePayload {
-  org_id: string;
-  slug: string;
-  nonce: string;
-  iat: number;
-}
-
-/**
- * Verify the HMAC-signed state parameter.
- * Returns the decoded payload or null if invalid.
- */
-function getSsoStateSecret(): string {
-  const dedicated = process.env.SSO_STATE_SECRET;
-  if (dedicated) return dedicated;
-  console.warn("[sso] SSO_STATE_SECRET not set — falling back to SUPABASE_SERVICE_ROLE_KEY. Set a dedicated secret for production.");
-  return process.env.SUPABASE_SERVICE_ROLE_KEY!;
-}
-
-function verifyState(state: string): StatePayload | null {
-  const secret = getSsoStateSecret();
-  const parts = state.split(".");
-  if (parts.length !== 2) return null;
-
-  const [data, signature] = parts;
-  const expected = createHmac("sha256", secret).update(data).digest("base64url");
-
-  // Constant-time comparison
-  if (signature.length !== expected.length) return null;
-  let mismatch = 0;
-  for (let i = 0; i < signature.length; i++) {
-    mismatch |= signature.charCodeAt(i) ^ expected.charCodeAt(i);
-  }
-  if (mismatch !== 0) return null;
-
-  try {
-    const payload = JSON.parse(Buffer.from(data, "base64url").toString("utf-8"));
-
-    // Reject states older than 10 minutes
-    const age = Math.floor(Date.now() / 1000) - (payload.iat ?? 0);
-    if (age > 600 || age < 0) return null;
-
-    return payload as StatePayload;
-  } catch {
-    return null;
-  }
 }
 
 /**
@@ -200,6 +153,12 @@ export async function GET(
     return NextResponse.redirect(new URL(`/login?error=sso_invalid_token`, url.origin));
   }
 
+  // Validate nonce — prevents token replay attacks
+  if (claims.nonce !== state.nonce) {
+    console.error("[sso] Nonce mismatch: ID token nonce does not match state nonce");
+    return NextResponse.redirect(new URL(`/login?error=sso_nonce_mismatch`, url.origin));
+  }
+
   const email = claims.email as string | undefined;
   const name = (claims.name as string | undefined) ?? (claims.preferred_username as string | undefined);
 
@@ -213,16 +172,15 @@ export async function GET(
     return NextResponse.redirect(new URL(`/login?error=sso_domain_not_allowed`, url.origin));
   }
 
-  // Look up or create the Supabase user
-  const { data: existingUsers } = await admin.auth.admin.listUsers();
-  const existingUser = existingUsers?.users?.find(
-    (u) => u.email?.toLowerCase() === email.toLowerCase()
-  );
+  // Look up existing user by email via RPC (avoids fetching all users)
+  const { data: existingUserId } = await admin.rpc("lookup_auth_user_by_email", {
+    p_email: email,
+  });
 
   let userId: string;
 
-  if (existingUser) {
-    userId = existingUser.id;
+  if (existingUserId) {
+    userId = existingUserId as string;
   } else {
     // Create a new user via Supabase admin API
     const { data: newUser, error: createErr } = await admin.auth.admin.createUser({

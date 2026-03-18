@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createHmac, randomUUID } from "crypto";
+import { randomUUID } from "crypto";
+import { signState } from "@/lib/sso-state";
 
 interface SsoConfig {
   enabled: boolean;
@@ -10,23 +11,6 @@ interface SsoConfig {
   allowed_domains: string[];
   auto_provision: boolean;
   default_role: string;
-}
-
-function getSsoStateSecret(): string {
-  const dedicated = process.env.SSO_STATE_SECRET;
-  if (dedicated) return dedicated;
-  console.warn("[sso] SSO_STATE_SECRET not set — falling back to SUPABASE_SERVICE_ROLE_KEY. Set a dedicated secret for production.");
-  return process.env.SUPABASE_SERVICE_ROLE_KEY!;
-}
-
-/**
- * Sign a state parameter using HMAC-SHA256.
- */
-function signState(payload: Record<string, unknown>): string {
-  const secret = getSsoStateSecret();
-  const data = Buffer.from(JSON.stringify(payload)).toString("base64url");
-  const signature = createHmac("sha256", secret).update(data).digest("base64url");
-  return `${data}.${signature}`;
 }
 
 // GET /api/orgs/[slug]/sso/login — Initiate SSO login flow (public)

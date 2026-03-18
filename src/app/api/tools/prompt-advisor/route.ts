@@ -15,6 +15,20 @@ const advisorSchema = z.object({
   model_hint: z.string().max(50).optional(),
 });
 
+const advisorResponseSchema = z.object({
+  score: z.number().min(1).max(10),
+  strengths: z.array(z.string()),
+  weaknesses: z.array(z.string()),
+  suggestions: z.array(
+    z.object({
+      title: z.string(),
+      description: z.string(),
+      priority: z.enum(["high", "medium", "low"]),
+    })
+  ),
+  improved_prompt: z.string(),
+});
+
 export async function POST(request: NextRequest) {
   // IP rate limit — no auth required
   const rateLimited = await checkPublicRateLimit(request);
@@ -88,10 +102,28 @@ Analyze this prompt and provide your assessment with an improved version.`,
       text = text.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
     }
 
-    const analysis = JSON.parse(text);
+    let raw: unknown;
+    try {
+      raw = JSON.parse(text);
+    } catch {
+      console.error("[prompt-advisor] Model returned invalid JSON");
+      return NextResponse.json(
+        { error: "Analysis produced invalid output — please try again" },
+        { status: 502 }
+      );
+    }
+
+    const validated = advisorResponseSchema.safeParse(raw);
+    if (!validated.success) {
+      console.error("[prompt-advisor] Response schema mismatch:", validated.error.flatten());
+      return NextResponse.json(
+        { error: "Analysis produced unexpected output — please try again" },
+        { status: 502 }
+      );
+    }
 
     return NextResponse.json({
-      analysis,
+      analysis: validated.data,
       usage: {
         input_tokens: message.usage.input_tokens,
         output_tokens: message.usage.output_tokens,
