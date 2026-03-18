@@ -370,9 +370,18 @@ export async function POST(
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30_000);
 
+    // Build headers — include internal dispatch key for platform agents
+    const fetchHeaders: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    const internalKey = process.env.INTERNAL_DISPATCH_KEY;
+    if (internalKey && suiteRouting) {
+      fetchHeaders["x-signalpot-internal"] = internalKey;
+    }
+
     const res = await fetch(effectiveEndpoint, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: fetchHeaders,
       body: JSON.stringify({
         capability,
         input,
@@ -423,11 +432,13 @@ export async function POST(
   const validation = validateOutput(outputSchema, agentResponse);
 
   // 11. Build response envelope and update job as completed
+  const isSensitive = agentResponse.sensitive === true;
+
   const responseEnvelope = wrapResponse({
     jobId: job.id as string,
     providerSlug: slug,
     durationMs,
-    output: agentResponse,
+    output: isSensitive ? { redacted: true } : agentResponse,
     verified: validation.valid,
     validationErrors: validation.errors,
   });
@@ -437,7 +448,9 @@ export async function POST(
     .update({
       status: "completed",
       completed_at: new Date().toISOString(),
-      output_summary: { ...agentResponse, _envelope: responseEnvelope },
+      output_summary: isSensitive
+        ? { redacted: true, _envelope: responseEnvelope }
+        : { ...agentResponse, _envelope: responseEnvelope },
       duration_ms: durationMs,
       verified: validation.valid,
       provider_cost: providerCostUsd,
@@ -472,6 +485,9 @@ export async function POST(
   }
 
   // 13. Build final response
+  // Sensitive results (e.g. credential.resolve) are returned in the HTTP
+  // response to the immediate caller but NOT persisted to the DB or
+  // idempotency cache.  The caller must hold the value in memory only.
   const responseBody = {
     job_id: job.id,
     status: "completed",
@@ -481,10 +497,14 @@ export async function POST(
     cost: rateAmount,
   };
 
+  const idempotencyBody = isSensitive
+    ? { ...responseBody, output: { redacted: true } }
+    : responseBody;
+
   // 14. Store idempotency response (update the row we claimed earlier)
   await admin
     .from("idempotency_keys")
-    .update({ job_id: job.id, response_body: responseBody })
+    .update({ job_id: job.id, response_body: idempotencyBody })
     .eq("idempotency_key", idempotency_key);
 
   const response = corsJson(responseBody);
