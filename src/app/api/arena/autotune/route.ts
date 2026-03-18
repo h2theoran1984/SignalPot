@@ -17,7 +17,12 @@ import {
   analyzeWeaknesses,
   proposeImprovedPrompt,
   promptDiff,
+  detectApplicableProcessors,
 } from "@/lib/arena/autotune";
+import {
+  getActiveProcessors,
+  activateProcessor,
+} from "@/lib/arena/processor-manager";
 import type { JudgmentBreakdown } from "@/lib/arena/types";
 
 const autotuneSchema = z.object({
@@ -155,6 +160,56 @@ export async function POST(request: NextRequest) {
     // 4. Analyze weaknesses
     const weaknessReport = analyzeWeaknesses({ breakdowns, reasonings, winners });
     console.log(`[autotune] Weakness: ${weaknessReport.summary}`);
+
+    // 4a. Check if a code processor would help more than a prompt tweak
+    const activeProcs = await getActiveProcessors(agent.id as string, capability);
+    const recommendedProcs = detectApplicableProcessors(weaknessReport, capability, activeProcs);
+
+    if (recommendedProcs.length > 0) {
+      console.log(`[autotune] Recommending processors: ${recommendedProcs.join(", ")}`);
+
+      for (const pid of recommendedProcs) {
+        await activateProcessor({
+          agentId: agent.id as string,
+          capability,
+          processorId: pid,
+          activatedBy: "autotune",
+          eloAtActivation: baselineResult.current_elo ?? baselineElo,
+        });
+        console.log(`[autotune] Activated processor: ${pid}`);
+      }
+
+      // Log as a special processor-activation iteration
+      await admin.from("autotune_runs").insert({
+        agent_id: agent.id,
+        capability,
+        iteration: iter,
+        baseline_version_id: currentVersionId,
+        baseline_elo: baselineResult.current_elo ?? baselineElo,
+        baseline_record: baselineResult.record,
+        kept: true,
+        stopped_reason: "processor_activated",
+        weakness_analysis: weaknessReport.summary,
+        processors_activated: recommendedProcs,
+        completed_at: new Date().toISOString(),
+      });
+
+      iterations.push({
+        iteration: iter,
+        baseline_elo: baselineResult.current_elo ?? baselineElo,
+        baseline_record: baselineResult.record,
+        candidate_elo: null,
+        candidate_record: null,
+        elo_delta: null,
+        kept: true,
+        prompt_version: activeVersion.version,
+        weakness_summary: `Activated processors: ${recommendedProcs.join(", ")}. ${weaknessReport.summary}`,
+        stopped_reason: "processor_activated",
+      });
+
+      // Continue to next iteration — the grind will now use the activated processor
+      continue;
+    }
 
     // If win rate is already 100%, no improvement needed
     if (weaknessReport.win_rate >= 1.0 && breakdowns.length > 0) {

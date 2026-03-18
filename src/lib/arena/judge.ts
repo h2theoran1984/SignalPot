@@ -34,6 +34,8 @@ interface ArenaJudgeInput {
   costACents: number;
   costBCents: number;
   level?: ArenaLevel;
+  /** Pre-computed verification hints from active processors (e.g., date accuracy report) */
+  verificationHints?: string[];
 }
 
 /**
@@ -302,7 +304,7 @@ async function callJudgeFallback(
     durationBMs: input.durationBMs,
     verifiedA: input.verifiedA,
     verifiedB: input.verifiedB,
-  }) + getLevelJudgeContext(level);
+  }, input.verificationHints) + getLevelJudgeContext(level);
 
   try {
     const message = await anthropic.messages.create({

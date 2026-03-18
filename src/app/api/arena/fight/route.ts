@@ -17,6 +17,7 @@ import { checkArenaRateLimit } from "@/lib/rate-limit";
 import { getArenaLimitForPlan, type Plan } from "@/lib/plans";
 import { assertSafeUrl } from "@/lib/ssrf";
 import { verifyArenaAdminAuth } from "@/lib/arena/admin-auth";
+import { getActiveProcessors, getProcessorById } from "@/lib/arena/processor-manager";
 
 const AGENT_TIMEOUT = 45_000; // 45s — Opus-level prompts at L3/L4 can be slow
 
@@ -336,11 +337,28 @@ export async function POST(request: NextRequest) {
 
   const matchId = match.id as string;
 
+  // === APPLY PROCESSORS ===
+  // Each agent may have different active processors — apply them to enrich the prompt
+  const processorsA = await getActiveProcessors(agentA.id as string, capability);
+  const processorsB = await getActiveProcessors(agentB.id as string, capability);
+
+  let promptForA: Record<string, unknown> = actualPrompt;
+  for (const pid of processorsA) {
+    const proc = getProcessorById(pid);
+    if (proc) promptForA = proc.preProcess(promptForA);
+  }
+
+  let promptForB: Record<string, unknown> = actualPrompt;
+  for (const pid of processorsB) {
+    const proc = getProcessorById(pid);
+    if (proc) promptForB = proc.preProcess(promptForB);
+  }
+
   // === FIGHT! ===
-  // Call both agents in parallel
+  // Call both agents in parallel (each may get a processor-enriched prompt)
   const [resultA, resultB] = await Promise.allSettled([
-    callFighter(agent_a_slug, agentA.mcp_endpoint as string | null, capability, actualPrompt, level),
-    callFighter(agent_b_slug, agentB.mcp_endpoint as string | null, capability, actualPrompt, level),
+    callFighter(agent_a_slug, agentA.mcp_endpoint as string | null, capability, promptForA, level),
+    callFighter(agent_b_slug, agentB.mcp_endpoint as string | null, capability, promptForB, level),
   ]);
 
   const aOk = resultA.status === "fulfilled";
@@ -377,6 +395,17 @@ export async function POST(request: NextRequest) {
     const baseRubric = inferRubric(capability);
     const rubric = applyLevelModifiers(baseRubric, level);
 
+    // Collect verification hints from all active processors (union of both agents)
+    const allProcessorIds = new Set([...processorsA, ...processorsB]);
+    const verificationHints: string[] = [];
+    for (const pid of Array.from(allProcessorIds)) {
+      const proc = getProcessorById(pid);
+      if (proc) {
+        const hint = proc.buildVerification(actualPrompt, aData!.response, bData!.response);
+        if (hint) verificationHints.push(hint);
+      }
+    }
+
     judgment = await callArenaJudge({
       matchId,
       capability,
@@ -394,6 +423,7 @@ export async function POST(request: NextRequest) {
       costACents: Math.round(Number(agentA.rate_amount ?? 0) * 100),
       costBCents: Math.round(Number(agentB.rate_amount ?? 0) * 100),
       level,
+      verificationHints: verificationHints.length > 0 ? verificationHints : undefined,
     });
 
     // Finalize match

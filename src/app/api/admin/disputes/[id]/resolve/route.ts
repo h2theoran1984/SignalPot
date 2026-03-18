@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { settleDispute } from "@/lib/escrow";
+import { logAuditEvent, getClientIp } from "@/lib/audit";
 
 export async function POST(
   req: NextRequest,
@@ -65,7 +66,7 @@ export async function POST(
     );
   }
 
-  // Update dispute to resolved
+  // Atomically update dispute to resolved — neq guard prevents concurrent double-resolution
   const { data: dispute, error: updateError } = await admin
     .from("disputes")
     .update({
@@ -76,18 +77,30 @@ export async function POST(
       tier: 3,
     })
     .eq("id", id)
+    .neq("status", "resolved")
     .select()
     .single();
 
   if (updateError || !dispute) {
     return NextResponse.json(
-      { error: "Failed to update dispute" },
-      { status: 500 }
+      { error: "Failed to update dispute — may have been resolved concurrently" },
+      { status: 409 }
     );
   }
 
   // Settle deposits
   await settleDispute(id, resolution, existing.job_id as string);
+
+  // Audit trail for admin dispute resolution
+  logAuditEvent({
+    orgId: null,
+    actorId: auth.profileId,
+    action: "dispute.resolve.admin",
+    targetType: "dispute",
+    targetId: id,
+    ipAddress: getClientIp(req),
+    metadata: { resolution, tier: 3, job_id: existing.job_id },
+  });
 
   // If this was a form POST, redirect back to admin queue
   if (!contentType.includes("application/json")) {

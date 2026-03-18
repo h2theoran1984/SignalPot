@@ -4,6 +4,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { JudgmentBreakdown, CriterionScore, ArenaRubric } from "./types";
 import { inferRubric } from "./rubric";
+import { PROCESSOR_REGISTRY } from "./processors";
 
 const anthropic = new Anthropic();
 
@@ -158,6 +159,54 @@ Based on this analysis, propose an improved system prompt that addresses the ide
   }
 
   return text;
+}
+
+/**
+ * Detect which processors from the registry could help with the observed weaknesses.
+ * Matches loss patterns against each processor's detection_patterns.
+ * Returns processor IDs that should be activated.
+ */
+export function detectApplicableProcessors(
+  weaknessReport: WeaknessReport,
+  capability: string,
+  alreadyActive: string[],
+): string[] {
+  // Extract the verb from capability (e.g., "signalpot/meeting-summary@v1" → "meeting-summary")
+  let verb = capability;
+  if (verb.includes("/")) {
+    verb = verb.split("/").pop()?.split("@")[0] ?? verb;
+  }
+
+  const recommended: string[] = [];
+
+  for (const proc of PROCESSOR_REGISTRY) {
+    // Skip if already active
+    if (alreadyActive.includes(proc.id)) continue;
+
+    // Skip if capability doesn't match
+    if (!proc.applicable_capabilities.some((c) => verb.includes(c) || c.includes(verb))) continue;
+
+    const { criteria_names, loss_keywords, min_loss_rate } = proc.detection_patterns;
+
+    // Check loss rate threshold
+    if (weaknessReport.win_rate > (1 - min_loss_rate)) continue;
+
+    // Check if weakest criteria match
+    const criteriaMatch = weaknessReport.weakest_criteria
+      .slice(0, 3)
+      .some((c) => criteria_names.includes(c.name));
+
+    // Check if loss reasons contain keywords
+    const keywordMatch = weaknessReport.loss_reasons.some((reason) =>
+      loss_keywords.some((kw) => reason.toLowerCase().includes(kw.toLowerCase()))
+    );
+
+    if (criteriaMatch && keywordMatch) {
+      recommended.push(proc.id);
+    }
+  }
+
+  return recommended;
 }
 
 /**

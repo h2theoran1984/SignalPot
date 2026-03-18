@@ -258,190 +258,6 @@ export function computeTotalScore(params: {
 }
 
 // ============================================================
-// Ground Truth Date Resolver for Judge
-// ============================================================
-
-const MONTH_MAP: Record<string, number> = {
-  january: 0, february: 1, march: 2, april: 3, may: 4, june: 5,
-  july: 6, august: 7, september: 8, october: 9, november: 10, december: 11,
-};
-
-const DAY_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-
-/** Parse a meeting date from transcript text. */
-function parseMeetingDate(text: string): Date | null {
-  const monthFirst = text.match(
-    /\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2}),?\s+(\d{4})\b/i
-  );
-  if (monthFirst) {
-    return new Date(parseInt(monthFirst[3], 10), MONTH_MAP[monthFirst[1].toLowerCase()], parseInt(monthFirst[2], 10));
-  }
-  const dayFirst = text.match(
-    /\b(\d{1,2})\s+(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{4})\b/i
-  );
-  if (dayFirst) {
-    return new Date(parseInt(dayFirst[3], 10), MONTH_MAP[dayFirst[2].toLowerCase()], parseInt(dayFirst[1], 10));
-  }
-  const iso = text.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
-  if (iso) return new Date(parseInt(iso[1], 10), parseInt(iso[2], 10) - 1, parseInt(iso[3], 10));
-  return null;
-}
-
-function toISO(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function addDays(d: Date, n: number): Date {
-  const result = new Date(d);
-  result.setDate(result.getDate() + n);
-  return result;
-}
-
-/**
- * Compute ground truth dates from a transcript.
- * Returns a Map of correct ISO dates found in the text.
- */
-function computeGroundTruthDates(text: string): Map<string, string> {
-  const meetingDate = parseMeetingDate(text);
-  const dates = new Map<string, string>();
-  if (!meetingDate) return dates;
-
-  const meetingDow = meetingDate.getDay();
-  const lowerText = text.toLowerCase();
-
-  if (/\btoday\b|\bend of day\b|\bby eod\b|\beod\b/i.test(text)) {
-    dates.set("today/EOD", toISO(meetingDate));
-  }
-  if (/\btomorrow\b/i.test(text)) {
-    dates.set("tomorrow", toISO(addDays(meetingDate, 1)));
-  }
-  for (let i = 0; i < 7; i++) {
-    const dayName = DAY_NAMES[i];
-    if (new RegExp(`\\b${dayName}\\b`, "i").test(lowerText)) {
-      const offset = (i - meetingDow + 7) % 7;
-      if (offset > 0) {
-        dates.set(dayName.charAt(0).toUpperCase() + dayName.slice(1), toISO(addDays(meetingDate, offset)));
-      }
-    }
-  }
-  if (/\bnext week\b/i.test(text)) {
-    dates.set("next week", toISO(addDays(meetingDate, 7 - meetingDow + 1)));
-  }
-  return dates;
-}
-
-/**
- * Extract all YYYY-MM-DD dates from an agent's response.
- * Searches action_items[].due, action_items[].due_date, and deadline fields.
- */
-function extractAgentDates(response: Record<string, unknown>): string[] {
-  const dates: string[] = [];
-  const text = JSON.stringify(response);
-  const matches = text.match(/\d{4}-\d{2}-\d{2}/g);
-  if (matches) {
-    for (const m of matches) dates.push(m);
-  }
-  return Array.from(new Set(dates));
-}
-
-/**
- * Check if an agent uses vague relative date text instead of ISO dates.
- */
-function usesVagueDates(response: Record<string, unknown>): boolean {
-  const text = JSON.stringify(response);
-  return /\b(Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Monday)\s+(EOD|at|by)\b/i.test(text)
-    || /\b(End of day|Tomorrow noon|Tomorrow)\b/i.test(text);
-}
-
-/**
- * Build a pre-computed DATE ACCURACY REPORT comparing both agents' dates
- * against ground truth. The judge doesn't need to do any date math — just
- * read the verdict.
- */
-function buildDateAccuracyReport(
-  promptObj: Record<string, unknown>,
-  responseA: Record<string, unknown>,
-  responseB: Record<string, unknown>,
-): string | null {
-  const text = typeof promptObj.text === "string" ? promptObj.text : JSON.stringify(promptObj);
-  const groundTruth = computeGroundTruthDates(text);
-  if (groundTruth.size === 0) return null;
-
-  const meetingDate = parseMeetingDate(text)!;
-  const meetingDow = meetingDate.getDay();
-  const dowName = DAY_NAMES[meetingDow].charAt(0).toUpperCase() + DAY_NAMES[meetingDow].slice(1);
-
-  const gtValues = new Set(groundTruth.values());
-  const gtEntries = Array.from(groundTruth.entries()).map(([k, v]) => `${k}=${v}`).join(", ");
-
-  function scoreAgent(response: Record<string, unknown>, label: string): { correct: number; total: number; details: string[]; vague: boolean } {
-    const agentDates = extractAgentDates(response);
-    const vague = usesVagueDates(response);
-    let correct = 0;
-    const details: string[] = [];
-
-    for (const d of agentDates) {
-      if (gtValues.has(d)) {
-        correct++;
-        details.push(`${d} ✓`);
-      } else {
-        // Find what it should have been
-        const closest = Array.from(gtValues).find(gt => Math.abs(
-          new Date(d).getTime() - new Date(gt).getTime()
-        ) <= 2 * 86400000); // within 2 days
-        if (closest) {
-          details.push(`${d} ✗ (should be ${closest})`);
-        } else {
-          details.push(`${d} ?`);
-        }
-      }
-    }
-
-    if (vague) {
-      details.push("⚠ Uses vague text dates instead of YYYY-MM-DD");
-    }
-
-    return { correct, total: agentDates.length, details, vague };
-  }
-
-  const scoreA = scoreAgent(responseA, "A");
-  const scoreB = scoreAgent(responseB, "B");
-
-  return `DATE ACCURACY CHECK (computed from transcript using calendar arithmetic):
-Meeting held: ${toISO(meetingDate)} (${dowName})
-Ground truth dates: ${gtEntries}
-
-Agent A: ${scoreA.correct}/${scoreA.total} dates correct${scoreA.vague ? " | uses vague text dates" : ""}
-  ${scoreA.details.join("\n  ")}
-
-Agent B: ${scoreB.correct}/${scoreB.total} dates correct${scoreB.vague ? " | uses vague text dates" : ""}
-  ${scoreB.details.join("\n  ")}
-
-Factor this into the accuracy criterion alongside other quality dimensions.`;
-}
-
-/**
- * Get capability-specific verification context for the judge prompt.
- * For meeting-summary/action-items, computes a date accuracy report.
- * For other capabilities, returns null.
- */
-function getCapabilityHints(
-  capability: string,
-  promptObj: Record<string, unknown>,
-  responseA: Record<string, unknown>,
-  responseB: Record<string, unknown>,
-): string | null {
-  let verb = capability;
-  if (verb.includes("/")) {
-    verb = verb.split("/").pop()?.split("@")[0] ?? verb;
-  }
-  if (verb === "meeting-summary" || verb === "action-items") {
-    return buildDateAccuracyReport(promptObj, responseA, responseB);
-  }
-  return null;
-}
-
-// ============================================================
 // Judge Prompt Builder
 // ============================================================
 
@@ -462,8 +278,10 @@ interface JudgePromptContext {
 /**
  * Build a domain-specific judge prompt from rubric criteria.
  * The prompt instructs The Arbiter to return per-criterion scores for each agent.
+ * verificationHints are pre-computed context strings from active processors
+ * (e.g., DATE ACCURACY CHECK from the date-resolver processor).
  */
-export function buildJudgePrompt(rubric: ArenaRubric, ctx: JudgePromptContext): string {
+export function buildJudgePrompt(rubric: ArenaRubric, ctx: JudgePromptContext, verificationHints?: string[]): string {
   const criteriaList = rubric.criteria
     .map((c, i) => `${i + 1}. **${c.name}** (${(c.weight * 100).toFixed(0)}%) — ${c.description}`)
     .join("\n");
@@ -508,7 +326,7 @@ ${JSON.stringify(ctx.responseB, null, 2)}
 <END_AGENT_B_RESPONSE>
 
 ## Domain Rubric: ${rubric.domain}
-${(() => { const hints = getCapabilityHints(ctx.capability, ctx.prompt, ctx.responseA, ctx.responseB); return hints ? `\n### Verification Reference\n${hints}\n` : ""; })()}
+${verificationHints && verificationHints.length > 0 ? `\n### Verification Reference\n${verificationHints.join("\n\n")}\n` : ""}
 ### Quality Criteria (${(rubric.criteria.reduce((s, c) => s + c.weight, 0) * 100).toFixed(0)}% of total)
 ${criteriaList}
 

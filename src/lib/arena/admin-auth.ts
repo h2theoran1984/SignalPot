@@ -15,7 +15,12 @@ export async function verifyArenaAdminAuth(request: Request): Promise<boolean> {
   const authHeader = request.headers.get("authorization");
   if (!authHeader?.startsWith("Bearer ")) return false;
 
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  // On Vercel, the platform appends the real client IP as the last entry in x-forwarded-for.
+  // Using the first entry is spoofable; the last entry is trustworthy.
+  const forwarded = request.headers.get("x-forwarded-for");
+  const ip = forwarded
+    ? forwarded.split(",").pop()!.trim()
+    : request.headers.get("x-real-ip") || "unknown";
 
   // Rate limit admin auth attempts
   const rl = await checkAdminAuthRateLimit(ip);

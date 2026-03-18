@@ -134,7 +134,30 @@
 
 - Migrations 00022-00024 are applied to Supabase ✓
 - Migration 00025 (trust cooldown) applied to Supabase ✓
+- Migration 00028 (provider_cost) — verify if applied: `SELECT column_name FROM information_schema.columns WHERE table_name='jobs' AND column_name='provider_cost';`
 - Stripe webhook registered + STRIPE_WEBHOOK_SECRET set in Vercel ✓
 - Migrations 00026 (private agents) and 00027 (analytics views) written but NOT yet applied to Supabase
 - Showcase agents are deployed to Vercel but not registered on the marketplace
 - Enterprise strategy doc: signalpot/docs/enterprise-strategy.md
+
+---
+
+## Quick Resume Checklist (for jumping in cold)
+
+**Immediate blockers (do these first):**
+1. `UPDATE agents SET rate_amount = 0.003 WHERE slug = 'the-next-step';` — agent is losing money at current DB rate
+2. Run migration 00026 in Supabase SQL Editor — unblocks private agents
+3. Run migration 00027 in Supabase SQL Editor — unblocks org analytics
+
+**Next up (Sprint D4):**
+4. Register showcase agents on marketplace (see Sprint D4 above)
+
+**Then (Sprint D5):**
+5. Arena grind to ELO 1300+ (see Sprint D5 above)
+
+**Technical debt (no sprint assigned):**
+- SSO JWT signature verification (`src/app/api/orgs/[slug]/sso/callback/route.ts`) — HIGH priority before any org enables SSO
+- Schema translator is stubbed (`src/lib/schema-translator.ts`) — blocks cross-schema agent interop
+- Translation cache is in-memory only (`src/lib/translation-cache.ts`) — resets on deploy
+- No test suite exists — critical regressions possible
+- See `memory/weak-spots.md` for full technical debt inventory
