@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { readSecret } from "@/lib/keykeeper/vault";
+import { readSecret, storeSecret } from "@/lib/keykeeper/vault";
+import { getProvider } from "@/lib/keykeeper/providers";
 import { z } from "zod";
 
 const INTERNAL_KEY = process.env.INTERNAL_DISPATCH_KEY;
@@ -12,6 +13,11 @@ const intakeInputSchema = z.object({
 });
 
 const resolveInputSchema = z.object({
+  secret_name: z.string().min(1).max(100).trim(),
+  owner_id: z.string().uuid(),
+});
+
+const rotateInputSchema = z.object({
   secret_name: z.string().min(1).max(100).trim(),
   owner_id: z.string().uuid(),
 });
@@ -142,6 +148,129 @@ export async function POST(request: Request) {
       return NextResponse.json({
         value,
         sensitive: true,
+      });
+    }
+
+    case "credential.rotate": {
+      const parsed = rotateInputSchema.safeParse(input);
+      if (!parsed.success) {
+        return NextResponse.json(
+          { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+          { status: 400 }
+        );
+      }
+
+      const { secret_name, owner_id } = parsed.data;
+
+      // Look up secret metadata to get provider
+      const { data: secretRow } = await admin
+        .from("keykeeper_secrets")
+        .select("provider")
+        .eq("owner_id", owner_id)
+        .eq("name", secret_name)
+        .single();
+
+      if (!secretRow) {
+        return NextResponse.json(
+          { error: "Secret not found" },
+          { status: 404 }
+        );
+      }
+
+      const provider = getProvider(secretRow.provider);
+
+      // Unsupported provider — fall back to OTU intake
+      if (!provider.supported) {
+        const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+
+        const { data: token, error: tokenErr } = await admin
+          .from("keykeeper_intake_tokens")
+          .insert({
+            owner_id,
+            secret_name,
+            provider: secretRow.provider,
+            expires_at: expiresAt.toISOString(),
+          })
+          .select("token, expires_at")
+          .single();
+
+        if (tokenErr) {
+          return NextResponse.json(
+            { error: "Failed to create intake token" },
+            { status: 500 }
+          );
+        }
+
+        const siteUrl =
+          process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.signalpot.dev";
+
+        return NextResponse.json({
+          rotated: false,
+          fallback: "intake",
+          url: `${siteUrl}/api/keykeeper/intake/${token.token}`,
+          expires_at: token.expires_at,
+          message: "Provider does not support auto-rotation. Use the intake URL to submit a new key.",
+        });
+      }
+
+      // Supported provider — rotate programmatically
+      const adminCreds = await readSecret(
+        admin,
+        owner_id,
+        `_admin:${secretRow.provider}`
+      );
+
+      if (!adminCreds) {
+        return NextResponse.json(
+          {
+            error: `Admin credentials not configured for ${secretRow.provider}`,
+            hint: `Store admin creds via credential.intake with secret_name '_admin:${secretRow.provider}'`,
+          },
+          { status: 400 }
+        );
+      }
+
+      // Generate new key
+      let newKey: string;
+      try {
+        const result = await provider.rotate(adminCreds);
+        newKey = result.newKey;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Rotation failed";
+        return NextResponse.json(
+          { error: `Key rotation failed: ${message}` },
+          { status: 502 }
+        );
+      }
+
+      // Verify new key works before storing
+      const isValid = await provider.verify(newKey);
+      if (!isValid) {
+        return NextResponse.json(
+          { error: "New key verification failed — old key preserved" },
+          { status: 400 }
+        );
+      }
+
+      // Store new key (overwrites old) and update rotation timestamp
+      await storeSecret(
+        admin,
+        owner_id,
+        secret_name,
+        newKey,
+        secretRow.provider as "openai" | "stripe" | "github" | "other"
+      );
+
+      await admin
+        .from("keykeeper_secrets")
+        .update({ last_rotated_at: new Date().toISOString() })
+        .eq("owner_id", owner_id)
+        .eq("name", secret_name);
+
+      return NextResponse.json({
+        rotated: true,
+        provider: secretRow.provider,
+        secret_name,
       });
     }
 

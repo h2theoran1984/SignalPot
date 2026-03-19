@@ -166,6 +166,77 @@ async function main() {
   console.log(
     `Courier sub-agent: ${courier.id} (${courier.slug}) -> parent ${courier.parent_agent_id}`
   );
+
+  // 3. Upsert Provisioner sub-agent
+  const { data: provisioner, error: provisionerErr } = await admin
+    .from("agents")
+    .upsert(
+      {
+        owner_id: ownerId,
+        name: "KeyKeeper Provisioner",
+        slug: "keykeeper-provisioner",
+        description:
+          "Handles credential rotation for the KeyKeeper suite. Auto-rotates keys for supported providers (Stripe, GitHub) via their APIs. Falls back to one-time intake URLs for unsupported providers.",
+        listing_type: "standard",
+        parent_agent_id: suite.id,
+        mcp_endpoint: null,
+        capability_schema: [
+          {
+            name: "credential.rotate",
+            description:
+              "Rotate a stored credential. For supported providers, generates a new key via the provider API, verifies it works, then stores it. For unsupported providers, returns an OTU intake URL instead.",
+            inputSchema: {
+              type: "object",
+              properties: {
+                secret_name: {
+                  type: "string",
+                  description: "Name of the secret to rotate",
+                },
+                owner_id: {
+                  type: "string",
+                  description: "UUID of the secret owner",
+                },
+              },
+              required: ["secret_name", "owner_id"],
+            },
+            outputSchema: {
+              type: "object",
+              properties: {
+                rotated: { type: "boolean" },
+                provider: { type: "string" },
+                secret_name: { type: "string" },
+                fallback: { type: "string" },
+                url: { type: "string" },
+                expires_at: { type: "string" },
+              },
+            },
+          },
+        ],
+        rate_type: "per_call",
+        rate_amount: 0,
+        rate_currency: "USD",
+        auth_type: "none",
+        tags: ["secrets", "rotation", "provisioner"],
+        status: "active",
+        visibility: "public",
+        goal: "Automatically rotate credentials for agents, verifying new keys before replacing old ones.",
+        decision_logic:
+          "credential.rotate: checks provider registry. Supported providers get auto-rotated via API (verify-then-swap). Unsupported providers get an OTU intake URL for manual replacement.",
+        agent_type: "reactive",
+      },
+      { onConflict: "slug" }
+    )
+    .select("id, slug, parent_agent_id")
+    .single();
+
+  if (provisionerErr) {
+    console.error("Failed to upsert Provisioner:", provisionerErr.message);
+    process.exit(1);
+  }
+
+  console.log(
+    `Provisioner sub-agent: ${provisioner.id} (${provisioner.slug}) -> parent ${provisioner.parent_agent_id}`
+  );
   console.log("Done.");
 }
 
