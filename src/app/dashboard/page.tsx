@@ -89,6 +89,27 @@ export default async function DashboardPage() {
 
         <ApiKeysSection />
 
+        {/* KeyKeeper */}
+        <a
+          href="/dashboard/keykeeper"
+          className="flex items-center gap-4 p-4 mb-6 bg-[#111118] border border-[#1f2028] rounded-lg hover:border-[#2d3044] transition-colors group"
+        >
+          <div className="w-10 h-10 rounded-lg bg-cyan-400/10 flex items-center justify-center text-lg shrink-0">
+            🔐
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-sm group-hover:text-cyan-400 transition-colors">
+              KeyKeeper
+            </h3>
+            <p className="text-xs text-gray-500">
+              Manage encrypted API keys and secrets with auto-rotation
+            </p>
+          </div>
+          <span className="text-xs text-gray-600 group-hover:text-gray-400 transition-colors">
+            Open →
+          </span>
+        </a>
+
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-xl font-semibold">My Agents</h2>
