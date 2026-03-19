@@ -237,6 +237,77 @@ async function main() {
   console.log(
     `Provisioner sub-agent: ${provisioner.id} (${provisioner.slug}) -> parent ${provisioner.parent_agent_id}`
   );
+
+  // 4. Upsert Watcher sub-agent
+  const { data: watcher, error: watcherErr } = await admin
+    .from("agents")
+    .upsert(
+      {
+        owner_id: ownerId,
+        name: "KeyKeeper Watcher",
+        slug: "keykeeper-watcher",
+        description:
+          "Monitors credential health for the KeyKeeper suite. Runs daily age checks to rotate expiring keys and breach detection to trigger emergency rotations when security incidents are detected.",
+        listing_type: "standard",
+        parent_agent_id: suite.id,
+        mcp_endpoint: null,
+        capability_schema: [
+          {
+            name: "credential.age-check",
+            description:
+              "Daily scan for secrets past their rotation window. Triggers auto-rotation for supported providers or generates intake URLs for manual rotation.",
+            inputSchema: { type: "object", properties: {} },
+            outputSchema: {
+              type: "object",
+              properties: {
+                due: { type: "number" },
+                rotated: { type: "number" },
+                fallback: { type: "number" },
+                failed: { type: "number" },
+              },
+            },
+          },
+          {
+            name: "credential.breach-watch",
+            description:
+              "Daily scan of HaveIBeenPwned and GitHub Secret Scanning for breaches affecting stored credentials. Triggers emergency rotation when signals are detected.",
+            inputSchema: { type: "object", properties: {} },
+            outputSchema: {
+              type: "object",
+              properties: {
+                affected_providers: { type: "array", items: { type: "string" } },
+                rotated: { type: "number" },
+                fallback: { type: "number" },
+                failed: { type: "number" },
+              },
+            },
+          },
+        ],
+        rate_type: "per_call",
+        rate_amount: 0,
+        rate_currency: "USD",
+        auth_type: "none",
+        tags: ["secrets", "monitoring", "breach-detection", "watcher"],
+        status: "active",
+        visibility: "public",
+        goal: "Proactively monitor credential health and security signals to keep agent secrets safe without manual intervention.",
+        decision_logic:
+          "Runs two daily Inngest crons. Age-check rotates secrets past their rotation_days window. Breach-watch queries HIBP for recent breaches and triggers emergency rotations, bypassing the normal schedule.",
+        agent_type: "reactive",
+      },
+      { onConflict: "slug" }
+    )
+    .select("id, slug, parent_agent_id")
+    .single();
+
+  if (watcherErr) {
+    console.error("Failed to upsert Watcher:", watcherErr.message);
+    process.exit(1);
+  }
+
+  console.log(
+    `Watcher sub-agent: ${watcher.id} (${watcher.slug}) -> parent ${watcher.parent_agent_id}`
+  );
   console.log("Done.");
 }
 

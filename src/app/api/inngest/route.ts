@@ -11,6 +11,8 @@ import { arenaExecuteMatch } from "@/lib/inngest/functions/arena-execute-match";
 import { arenaJudgeMatch } from "@/lib/inngest/functions/arena-judge-match";
 import { arenaChampionship } from "@/lib/inngest/functions/arena-championship";
 import { resolveDisputeT3 } from "@/lib/inngest/functions/resolve-dispute-t3";
+import { keykeeperAgeCheck } from "@/lib/inngest/functions/keykeeper-age-check";
+import { keykeeperBreachWatch } from "@/lib/inngest/functions/keykeeper-breach-watch";
 
 // Inngest webhook handler — receives events from Inngest cloud and executes functions.
 // Vercel env vars needed: INNGEST_EVENT_KEY, INNGEST_SIGNING_KEY
@@ -31,5 +33,7 @@ export const { GET, POST, PUT } = serve({
     arenaExecuteMatch,
     arenaJudgeMatch,
     arenaChampionship,
+    keykeeperAgeCheck,
+    keykeeperBreachWatch,
   ],
 });
