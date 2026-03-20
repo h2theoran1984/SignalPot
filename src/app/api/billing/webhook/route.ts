@@ -26,19 +26,17 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient();
 
-  // Idempotency: skip events we've already processed
-  const { data: existing } = await admin
+  // Idempotency: atomically claim the event via INSERT ON CONFLICT
+  const { data: claimed } = await admin
     .from("webhook_events")
+    .upsert({ event_id: event.id }, { onConflict: "event_id", ignoreDuplicates: true })
     .select("event_id")
-    .eq("event_id", event.id)
-    .maybeSingle();
+    .single();
 
-  if (existing) {
+  if (!claimed) {
+    // Another request already claimed this event
     return NextResponse.json({ received: true, deduplicated: true });
   }
-
-  // Record event ID before processing to prevent concurrent duplicates
-  await admin.from("webhook_events").insert({ event_id: event.id });
 
   try {
     switch (event.type) {

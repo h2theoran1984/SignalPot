@@ -3,7 +3,7 @@
  * Used by both the SSO login and callback routes.
  */
 
-import { createHmac } from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 
 export interface StatePayload {
   org_id: string;
@@ -48,13 +48,10 @@ export function verifyState(state: string): StatePayload | null {
   const [data, signature] = parts;
   const expected = createHmac("sha256", secret).update(data).digest("base64url");
 
-  // Constant-time comparison
-  if (signature.length !== expected.length) return null;
-  let mismatch = 0;
-  for (let i = 0; i < signature.length; i++) {
-    mismatch |= signature.charCodeAt(i) ^ expected.charCodeAt(i);
-  }
-  if (mismatch !== 0) return null;
+  // Constant-time comparison using Node.js built-in
+  const sigBuf = Buffer.from(signature);
+  const expBuf = Buffer.from(expected);
+  if (sigBuf.length !== expBuf.length || !timingSafeEqual(sigBuf, expBuf)) return null;
 
   try {
     const payload = JSON.parse(Buffer.from(data, "base64url").toString("utf-8"));

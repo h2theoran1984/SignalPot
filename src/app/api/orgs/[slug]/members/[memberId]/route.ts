@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { updateMemberRoleSchema } from "@/lib/validations";
-import { canManageMembers } from "@/lib/rbac";
 import { logAuditEvent, getClientIp } from "@/lib/audit";
 
 // PATCH /api/orgs/[slug]/members/[memberId] — Change role (admin+)
@@ -14,10 +13,6 @@ export async function PATCH(
   const auth = await getAuthContext(request);
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  if (!canManageMembers(auth)) {
-    return NextResponse.json({ error: "Requires admin+ role" }, { status: 403 });
   }
 
   let body: unknown;
@@ -46,6 +41,18 @@ export async function PATCH(
 
   if (!org) {
     return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+  }
+
+  // Verify caller is a member of THIS org (not just any org) and has admin+ role
+  const { data: callerMembership } = await admin
+    .from("org_members")
+    .select("role")
+    .eq("org_id", org.id)
+    .eq("profile_id", auth.profileId)
+    .single();
+
+  if (!callerMembership || !["owner", "admin"].includes(callerMembership.role)) {
+    return NextResponse.json({ error: "Requires admin+ role in this organization" }, { status: 403 });
   }
 
   // Can't change the owner's role
@@ -98,10 +105,6 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (!canManageMembers(auth)) {
-    return NextResponse.json({ error: "Requires admin+ role" }, { status: 403 });
-  }
-
   const admin = createAdminClient();
 
   const { data: org } = await admin
@@ -112,6 +115,18 @@ export async function DELETE(
 
   if (!org) {
     return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+  }
+
+  // Verify caller is a member of THIS org (not just any org) and has admin+ role
+  const { data: callerMembership } = await admin
+    .from("org_members")
+    .select("role")
+    .eq("org_id", org.id)
+    .eq("profile_id", auth.profileId)
+    .single();
+
+  if (!callerMembership || !["owner", "admin"].includes(callerMembership.role)) {
+    return NextResponse.json({ error: "Requires admin+ role in this organization" }, { status: 403 });
   }
 
   // Can't remove the owner

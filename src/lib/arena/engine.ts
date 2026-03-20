@@ -22,8 +22,8 @@ const SPARRING_SLUG = "sparring-partner";
  * Stored endpoints are typically /mcp/tools — the RPC endpoint
  * lives at /a2a/rpc on the same host.
  */
-function deriveRpcEndpoint(mcpEndpoint: string): string {
-  assertSafeUrl(mcpEndpoint);
+async function deriveRpcEndpoint(mcpEndpoint: string): Promise<string> {
+  await assertSafeUrl(mcpEndpoint);
   const url = new URL(mcpEndpoint);
   url.pathname = "/a2a/rpc";
   return url.toString();
@@ -126,7 +126,7 @@ async function callAgent(
         return { jobId, error: "Agent has no endpoint configured" };
       }
 
-      const rpcEndpoint = deriveRpcEndpoint(agent.mcp_endpoint);
+      const rpcEndpoint = await deriveRpcEndpoint(agent.mcp_endpoint);
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), AGENT_CALL_TIMEOUT_MS);
 

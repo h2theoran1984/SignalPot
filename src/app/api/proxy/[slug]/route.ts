@@ -355,7 +355,7 @@ export async function POST(
 
   // 9. SSRF check — block private IPs, localhost, cloud metadata
   try {
-    assertSafeUrl(effectiveEndpoint);
+    await assertSafeUrl(effectiveEndpoint);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Blocked endpoint";
     return corsJson({ error: message }, { status: 400 });

@@ -32,8 +32,8 @@ interface AgentResult {
  * Stored endpoints are typically /mcp/tools — the RPC endpoint
  * lives at /a2a/rpc on the same host.
  */
-function deriveRpcEndpoint(mcpEndpoint: string): string {
-  assertSafeUrl(mcpEndpoint);
+async function deriveRpcEndpoint(mcpEndpoint: string): Promise<string> {
+  await assertSafeUrl(mcpEndpoint);
   const url = new URL(mcpEndpoint);
   url.pathname = "/a2a/rpc";
   return url.toString();
@@ -84,7 +84,7 @@ async function callFighter(
     throw new Error(`Agent ${slug} has no endpoint configured`);
   }
 
-  const rpcEndpoint = deriveRpcEndpoint(mcpEndpoint);
+  const rpcEndpoint = await deriveRpcEndpoint(mcpEndpoint);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), AGENT_TIMEOUT);
 

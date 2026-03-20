@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { readSecret, storeSecret } from "@/lib/keykeeper/vault";
 import { getProvider } from "@/lib/keykeeper/providers";
+import { timingSafeEqual } from "crypto";
 import { z } from "zod";
 
 const INTERNAL_KEY = process.env.INTERNAL_DISPATCH_KEY;
@@ -36,8 +37,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const provided = request.headers.get("x-signalpot-internal");
-  if (provided !== INTERNAL_KEY) {
+  const provided = request.headers.get("x-signalpot-internal") ?? "";
+  const keyBuf = Buffer.from(INTERNAL_KEY);
+  const providedBuf = Buffer.from(provided);
+  if (keyBuf.length !== providedBuf.length || !timingSafeEqual(keyBuf, providedBuf)) {
     return NextResponse.json(
       { error: "Forbidden — internal endpoint" },
       { status: 403 }

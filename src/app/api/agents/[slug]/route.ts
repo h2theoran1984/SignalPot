@@ -130,7 +130,7 @@ export async function PATCH(
     }
     console.error("Agent update error:", error);
     return NextResponse.json(
-      { error: "Failed to update agent", detail: error.message, code: error.code },
+      { error: "Failed to update agent" },
       { status: 500 }
     );
   }
