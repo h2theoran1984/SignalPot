@@ -11,6 +11,8 @@ const PROVIDER_DOMAINS: Record<string, string> = {
   stripe: "stripe.com",
   github: "github.com",
   openai: "openai.com",
+  anthropic: "anthropic.com",
+  google: "google.com",
 };
 
 interface HibpBreach {

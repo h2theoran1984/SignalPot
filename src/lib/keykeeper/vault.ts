@@ -80,7 +80,7 @@ export async function storeSecret(
   ownerId: string,
   name: string,
   value: string,
-  provider: "openai" | "stripe" | "github" | "other",
+  provider: "openai" | "stripe" | "github" | "anthropic" | "google" | "other",
   rotationDays = 90
 ): Promise<void> {
   const encrypted = encryptSecret(value);

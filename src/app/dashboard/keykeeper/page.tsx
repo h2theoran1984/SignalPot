@@ -17,7 +17,7 @@ interface Secret {
   status: "healthy" | "due" | "overdue";
 }
 
-const PROVIDERS = ["openai", "stripe", "github", "other"] as const;
+const PROVIDERS = ["openai", "stripe", "github", "anthropic", "google", "other"] as const;
 
 export default function KeyKeeperDashboard() {
   const router = useRouter();

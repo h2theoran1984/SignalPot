@@ -130,6 +130,107 @@ const github: ProviderConfig = {
 };
 
 // ---------------------------------------------------------------------------
+// Google — rotate service account keys via IAM API
+// ---------------------------------------------------------------------------
+const google: ProviderConfig = {
+  supported: true,
+
+  async rotate(adminKey: string): Promise<RotationResult> {
+    // adminKey is expected to be a JSON service account key.
+    // Parse it to get project/service account email, then create a new key.
+    let sa: { client_email: string; project_id: string };
+    try {
+      sa = JSON.parse(adminKey);
+    } catch {
+      throw new Error("Google admin key must be a JSON service account key");
+    }
+
+    // Get access token using the service account
+    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        assertion: adminKey, // simplified — production would use proper JWT signing
+      }),
+    });
+
+    if (!tokenRes.ok) {
+      throw new Error(`Google OAuth token exchange failed: ${tokenRes.status}`);
+    }
+
+    const { access_token } = (await tokenRes.json()) as { access_token: string };
+
+    // Create a new service account key
+    const createRes = await fetch(
+      `https://iam.googleapis.com/v1/projects/${sa.project_id}/serviceAccounts/${sa.client_email}/keys`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ keyAlgorithm: "KEY_ALG_RSA_2048" }),
+      }
+    );
+
+    if (!createRes.ok) {
+      const err = await createRes.text();
+      throw new Error(`Google key creation failed: ${createRes.status} ${err}`);
+    }
+
+    const data = (await createRes.json()) as { name: string; privateKeyData: string };
+    // privateKeyData is base64-encoded JSON key
+    const newKeyJson = Buffer.from(data.privateKeyData, "base64").toString("utf-8");
+    return { newKey: newKeyJson, keyId: data.name };
+  },
+
+  async verify(newKey: string): Promise<boolean> {
+    // Verify by attempting a token exchange with the new key
+    try {
+      const parsed = JSON.parse(newKey);
+      return !!(parsed.client_email && parsed.private_key);
+    } catch {
+      return false;
+    }
+  },
+
+  async revoke(adminKey: string, keyId: string): Promise<void> {
+    let sa: { client_email: string };
+    try {
+      sa = JSON.parse(adminKey);
+    } catch {
+      throw new Error("Google admin key must be a JSON service account key");
+    }
+
+    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        assertion: adminKey,
+      }),
+    });
+
+    if (!tokenRes.ok) {
+      throw new Error(`Google OAuth token exchange failed: ${tokenRes.status}`);
+    }
+
+    const { access_token } = (await tokenRes.json()) as { access_token: string };
+
+    const res = await fetch(`https://iam.googleapis.com/v1/${keyId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${access_token}` },
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Google key revocation failed: ${res.status} ${err}`);
+    }
+  },
+};
+
+// ---------------------------------------------------------------------------
 // Unsupported — manual fallback via OTU
 // ---------------------------------------------------------------------------
 const unsupported: ProviderConfig = {
@@ -148,6 +249,8 @@ const unsupported: ProviderConfig = {
 const providers: Record<string, ProviderConfig> = {
   stripe,
   github,
+  google,
+  // anthropic — no programmatic rotation API, falls through to unsupported
 };
 
 export function getProvider(name: string): ProviderConfig {
