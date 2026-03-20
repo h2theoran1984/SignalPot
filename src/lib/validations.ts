@@ -67,10 +67,10 @@ export const updateAgentSchema = z.object({
   agent_type: z.enum(["autonomous", "reactive", "hybrid"]).optional(),
   capability_schema: z.array(capabilitySpecSchema).max(50).optional(),
   rate_type: z.enum(["per_call", "per_task", "per_hour"]).optional(),
-  rate_amount: z.number().min(0).max(10_000, "Maximum rate is $10,000").optional(),
+  rate_amount: z.number().min(0.001, "Minimum rate is $0.001 per call").max(10_000, "Maximum rate is $10,000").optional(),
   rate_currency: z.string().max(10).optional(),
   auth_type: z.enum(["api_key", "oauth", "mcp_token", "none"]).optional(),
-  status: z.enum(["active", "inactive", "deprecated"]).optional(),
+  // status intentionally excluded — owners can only set inactive/deprecated, not self-activate
   auth_config: z.record(z.string(), z.unknown()).optional(),
   mcp_endpoint: z
     .string()

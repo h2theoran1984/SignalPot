@@ -52,7 +52,12 @@ export async function GET(
 
   const ssoConfig = (org.settings as Record<string, unknown>)?.sso ?? SSO_DEFAULTS;
 
-  return NextResponse.json(ssoConfig);
+  // Never return client_secret in API responses — only indicate presence
+  const { client_secret, ...safeConfig } = ssoConfig as Record<string, unknown>;
+  return NextResponse.json({
+    ...safeConfig,
+    has_client_secret: !!client_secret,
+  });
 }
 
 // PATCH /api/orgs/[slug]/sso — Update SSO configuration (owner only)
@@ -137,5 +142,10 @@ export async function PATCH(
     ipAddress: getClientIp(request),
   });
 
-  return NextResponse.json((updated.settings as Record<string, unknown>).sso);
+  // Strip client_secret from response
+  const { client_secret: _, ...safePatchConfig } = (updated.settings as Record<string, unknown>).sso as Record<string, unknown>;
+  return NextResponse.json({
+    ...safePatchConfig,
+    has_client_secret: true,
+  });
 }

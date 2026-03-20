@@ -9,12 +9,18 @@ import { assertSafeUrl } from "@/lib/ssrf";
 
 // Allowed origins for CORS — proxy is a public API so agents call it cross-origin,
 // but we restrict to known domains rather than wildcard to prevent CSRF.
-const ALLOWED_ORIGINS = new Set([
+const PROD_ORIGINS = [
   "https://www.signalpot.dev",
   "https://signalpot.dev",
+];
+const DEV_ORIGINS = [
+  ...PROD_ORIGINS,
   "http://localhost:3000",
   "http://localhost:3002",
-]);
+];
+const ALLOWED_ORIGINS = new Set(
+  process.env.NODE_ENV === "production" ? PROD_ORIGINS : DEV_ORIGINS
+);
 
 function getCorsHeaders(origin: string | null): Record<string, string> {
   const allowedOrigin = origin && ALLOWED_ORIGINS.has(origin)

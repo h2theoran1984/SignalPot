@@ -139,6 +139,25 @@ export async function POST(request: Request) {
 
       const { secret_name, owner_id } = parsed.data;
 
+      // Verify owner_id matches the job's requester — prevents IDOR across users
+      if (!jobId) {
+        return NextResponse.json(
+          { error: "credential.resolve requires a job_id for authorization" },
+          { status: 400 }
+        );
+      }
+      const { data: resolveJob } = await admin
+        .from("jobs")
+        .select("requester_profile_id")
+        .eq("id", jobId)
+        .single();
+      if (!resolveJob || resolveJob.requester_profile_id !== owner_id) {
+        return NextResponse.json(
+          { error: "Forbidden — owner_id does not match job requester" },
+          { status: 403 }
+        );
+      }
+
       const value = await readSecret(admin, owner_id, secret_name);
       if (value === null) {
         return NextResponse.json(
@@ -164,6 +183,25 @@ export async function POST(request: Request) {
       }
 
       const { secret_name, owner_id } = parsed.data;
+
+      // Verify owner_id matches the job's requester — prevents IDOR across users
+      if (!jobId) {
+        return NextResponse.json(
+          { error: "credential.rotate requires a job_id for authorization" },
+          { status: 400 }
+        );
+      }
+      const { data: rotateJob } = await admin
+        .from("jobs")
+        .select("requester_profile_id")
+        .eq("id", jobId)
+        .single();
+      if (!rotateJob || rotateJob.requester_profile_id !== owner_id) {
+        return NextResponse.json(
+          { error: "Forbidden — owner_id does not match job requester" },
+          { status: 403 }
+        );
+      }
 
       // Look up secret metadata to get provider
       const { data: secretRow } = await admin

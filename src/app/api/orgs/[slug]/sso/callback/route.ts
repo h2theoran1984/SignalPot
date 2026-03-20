@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { logAuditEvent } from "@/lib/audit";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { verifyState } from "@/lib/sso-state";
@@ -160,10 +161,17 @@ export async function GET(
   }
 
   const email = claims.email as string | undefined;
+  const emailVerified = claims.email_verified as boolean | undefined;
   const name = (claims.name as string | undefined) ?? (claims.preferred_username as string | undefined);
 
   if (!email) {
     return NextResponse.redirect(new URL(`/login?error=sso_no_email`, url.origin));
+  }
+
+  // Require verified email from the IdP to prevent account takeover
+  if (emailVerified === false) {
+    console.error("[sso] Email not verified by IdP:", email);
+    return NextResponse.redirect(new URL(`/login?error=sso_email_not_verified`, url.origin));
   }
 
   // Verify email domain against allowed_domains
@@ -229,8 +237,8 @@ export async function GET(
     }
   }
 
-  // Generate a magic link / session for the user
-  // Supabase admin.generateLink creates a one-time link that establishes a session
+  // Generate a magic link, then exchange it server-side to set session cookies
+  // without ever exposing the token in browser history or Referer headers.
   const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
     type: "magiclink",
     email,
@@ -244,6 +252,29 @@ export async function GET(
     return NextResponse.redirect(new URL(`/login?error=sso_session_failed`, url.origin));
   }
 
+  // Extract the OTP token hash from the magic link and verify it server-side
+  const actionUrl = new URL(linkData.properties.action_link);
+  const tokenHash = actionUrl.searchParams.get("token_hash") ?? actionUrl.hash?.replace("#", "");
+  const otpType = (actionUrl.searchParams.get("type") ?? "magiclink") as "magiclink";
+
+  if (!tokenHash) {
+    console.error("[sso] No token_hash in generated magic link");
+    return NextResponse.redirect(new URL(`/login?error=sso_session_failed`, url.origin));
+  }
+
+  // Exchange the OTP server-side — this sets the session cookies without
+  // ever sending the magic link token through the browser
+  const supabase = await createClient();
+  const { error: verifyErr } = await supabase.auth.verifyOtp({
+    token_hash: tokenHash,
+    type: otpType,
+  });
+
+  if (verifyErr) {
+    console.error("[sso] Server-side OTP verification failed:", verifyErr.message);
+    return NextResponse.redirect(new URL(`/login?error=sso_session_failed`, url.origin));
+  }
+
   logAuditEvent({
     orgId: org.id,
     actorId: userId,
@@ -253,6 +284,6 @@ export async function GET(
     metadata: { provider: ssoConfig.provider, email },
   });
 
-  // Redirect through the magic link to establish the Supabase session
-  return NextResponse.redirect(linkData.properties.action_link);
+  // Session cookies are set — redirect to the org page
+  return NextResponse.redirect(new URL(`/orgs/${slug}`, url.origin));
 }

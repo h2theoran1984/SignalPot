@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkIpRateLimit } from "@/lib/rate-limit";
 
 /**
  * GET /api/proxy/credits/[checkoutSessionId]
@@ -12,6 +13,20 @@ export async function GET(
   { params }: { params: Promise<{ checkoutSessionId: string }> }
 ) {
   const { checkoutSessionId } = await params;
+
+  // Rate limit to prevent session ID brute-force
+  const forwarded = request.headers.get("x-forwarded-for");
+  const callerIp = forwarded
+    ? forwarded.split(",").pop()!.trim()
+    : request.headers.get("x-real-ip") || "0.0.0.0";
+  const rl = await checkIpRateLimit(callerIp);
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: "Rate limit exceeded" },
+      { status: 429, headers: { "Retry-After": String(Math.ceil((rl.reset - Date.now()) / 1000)) } }
+    );
+  }
+
   const admin = createAdminClient();
 
   // Check if session already exists for this Stripe checkout (idempotent)
@@ -57,18 +72,12 @@ export async function GET(
     );
   }
 
-  // Get caller IP for session
-  const forwarded = request.headers.get("x-forwarded-for");
-  const ip = forwarded
-    ? forwarded.split(",").pop()!.trim()
-    : request.headers.get("x-real-ip") || "0.0.0.0";
-
   // Create anonymous session with credits
   const { data: session, error } = await admin
     .from("anonymous_sessions")
     .insert({
       credit_balance_millicents: amountMillicents,
-      ip_address: ip,
+      ip_address: callerIp,
       stripe_session_id: checkoutSessionId,
     })
     .select("session_token, credit_balance_millicents, expires_at")
