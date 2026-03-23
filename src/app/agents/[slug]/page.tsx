@@ -139,7 +139,7 @@ export default async function AgentDetailPage({
                   },
                 }
               : {}),
-          }),
+          }).replace(/</g, "\\u003c"),
         }}
       />
       <nav className="flex items-center justify-between px-6 py-4 border-b border-[#1f2028] bg-[#0a0a0f]/80 backdrop-blur-sm sticky top-0 z-10">
