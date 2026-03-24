@@ -1,13 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import AuthButton from "@/components/AuthButton";
+
+interface Prefill {
+  name?: string; slug?: string; description?: string; goal?: string;
+  decision_logic?: string; agent_type?: string; mcp_endpoint?: string;
+  rate_type?: string; rate_amount?: string; auth_type?: string; tags?: string;
+}
 
 export default function NewAgentForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
+  const [prefill, setPrefill] = useState<Prefill>({});
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("signalpot-register-prefill");
+      if (raw) {
+        const data = JSON.parse(raw) as Prefill;
+        setPrefill(data);
+        localStorage.removeItem("signalpot-register-prefill");
+      }
+    } catch { /* ignore */ }
+  }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -79,7 +98,13 @@ export default function NewAgentForm() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+          {Object.keys(prefill).length > 0 && (
+            <div className="bg-cyan-950/30 border border-cyan-900/50 rounded-lg p-3 text-sm text-cyan-400">
+              Form pre-filled from Build Tracker. Review and submit to register.
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
               Agent Name *
@@ -87,6 +112,7 @@ export default function NewAgentForm() {
             <input
               name="name"
               required
+              defaultValue={prefill.name}
               className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gray-500"
               placeholder="My Cool Agent"
             />
@@ -99,6 +125,7 @@ export default function NewAgentForm() {
             <input
               name="slug"
               required
+              defaultValue={prefill.slug}
               pattern="^[a-z0-9][a-z0-9-]*[a-z0-9]$"
               className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gray-500"
               placeholder="my-cool-agent"
@@ -112,6 +139,7 @@ export default function NewAgentForm() {
             <textarea
               name="description"
               rows={3}
+              defaultValue={prefill.description}
               className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gray-500"
               placeholder="What does your agent do?"
             />
@@ -125,6 +153,7 @@ export default function NewAgentForm() {
               name="goal"
               rows={2}
               maxLength={500}
+              defaultValue={prefill.goal}
               className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gray-500"
               placeholder="What objective does this agent pursue? e.g. 'Resolve customer support tickets by diagnosing issues and routing to the correct team.'"
             />
@@ -139,6 +168,7 @@ export default function NewAgentForm() {
               name="decision_logic"
               rows={3}
               maxLength={2000}
+              defaultValue={prefill.decision_logic}
               className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gray-500"
               placeholder="How does this agent decide what to do? e.g. 'Reads ticket, classifies intent using LLM, checks knowledge base, routes based on severity score. Escalates to human if confidence < 0.7.'"
             />
@@ -151,6 +181,7 @@ export default function NewAgentForm() {
             </label>
             <select
               name="agent_type"
+              defaultValue={prefill.agent_type || "autonomous"}
               className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gray-500"
             >
               <option value="autonomous">Autonomous — pursues goals independently</option>
@@ -166,6 +197,7 @@ export default function NewAgentForm() {
             <input
               name="mcp_endpoint"
               type="url"
+              defaultValue={prefill.mcp_endpoint}
               className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gray-500"
               placeholder="https://my-agent.example.com/mcp"
             />
@@ -178,6 +210,7 @@ export default function NewAgentForm() {
               </label>
               <select
                 name="rate_type"
+                defaultValue={prefill.rate_type || "per_call"}
                 className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gray-500"
               >
                 <option value="per_call">Per Call</option>
@@ -194,7 +227,7 @@ export default function NewAgentForm() {
                 type="number"
                 step="0.0001"
                 min="0.0001"
-                defaultValue="0.001"
+                defaultValue={prefill.rate_amount || "0.001"}
                 className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gray-500"
               />
               <p className="mt-1 text-xs text-zinc-500">Minimum $0.001 per call (platform fee applies)</p>
@@ -215,6 +248,7 @@ export default function NewAgentForm() {
             </label>
             <select
               name="auth_type"
+              defaultValue={prefill.auth_type || "none"}
               className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gray-500"
             >
               <option value="none">None</option>
@@ -230,6 +264,7 @@ export default function NewAgentForm() {
             </label>
             <input
               name="tags"
+              defaultValue={prefill.tags}
               className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gray-500"
               placeholder="nlp, translation, coding"
             />

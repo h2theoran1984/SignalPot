@@ -162,6 +162,24 @@ export default function AgentBuildoutTracker() {
     document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
   }, [formData, generateSlug]);
 
+  const registerAgent = useCallback(() => {
+    const prefill = {
+      name: formData.name,
+      slug: formData.slug || generateSlug(formData.name),
+      description: formData.description,
+      goal: formData.goal,
+      decision_logic: formData.decisionLogic,
+      agent_type: formData.agentType,
+      mcp_endpoint: formData.endpointUrl || formData.mcpEndpoint || "",
+      rate_type: formData.rateType === "free" ? "per_call" : formData.rateType,
+      rate_amount: formData.rateType === "free" ? "0.001" : formData.rateAmount || "0.001",
+      auth_type: formData.authType,
+      tags: formData.tags,
+    };
+    localStorage.setItem("signalpot-register-prefill", JSON.stringify(prefill));
+    window.location.href = "/agents/new";
+  }, [formData, generateSlug]);
+
   const resetForm = useCallback(() => {
     if (window.confirm("Clear all form data? This cannot be undone.")) {
       setFormData(DEFAULT_FORM_DATA);
@@ -184,9 +202,16 @@ export default function AgentBuildoutTracker() {
           </div>
           <div className="flex items-center gap-3 shrink-0">
             <button
+              onClick={registerAgent}
+              disabled={!formData.name || !formData.goal}
+              className="px-4 py-2 text-xs font-medium uppercase tracking-wider rounded-lg transition-colors bg-cyan-400 text-gray-950 hover:bg-cyan-300 disabled:bg-[#1f2028] disabled:text-gray-600 disabled:cursor-not-allowed"
+            >
+              Register Agent
+            </button>
+            <button
               onClick={exportConfig}
               disabled={!formData.name}
-              className="px-4 py-2 text-xs font-medium uppercase tracking-wider rounded-lg transition-colors bg-cyan-400 text-gray-950 hover:bg-cyan-300 disabled:bg-[#1f2028] disabled:text-gray-600 disabled:cursor-not-allowed"
+              className="px-4 py-2 text-xs font-medium uppercase tracking-wider rounded-lg border border-[#1f2028] text-gray-500 hover:text-gray-300 hover:border-gray-600 transition-colors"
             >
               Export Config
             </button>

@@ -100,6 +100,51 @@ function ScoreBar({
   );
 }
 
+/* ── Share bar ── */
+function ShareBar({
+  matchId, winner, agentAName, agentBName, capability, isChampionship,
+}: {
+  matchId: string; winner: string; agentAName: string; agentBName: string;
+  capability: string; isChampionship: boolean;
+}) {
+  const [copied, setCopied] = useState(false);
+  const matchUrl = typeof window !== "undefined" ? `${window.location.origin}/arena/${matchId}` : "";
+
+  const shareText = winner === "tie"
+    ? `It's a tie! ${agentAName} vs ${agentBName} in ${capability} on SignalPot Arena!`
+    : `${winner === "a" ? agentAName : agentBName} ${isChampionship ? "wins the championship" : "defeats"} ${winner === "a" ? agentBName : agentAName} in ${capability} on SignalPot Arena!`;
+
+  const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(matchUrl)}`;
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(matchUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* fallback: do nothing */ }
+  }
+
+  return (
+    <div className="flex items-center justify-center gap-3 mb-8">
+      <span className="text-xs text-gray-500 uppercase tracking-wider">Share</span>
+      <button
+        onClick={copyLink}
+        className="px-3 py-1.5 text-xs rounded-lg border border-[#1f2028] text-gray-400 hover:text-white hover:border-gray-600 transition-colors"
+      >
+        {copied ? "Copied!" : "Copy Link"}
+      </button>
+      <a
+        href={twitterUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="px-3 py-1.5 text-xs rounded-lg border border-[#1f2028] text-gray-400 hover:text-white hover:border-gray-600 transition-colors"
+      >
+        Share on X
+      </a>
+    </div>
+  );
+}
+
 /* ── Judgment breakdown panel ── */
 function JudgmentBreakdownPanel({
   breakdown,
@@ -724,6 +769,18 @@ export default function MatchPage() {
               </p>
             )}
           </div>
+        )}
+
+        {/* Share bar */}
+        {isCompleted && match.winner && (
+          <ShareBar
+            matchId={id as string}
+            winner={match.winner}
+            agentAName={agentAName}
+            agentBName={agentBName}
+            capability={match.capability}
+            isChampionship={isChampionship}
+          />
         )}
 
         {/* Failed state */}
