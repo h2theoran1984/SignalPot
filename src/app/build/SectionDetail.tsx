@@ -267,47 +267,9 @@ export default function SectionDetail({
   const missingFields = getMissingFields(section.id, formData);
   const canComplete = missingFields.length === 0;
 
-  /* ── Locked state ── */
-  if (isLocked) {
-    const depSections = section.deps.map((d) => allSections.find((s) => s.id === d)).filter(Boolean) as Section[];
-    return (
-      <div className="animate-in fade-in duration-200">
-        <div className="flex items-center gap-3 mb-4">
-          <span className="text-2xl text-gray-600">{section.icon}</span>
-          <div>
-            <h2 className="text-lg font-semibold text-gray-500">{section.title}</h2>
-            <p className="text-xs text-gray-600">{section.subtitle}</p>
-          </div>
-        </div>
-        <div className="bg-[#0a0a0f] rounded-lg p-4 border border-[#1f2028]">
-          <div className="text-sm text-gray-500 mb-3">This section is locked. Complete these first:</div>
-          <div className="space-y-2">
-            {depSections.map((dep) => (
-              <button
-                key={dep.id}
-                onClick={() => dep.status !== "locked" ? onSelectSection(dep.id) : undefined}
-                className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-colors text-left ${
-                  dep.status === "completed"
-                    ? "bg-emerald-950/30 border-emerald-900/50 text-emerald-400"
-                    : dep.status === "active"
-                    ? "bg-[#111118] border-[#1f2028] text-amber-400 hover:border-amber-800 cursor-pointer"
-                    : "bg-[#111118] border-[#1f2028] text-gray-600 cursor-default"
-                }`}
-              >
-                <span className="text-lg">{dep.icon}</span>
-                <span className="text-sm font-medium flex-1">{dep.title}</span>
-                <span className={`text-xs uppercase tracking-wider ${
-                  dep.status === "completed" ? "text-emerald-500" : dep.status === "active" ? "text-amber-500" : "text-gray-600"
-                }`}>
-                  {dep.status === "completed" ? "Done" : dep.status === "active" ? "Ready" : "Locked"}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  /* ── Dependency banner for locked sections ── */
+  const depSections = isLocked ? section.deps.map((d) => allSections.find((s) => s.id === d)).filter(Boolean) as Section[] : [];
+  const incompleteDeps = depSections.filter((d) => d.status !== "completed");
 
   /* ── Tab content ── */
 
@@ -335,13 +297,15 @@ export default function SectionDetail({
     }
   };
 
+  const effectiveTab = isLocked ? "guide" : activeTab;
+
   return (
     <div className="animate-in fade-in duration-200">
       {/* Header */}
       <div className="flex items-center gap-3 mb-1">
-        <span className={`text-2xl ${section.status === "completed" ? "text-emerald-400" : "text-amber-400"}`}>{section.icon}</span>
+        <span className={`text-2xl ${isLocked ? "text-gray-600" : section.status === "completed" ? "text-emerald-400" : "text-amber-400"}`}>{section.icon}</span>
         <div className="flex-1">
-          <h2 className={`text-lg font-semibold ${section.status === "completed" ? "text-emerald-400" : "text-gray-200"}`}>{section.title}</h2>
+          <h2 className={`text-lg font-semibold ${isLocked ? "text-gray-400" : section.status === "completed" ? "text-emerald-400" : "text-gray-200"}`}>{section.title}</h2>
           <p className="text-xs text-gray-500">{section.subtitle}</p>
         </div>
         <span className={`text-xs px-2.5 py-1 rounded-md border font-medium ${
@@ -356,46 +320,82 @@ export default function SectionDetail({
       </div>
       <p className="text-sm text-gray-400 mb-5 leading-relaxed">{section.description}</p>
 
+      {/* Locked dependency banner */}
+      {isLocked && incompleteDeps.length > 0 && (
+        <div className="bg-amber-950/10 border border-amber-900/30 rounded-lg p-3 mb-5">
+          <p className="text-xs text-amber-400/80 mb-2">Complete these to unlock configuration:</p>
+          <div className="flex flex-wrap gap-2">
+            {incompleteDeps.map((dep) => (
+              <button
+                key={dep.id}
+                onClick={() => onSelectSection(dep.id)}
+                className={`text-xs px-2.5 py-1 rounded-md border transition-colors ${
+                  dep.status === "active"
+                    ? "bg-amber-950/30 text-amber-400 border-amber-900/50 hover:border-amber-700 cursor-pointer"
+                    : "bg-[#111118] text-gray-500 border-[#1f2028]"
+                }`}
+              >
+                {dep.icon} {dep.title}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="flex gap-1 mb-5 bg-[#0a0a0f] rounded-lg p-1 border border-[#1f2028]">
-        {(["guide", "configure"] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => onTabChange(tab)}
-            className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              activeTab === tab
-                ? "bg-[#1f2028] text-white"
-                : "text-gray-500 hover:text-gray-300"
-            }`}
-          >
-            {tab === "guide" ? "Guide" : "Configure"}
-          </button>
-        ))}
+        <button
+          onClick={() => onTabChange("guide")}
+          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            effectiveTab === "guide"
+              ? "bg-[#1f2028] text-white"
+              : "text-gray-500 hover:text-gray-300"
+          }`}
+        >
+          Guide
+        </button>
+        <button
+          onClick={() => !isLocked && onTabChange("configure")}
+          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            isLocked
+              ? "text-gray-600 cursor-not-allowed"
+              : effectiveTab === "configure"
+              ? "bg-[#1f2028] text-white"
+              : "text-gray-500 hover:text-gray-300"
+          }`}
+          title={isLocked ? "Complete dependencies to unlock configuration" : undefined}
+        >
+          Configure {isLocked && <span className="text-gray-700 ml-1">&#128274;</span>}
+        </button>
       </div>
 
       {/* Content */}
       <div className="mb-5">
-        {activeTab === "guide" ? renderGuide() : renderConfigure()}
+        {effectiveTab === "guide" ? renderGuide() : renderConfigure()}
       </div>
 
-      {/* Mark Complete */}
-      <button
-        onClick={() => onToggleComplete(section.id)}
-        disabled={section.status !== "completed" && !canComplete}
-        className={`w-full py-3 rounded-lg text-sm font-medium transition-colors ${
-          section.status === "completed"
-            ? "bg-[#111118] border border-emerald-900/50 text-emerald-400 hover:bg-emerald-950/20 cursor-pointer"
-            : canComplete
-            ? "bg-amber-950/20 border border-amber-800/50 text-amber-400 hover:bg-amber-950/30 cursor-pointer"
-            : "bg-[#111118] border border-[#1f2028] text-gray-600 cursor-not-allowed"
-        }`}
-      >
-        {section.status === "completed" ? "Reopen Section" : "Mark Complete"}
-      </button>
-      {!canComplete && section.status !== "completed" && missingFields.length > 0 && (
-        <p className="text-xs text-gray-600 mt-2 text-center">
-          Fill in required fields first: {missingFields.join(", ")}
-        </p>
+      {/* Mark Complete — only for unlocked sections */}
+      {!isLocked && (
+        <>
+          <button
+            onClick={() => onToggleComplete(section.id)}
+            disabled={section.status !== "completed" && !canComplete}
+            className={`w-full py-3 rounded-lg text-sm font-medium transition-colors ${
+              section.status === "completed"
+                ? "bg-[#111118] border border-emerald-900/50 text-emerald-400 hover:bg-emerald-950/20 cursor-pointer"
+                : canComplete
+                ? "bg-amber-950/20 border border-amber-800/50 text-amber-400 hover:bg-amber-950/30 cursor-pointer"
+                : "bg-[#111118] border border-[#1f2028] text-gray-600 cursor-not-allowed"
+            }`}
+          >
+            {section.status === "completed" ? "Reopen Section" : "Mark Complete"}
+          </button>
+          {!canComplete && section.status !== "completed" && missingFields.length > 0 && (
+            <p className="text-xs text-gray-600 mt-2 text-center">
+              Fill in required fields first: {missingFields.join(", ")}
+            </p>
+          )}
+        </>
       )}
     </div>
   );
