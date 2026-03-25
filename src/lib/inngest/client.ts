@@ -41,4 +41,11 @@ export type SignalPotEvents = {
       job_id: string;
     };
   };
+  "user/signed.up": {
+    data: {
+      user_id: string;
+      email: string;
+      display_name: string | null;
+    };
+  };
 };
