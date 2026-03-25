@@ -5,6 +5,7 @@ import { getAllPosts, getPostBySlug } from "@/lib/blog";
 import { mdxComponents } from "@/components/MDXComponents";
 import Link from "next/link";
 import type { Metadata } from "next";
+import BlogViewTracker from "@/components/BlogViewTracker";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -50,6 +51,7 @@ export default async function BlogPostPage({ params }: Props) {
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
       <SiteNav />
+      <BlogViewTracker slug={slug} title={post.title} />
       <main className="max-w-3xl mx-auto px-6 py-16">
         <Link href="/blog" className="text-sm text-gray-500 hover:text-cyan-400 transition-colors mb-6 inline-block">
           &larr; Back to Blog

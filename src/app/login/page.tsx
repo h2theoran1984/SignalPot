@@ -7,14 +7,15 @@ import { Suspense } from "react";
 function LoginContent() {
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
+  const next = searchParams.get("next") || "/dashboard";
+
+  const callbackUrl = `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
 
   async function signInWithGitHub() {
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider: "github",
-      options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/auth/callback`,
-      },
+      options: { redirectTo: callbackUrl },
     });
   }
 
@@ -22,9 +23,7 @@ function LoginContent() {
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/auth/callback`,
-      },
+      options: { redirectTo: callbackUrl },
     });
   }
 
