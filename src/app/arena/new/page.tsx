@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import SiteNav from "@/components/SiteNav";
+import { trackEvent } from "@/lib/tracking";
 
 interface AgentOption {
   id: string;
@@ -161,6 +162,7 @@ function NewMatchPage() {
       }
 
       const data = await res.json();
+      trackEvent("arena_match_created", { capability });
       router.push(`/arena/${data.match.id}`);
     } catch {
       setError("Network error — please try again");

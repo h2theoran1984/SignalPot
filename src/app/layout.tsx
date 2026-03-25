@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import UTMCapture from "@/components/UTMCapture";
+import ConversionTrigger from "@/components/ConversionTrigger";
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -78,6 +81,12 @@ export default function RootLayout({
           </Script>
         </>
       )}
+      {/* Meta Pixel */}
+      {META_PIXEL_ID && (
+        <Script id="meta-pixel" strategy="afterInteractive">
+          {`!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${META_PIXEL_ID}');fbq('track','PageView');`}
+        </Script>
+      )}
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
@@ -107,6 +116,8 @@ export default function RootLayout({
             ].join(""),
           }}
         />
+        <UTMCapture />
+        <ConversionTrigger />
         {children}
         <footer className="border-t border-[#1f2028] mt-auto bg-[#0a0a0f]">
           <div className="max-w-5xl mx-auto px-6 py-12">
@@ -131,6 +142,7 @@ export default function RootLayout({
                   <li><a href="/docs" className="text-gray-500 hover:text-white transition-colors">Docs</a></li>
                   <li><a href="/pricing" className="text-gray-500 hover:text-white transition-colors">Pricing</a></li>
                   <li><a href="/build" className="text-gray-500 hover:text-white transition-colors">Build</a></li>
+                  <li><a href="/blog" className="text-gray-500 hover:text-white transition-colors">Blog</a></li>
                 </ul>
               </div>
 

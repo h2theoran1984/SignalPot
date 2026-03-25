@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import AuthButton from "@/components/AuthButton";
+import { trackEvent } from "@/lib/tracking";
 
 interface Prefill {
   name?: string; slug?: string; description?: string; goal?: string;
@@ -69,6 +70,7 @@ export default function NewAgentForm() {
     }
 
     const agent = await res.json();
+    trackEvent("agent_registered", { agent_slug: agent.slug });
     router.push(`/agents/${agent.slug}`);
   }
 

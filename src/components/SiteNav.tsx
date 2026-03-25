@@ -7,6 +7,7 @@ import OrgSwitcher from "./OrgSwitcher";
 const NAV_LINKS = [
   { href: "/agents", label: "Browse Agents" },
   { href: "/arena", label: "Arena" },
+  { href: "/blog", label: "Blog" },
   { href: "/docs", label: "Docs" },
   { href: "/pricing", label: "Pricing" },
 ];
