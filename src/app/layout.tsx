@@ -79,7 +79,7 @@ export default function RootLayout({
               function gtag(){dataLayer.push(arguments);}
               gtag('js', new Date());
               gtag('config', '${GA_ID}');
-              ${GOOGLE_ADS_ID ? `gtag('config', '${GOOGLE_ADS_ID}');` : ""}
+              ${GOOGLE_ADS_ID ? `gtag('config', '${GOOGLE_ADS_ID.split("/")[0]}');` : ""}
             `}
           </Script>
         </>
