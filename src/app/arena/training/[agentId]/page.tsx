@@ -331,7 +331,7 @@ export default function TrainingReportPage() {
             {/* ── Actions ── */}
             <div className="flex items-center gap-3 pt-4 border-t border-[#1f2028]">
               <a
-                href={`/arena/new?agent_a=${report.agentSlug}&agent_b=sparring-partner`}
+                href={`/arena/new?agent_a=${agentId}&agent_b=sparring-partner`}
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-cyan-400 text-gray-950 font-semibold rounded-lg hover:bg-cyan-300 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
