@@ -62,7 +62,7 @@ const investigateExplainSchema = z.object({
 const investigateDrillSchema = z.object({
   dataset_id: z.string().uuid(),
   dimension_id: z.string().uuid(),
-  filters: z.record(z.unknown()).optional(),
+  filters: z.record(z.string(), z.unknown()).optional(),
 });
 
 // compile.*
