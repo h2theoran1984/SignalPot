@@ -37,10 +37,12 @@ export async function GET(request: NextRequest) {
   // ── Verify agent ownership ─────────────────────────────────────────
   const admin = createAdminClient();
 
+  // Support both UUID and slug lookups
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(agentId);
   const { data: agent, error: agentErr } = await admin
     .from("agents")
     .select("id, owner_id")
-    .eq("id", agentId)
+    .eq(isUuid ? "id" : "slug", agentId)
     .single();
 
   if (agentErr || !agent) {
@@ -56,7 +58,7 @@ export async function GET(request: NextRequest) {
 
   // ── Generate report ────────────────────────────────────────────────
   try {
-    const report = await generateTrainingReport(admin, agentId, { matchCount });
+    const report = await generateTrainingReport(admin, agent.id, { matchCount });
     return NextResponse.json(report);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
