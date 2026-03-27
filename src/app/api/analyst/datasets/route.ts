@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 
   // Flatten the joined source name
   const enriched = (datasets ?? []).map((d) => {
-    const source = d.analyst_sources as { name: string } | null;
+    const source = d.analyst_sources as unknown as { name: string } | null;
     return {
       id: d.id,
       source_id: d.source_id,
