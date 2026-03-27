@@ -17,7 +17,11 @@ interface ArenaMatchCardProps {
     level?: number | null;
     agent_a: { name: string; slug: string } | null;
     agent_b: { name: string; slug: string } | null;
+    elo_a?: number | null;
+    elo_b?: number | null;
   };
+  /** Show ELO ratings next to agent names */
+  showElo?: boolean;
 }
 
 function statusLabel(status: ArenaMatchStatus): string {
@@ -31,7 +35,7 @@ function statusLabel(status: ArenaMatchStatus): string {
   }
 }
 
-export function ArenaMatchCard({ match }: ArenaMatchCardProps) {
+export function ArenaMatchCard({ match, showElo }: ArenaMatchCardProps) {
   const agentAName = match.agent_a?.name ?? "Unknown";
   const agentBName = match.agent_b?.name ?? "Unknown";
   const isLive = match.status === "running";
@@ -93,11 +97,17 @@ export function ArenaMatchCard({ match }: ArenaMatchCardProps) {
         <div className="flex-1 text-right">
           <p className={`font-semibold text-sm truncate ${isCompleted && match.winner === "a" ? "text-cyan-400" : "text-white"}`}>
             {agentAName}
+            {showElo && match.elo_a != null && (
+              <span className="ml-1.5 text-[10px] text-gray-500 font-mono font-normal">{match.elo_a}</span>
+            )}
           </p>
         </div>
         <span className="text-xs text-gray-600 font-bold tracking-wider shrink-0">VS</span>
         <div className="flex-1">
           <p className={`font-semibold text-sm truncate ${isCompleted && match.winner === "b" ? "text-cyan-400" : "text-white"}`}>
+            {showElo && match.elo_b != null && (
+              <span className="mr-1.5 text-[10px] text-gray-500 font-mono font-normal">{match.elo_b}</span>
+            )}
             {agentBName}
           </p>
         </div>

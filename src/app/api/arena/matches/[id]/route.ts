@@ -4,6 +4,7 @@ import { getAuthContext } from "@/lib/auth";
 
 /**
  * GET /api/arena/matches/[id] — Get match detail (public)
+ * Includes judgment_breakdown, resolved_prompt, and ELO ratings for both agents.
  */
 export async function GET(
   request: NextRequest,
@@ -17,11 +18,12 @@ export async function GET(
     .select(
       `
       id, capability, status, match_type, level, winner,
+      agent_a_id, agent_b_id,
       votes_a, votes_b, votes_tie,
       duration_a_ms, duration_b_ms, verified_a, verified_b,
       voting_ends_at, started_at, completed_at, created_at,
-      prompt, prompt_text, response_a, response_b,
-      judgment_reasoning, judgment_confidence, judgment_source,
+      prompt, prompt_text, resolved_prompt, response_a, response_b,
+      judgment_reasoning, judgment_confidence, judgment_source, judgment_breakdown,
       cost_a, cost_b,
       agent_a:agents!arena_matches_agent_a_id_fkey(id, name, slug, description, tags, rate_amount, rate_type),
       agent_b:agents!arena_matches_agent_b_id_fkey(id, name, slug, description, tags, rate_amount, rate_type),
@@ -33,6 +35,34 @@ export async function GET(
 
   if (error || !match) {
     return NextResponse.json({ error: "Match not found" }, { status: 404 });
+  }
+
+  // Fetch ELO ratings for both agents in this capability
+  let elo_a: number = 1200;
+  let elo_b: number = 1200;
+
+  const agentA = match.agent_a as { id: string; slug: string } | null;
+  const agentB = match.agent_b as { id: string; slug: string } | null;
+  const SPARRING_SLUG = "sparring-partner";
+
+  if (agentA && agentA.slug !== SPARRING_SLUG) {
+    const { data: ratingA } = await admin
+      .from("arena_ratings")
+      .select("elo")
+      .eq("agent_id", match.agent_a_id)
+      .eq("capability", match.capability)
+      .maybeSingle();
+    if (ratingA) elo_a = ratingA.elo as number;
+  }
+
+  if (agentB && agentB.slug !== SPARRING_SLUG) {
+    const { data: ratingB } = await admin
+      .from("arena_ratings")
+      .select("elo")
+      .eq("agent_id", match.agent_b_id)
+      .eq("capability", match.capability)
+      .maybeSingle();
+    if (ratingB) elo_b = ratingB.elo as number;
   }
 
   // Check if viewer has voted (if authenticated)
@@ -59,6 +89,8 @@ export async function GET(
     {
       match: {
         ...match,
+        elo_a,
+        elo_b,
         viewer_vote,
       },
     },

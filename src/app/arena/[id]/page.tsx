@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
 import SiteNav from "@/components/SiteNav";
 import { Badge } from "@/components/ui/badge";
+import { projectEloStakes } from "@/lib/arena/elo-projection";
 import type { ArenaMatchStatus, ArenaMatchType, ArenaStreamEvent, ArenaVoteChoice, JudgmentBreakdown } from "@/lib/arena/types";
 
 interface MatchDetail {
@@ -35,6 +36,8 @@ interface MatchDetail {
   judgment_breakdown: JudgmentBreakdown | null;
   resolved_prompt: Record<string, unknown> | null;
   level: number | null;
+  elo_a: number;
+  elo_b: number;
   agent_a: { id: string; name: string; slug: string; description: string | null } | null;
   agent_b: { id: string; name: string; slug: string; description: string | null } | null;
   challenge: { title: string; description: string } | null;
@@ -145,7 +148,82 @@ function ShareBar({
   );
 }
 
-/* ── Judgment breakdown panel ── */
+/* ── ELO Stakes display (pre-match) ── */
+function EloStakesPanel({
+  agentAName,
+  agentBName,
+  eloA,
+  eloB,
+}: {
+  agentAName: string;
+  agentBName: string;
+  eloA: number;
+  eloB: number;
+}) {
+  const stakes = projectEloStakes(eloA, eloB);
+  const gap = Math.abs(eloA - eloB);
+  const isUnderdog = gap > 300;
+
+  return (
+    <div className="p-5 bg-[#111118] border border-[#1f2028] rounded-lg mb-8">
+      <h3 className="text-sm font-semibold text-gray-300 mb-4">ELO Stakes</h3>
+
+      <div className="grid grid-cols-2 gap-6">
+        {/* Agent A */}
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-sm font-medium text-white">{agentAName}</span>
+            <span className="px-2 py-0.5 text-xs font-mono font-bold bg-[#0a0a0f] text-cyan-400 border border-cyan-900/50 rounded">
+              {eloA}
+            </span>
+          </div>
+          <div className="text-xs space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-emerald-400 font-mono font-semibold">Win +{stakes.agentA.ifWin}</span>
+              <span className="text-gray-600">/</span>
+              <span className="text-red-400 font-mono font-semibold">Lose {stakes.agentA.ifLose}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Agent B */}
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-sm font-medium text-white">{agentBName}</span>
+            <span className="px-2 py-0.5 text-xs font-mono font-bold bg-[#0a0a0f] text-cyan-400 border border-cyan-900/50 rounded">
+              {eloB}
+            </span>
+          </div>
+          <div className="text-xs space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-emerald-400 font-mono font-semibold">Win +{stakes.agentB.ifWin}</span>
+              <span className="text-gray-600">/</span>
+              <span className="text-red-400 font-mono font-semibold">Lose {stakes.agentB.ifLose}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {isUnderdog && (
+        <div className="mt-4 px-3 py-2 bg-amber-950/30 border border-amber-900/40 rounded-lg">
+          <span className="text-xs text-amber-400 font-medium">
+            Underdog match — {gap} ELO gap. High stakes for the lower-rated agent.
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Score color helper ── */
+function scoreColor(score: number): string {
+  const pct = score * 10; // scores are 0-1, map to 0-10 scale
+  if (pct >= 8) return "text-emerald-400";
+  if (pct >= 5) return "text-yellow-400";
+  return "text-red-400";
+}
+
+/* ── Judgment breakdown panel (enhanced criterion table) ── */
 function JudgmentBreakdownPanel({
   breakdown,
   agentAName,
@@ -175,69 +253,124 @@ function JudgmentBreakdownPanel({
         </span>
       </div>
 
-      {/* Column headers */}
-      <div className="grid grid-cols-2 gap-2 mb-3">
-        <div className="text-right">
-          <span className="text-xs text-gray-500 font-medium">{agentAName}</span>
-        </div>
-        <div>
-          <span className="text-xs text-gray-500 font-medium">{agentBName}</span>
-        </div>
-      </div>
+      {/* Criterion-by-criterion table */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-[#1f2028]">
+              <th className="text-left text-xs text-gray-500 font-medium py-2 pr-4">Criterion</th>
+              <th className="text-center text-xs text-gray-500 font-medium py-2 px-2">Weight</th>
+              <th className="text-center text-xs text-gray-500 font-medium py-2 px-2">{agentAName}</th>
+              <th className="text-center text-xs text-gray-500 font-medium py-2 pl-2">{agentBName}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {breakdown.criteria_scores_a.map((criterion, i) => {
+              const bScore = breakdown.criteria_scores_b[i];
+              const aVal = criterion.score;
+              const bVal = bScore?.score ?? 0;
+              const aWins = aVal > bVal;
+              const bWins = bVal > aVal;
 
-      {/* Per-criterion scores */}
-      {breakdown.criteria_scores_a.map((criterion, i) => {
-        const bScore = breakdown.criteria_scores_b[i];
-        return (
-          <ScoreBar
-            key={criterion.name}
-            label={criterion.name.charAt(0).toUpperCase() + criterion.name.slice(1)}
-            scoreA={criterion.score}
-            scoreB={bScore?.score ?? 0}
-            weight={criterion.weight}
-          />
-        );
-      })}
+              return (
+                <tr key={criterion.name} className="border-b border-[#1a1a22]">
+                  <td className="py-2.5 pr-4 text-xs text-gray-300">
+                    {criterion.name.charAt(0).toUpperCase() + criterion.name.slice(1)}
+                  </td>
+                  <td className="py-2.5 px-2 text-center">
+                    <span className="text-[10px] text-gray-600 font-mono">{Math.round(criterion.weight * 100)}%</span>
+                  </td>
+                  <td className="py-2.5 px-2 text-center">
+                    <span className={`font-mono text-xs ${scoreColor(aVal)} ${aWins ? "font-bold" : ""}`}>
+                      {(aVal * 10).toFixed(1)}
+                    </span>
+                  </td>
+                  <td className="py-2.5 pl-2 text-center">
+                    <span className={`font-mono text-xs ${scoreColor(bVal)} ${bWins ? "font-bold" : ""}`}>
+                      {(bVal * 10).toFixed(1)}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
 
-      {/* Divider */}
-      <div className="border-t border-[#1f2028] my-4" />
+            {/* Speed row */}
+            <tr className="border-b border-[#1a1a22]">
+              <td className="py-2.5 pr-4 text-xs text-gray-300">Speed</td>
+              <td className="py-2.5 px-2 text-center">
+                <span className="text-[10px] text-gray-600 font-mono">--</span>
+              </td>
+              <td className="py-2.5 px-2 text-center">
+                <span className={`font-mono text-xs ${scoreColor(breakdown.speed_score_a)} ${breakdown.speed_score_a > breakdown.speed_score_b ? "font-bold" : ""}`}>
+                  {(breakdown.speed_score_a * 10).toFixed(1)}
+                </span>
+              </td>
+              <td className="py-2.5 pl-2 text-center">
+                <span className={`font-mono text-xs ${scoreColor(breakdown.speed_score_b)} ${breakdown.speed_score_b > breakdown.speed_score_a ? "font-bold" : ""}`}>
+                  {(breakdown.speed_score_b * 10).toFixed(1)}
+                </span>
+              </td>
+            </tr>
 
-      {/* Speed */}
-      <ScoreBar label="Speed" scoreA={breakdown.speed_score_a} scoreB={breakdown.speed_score_b} />
+            {/* Cost Efficiency row */}
+            <tr className="border-b border-[#1a1a22]">
+              <td className="py-2.5 pr-4 text-xs text-gray-300">Cost Efficiency</td>
+              <td className="py-2.5 px-2 text-center">
+                <span className="text-[10px] text-gray-600 font-mono">--</span>
+              </td>
+              <td className="py-2.5 px-2 text-center">
+                <span className={`font-mono text-xs ${scoreColor(breakdown.cost_efficiency_a)} ${breakdown.cost_efficiency_a > breakdown.cost_efficiency_b ? "font-bold" : ""}`}>
+                  {(breakdown.cost_efficiency_a * 10).toFixed(1)}
+                </span>
+              </td>
+              <td className="py-2.5 pl-2 text-center">
+                <span className={`font-mono text-xs ${scoreColor(breakdown.cost_efficiency_b)} ${breakdown.cost_efficiency_b > breakdown.cost_efficiency_a ? "font-bold" : ""}`}>
+                  {(breakdown.cost_efficiency_b * 10).toFixed(1)}
+                </span>
+              </td>
+            </tr>
 
-      {/* Cost Efficiency */}
-      <ScoreBar
-        label="Cost Efficiency"
-        scoreA={breakdown.cost_efficiency_a}
-        scoreB={breakdown.cost_efficiency_b}
-      />
+            {/* Schema Compliance row */}
+            <tr className="border-b border-[#1a1a22]">
+              <td className="py-2.5 pr-4 text-xs text-gray-300">Schema Compliance</td>
+              <td className="py-2.5 px-2 text-center">
+                <span className="text-[10px] text-gray-600 font-mono">--</span>
+              </td>
+              <td className="py-2.5 px-2 text-center">
+                <span className={`font-mono text-xs ${scoreColor(breakdown.schema_compliance_a)} ${breakdown.schema_compliance_a > breakdown.schema_compliance_b ? "font-bold" : ""}`}>
+                  {(breakdown.schema_compliance_a * 10).toFixed(1)}
+                </span>
+              </td>
+              <td className="py-2.5 pl-2 text-center">
+                <span className={`font-mono text-xs ${scoreColor(breakdown.schema_compliance_b)} ${breakdown.schema_compliance_b > breakdown.schema_compliance_a ? "font-bold" : ""}`}>
+                  {(breakdown.schema_compliance_b * 10).toFixed(1)}
+                </span>
+              </td>
+            </tr>
+          </tbody>
 
-      {/* Schema Compliance */}
-      <ScoreBar
-        label="Schema Compliance"
-        scoreA={breakdown.schema_compliance_a}
-        scoreB={breakdown.schema_compliance_b}
-      />
-
-      {/* Divider + Totals */}
-      <div className="border-t border-[#1f2028] my-4" />
-      <div className="grid grid-cols-2 gap-2">
-        <div className="text-right">
-          <span className={`text-lg font-bold font-mono ${
-            breakdown.total_a > breakdown.total_b ? "text-cyan-400" : "text-gray-400"
-          }`}>
-            {(breakdown.total_a * 100).toFixed(1)}
-          </span>
-          <span className="text-xs text-gray-600 ml-1">/ 100</span>
-        </div>
-        <div>
-          <span className={`text-lg font-bold font-mono ${
-            breakdown.total_b > breakdown.total_a ? "text-cyan-400" : "text-gray-400"
-          }`}>
-            {(breakdown.total_b * 100).toFixed(1)}
-          </span>
-          <span className="text-xs text-gray-600 ml-1">/ 100</span>
-        </div>
+          {/* Weighted total — visually distinct */}
+          <tfoot>
+            <tr className="border-t-2 border-[#2a2a35]">
+              <td className="py-3 pr-4 text-xs text-gray-200 font-semibold">Weighted Total</td>
+              <td className="py-3 px-2"></td>
+              <td className="py-3 px-2 text-center">
+                <span className={`font-mono text-base font-bold ${
+                  breakdown.total_a > breakdown.total_b ? "text-cyan-400" : "text-gray-400"
+                }`}>
+                  {(breakdown.total_a * 100).toFixed(1)}
+                </span>
+              </td>
+              <td className="py-3 pl-2 text-center">
+                <span className={`font-mono text-base font-bold ${
+                  breakdown.total_b > breakdown.total_a ? "text-cyan-400" : "text-gray-400"
+                }`}>
+                  {(breakdown.total_b * 100).toFixed(1)}
+                </span>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
       </div>
     </div>
   );
@@ -506,6 +639,18 @@ export default function MatchPage() {
   const isChampionship = match.match_type === "championship";
   const isUndercard = match.match_type !== "championship";
 
+  // ELO projections
+  const eloA = match.elo_a ?? 1200;
+  const eloB = match.elo_b ?? 1200;
+  const eloGap = Math.abs(eloA - eloB);
+
+  // Underdog upset detection (lower ELO agent won)
+  const isUnderdogUpset = isCompleted && match.winner && match.winner !== "tie" && eloGap > 50 && (
+    (match.winner === "a" && eloA < eloB) ||
+    (match.winner === "b" && eloB < eloA)
+  );
+  const upsetWinnerName = match.winner === "a" ? agentAName : agentBName;
+
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white bg-dot-grid">
       <SiteNav />
@@ -552,16 +697,32 @@ export default function MatchPage() {
               </Badge>
             </div>
           </div>
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-2xl font-bold flex items-center justify-center gap-2 flex-wrap">
             <span className={isCompleted && match.winner === "a" ? "text-cyan-400" : "text-white"}>
               {agentAName}
             </span>
-            <span className="text-gray-600 mx-3">VS</span>
+            <span className="px-1.5 py-0.5 text-xs font-mono font-bold bg-[#0a0a0f] text-cyan-400 border border-cyan-900/50 rounded">
+              {eloA}
+            </span>
+            <span className="text-gray-600 mx-2">VS</span>
+            <span className="px-1.5 py-0.5 text-xs font-mono font-bold bg-[#0a0a0f] text-cyan-400 border border-cyan-900/50 rounded">
+              {eloB}
+            </span>
             <span className={isCompleted && match.winner === "b" ? "text-cyan-400" : "text-white"}>
               {agentBName}
             </span>
           </h1>
         </div>
+
+        {/* ELO Stakes — shown when match is pending or running */}
+        {(isLive || isJudging) && (
+          <EloStakesPanel
+            agentAName={agentAName}
+            agentBName={agentBName}
+            eloA={eloA}
+            eloB={eloB}
+          />
+        )}
 
         {/* Split screen */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
@@ -660,6 +821,49 @@ export default function MatchPage() {
             agentAName={agentAName}
             agentBName={agentBName}
           />
+        )}
+
+        {/* Post-match ELO change + Underdog upset callout */}
+        {isCompleted && match.winner && match.winner !== "tie" && (
+          <div className="mb-8 space-y-3">
+            {/* Actual ELO changes */}
+            {(() => {
+              const stakes = projectEloStakes(eloA, eloB);
+              const deltaA = match.winner === "a" ? stakes.agentA.ifWin : stakes.agentA.ifLose;
+              const deltaB = match.winner === "b" ? stakes.agentB.ifWin : stakes.agentB.ifLose;
+              return (
+                <div className="p-4 bg-[#111118] border border-[#1f2028] rounded-lg">
+                  <h3 className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-3">ELO Impact</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-300">{agentAName}</span>
+                      <span className={`font-mono text-sm font-bold ${deltaA >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                        {deltaA >= 0 ? `+${deltaA}` : deltaA}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-300">{agentBName}</span>
+                      <span className={`font-mono text-sm font-bold ${deltaB >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                        {deltaB >= 0 ? `+${deltaB}` : deltaB}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Underdog upset callout */}
+            {isUnderdogUpset && (
+              <div className="p-4 bg-amber-950/20 border border-amber-700/40 rounded-lg text-center">
+                <span className="text-amber-400 font-semibold text-sm">
+                  Upset — {upsetWinnerName} defied the odds
+                </span>
+                <p className="text-xs text-amber-400/60 mt-1">
+                  Won despite a {eloGap}-point ELO disadvantage
+                </p>
+              </div>
+            )}
+          </div>
         )}
 
         {/* Championship voting header */}

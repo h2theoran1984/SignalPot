@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import SiteNav from "@/components/SiteNav";
 import { trackEvent } from "@/lib/tracking";
+import { projectEloStakes } from "@/lib/arena/elo-projection";
 
 interface AgentOption {
   id: string;
@@ -34,6 +35,8 @@ function NewMatchPage() {
   const [capability, setCapability] = useState("");
   const [selectedLevel, setSelectedLevel] = useState(1);
   const [challengerElo, setChallengerElo] = useState<number | null>(null);
+  const [eloA, setEloA] = useState<number | null>(null);
+  const [eloB, setEloB] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -96,6 +99,47 @@ function NewMatchPage() {
     }
     fetchElo();
   }, [challengerSlug, capability]);
+
+  // Fetch ELO for both agents when both are selected + capability is chosen
+  useEffect(() => {
+    if (!agentA || !agentB || !capability) {
+      setEloA(null);
+      setEloB(null);
+      return;
+    }
+
+    async function fetchBothElo() {
+      const SPARRING_SLUG = "sparring-partner";
+      try {
+        const [resA, resB] = await Promise.all([
+          agentA === SPARRING_SLUG
+            ? Promise.resolve(null)
+            : fetch(`/api/arena/ratings?agent=${encodeURIComponent(agentA)}&capability=${encodeURIComponent(capability)}`),
+          agentB === SPARRING_SLUG
+            ? Promise.resolve(null)
+            : fetch(`/api/arena/ratings?agent=${encodeURIComponent(agentB)}&capability=${encodeURIComponent(capability)}`),
+        ]);
+
+        if (resA && resA.ok) {
+          const dataA = await resA.json();
+          setEloA(dataA.elo ?? 1200);
+        } else {
+          setEloA(1200);
+        }
+
+        if (resB && resB.ok) {
+          const dataB = await resB.json();
+          setEloB(dataB.elo ?? 1200);
+        } else {
+          setEloB(1200);
+        }
+      } catch {
+        setEloA(1200);
+        setEloB(1200);
+      }
+    }
+    fetchBothElo();
+  }, [agentA, agentB, capability]);
 
   // Shared capabilities between A and B
   // The Sparring Partner is a universal opponent — it handles ANY capability
@@ -337,6 +381,61 @@ function NewMatchPage() {
               </p>
             )}
           </div>
+
+          {/* ELO Projection — shown when both agents and capability are selected */}
+          {agentA && agentB && capability && eloA !== null && eloB !== null && (
+            <div className="p-4 bg-[#111118] border border-[#1f2028] rounded-lg">
+              <h3 className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-3">Projected ELO Stakes</h3>
+              <div className="grid grid-cols-2 gap-4 mb-3">
+                {/* Agent A */}
+                <div>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-sm text-white font-medium">{agentAObj?.name ?? agentA}</span>
+                    <span className="px-1.5 py-0.5 text-xs font-mono font-bold bg-[#0a0a0f] text-cyan-400 border border-cyan-900/50 rounded">
+                      {eloA}
+                    </span>
+                  </div>
+                  <div className="text-xs flex items-center gap-2">
+                    <span className="text-emerald-400 font-mono font-semibold">
+                      Win +{projectEloStakes(eloA, eloB).agentA.ifWin}
+                    </span>
+                    <span className="text-gray-600">/</span>
+                    <span className="text-red-400 font-mono font-semibold">
+                      Lose {projectEloStakes(eloA, eloB).agentA.ifLose}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Agent B */}
+                <div>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-sm text-white font-medium">{agentBObj?.name ?? agentB}</span>
+                    <span className="px-1.5 py-0.5 text-xs font-mono font-bold bg-[#0a0a0f] text-cyan-400 border border-cyan-900/50 rounded">
+                      {eloB}
+                    </span>
+                  </div>
+                  <div className="text-xs flex items-center gap-2">
+                    <span className="text-emerald-400 font-mono font-semibold">
+                      Win +{projectEloStakes(eloA, eloB).agentB.ifWin}
+                    </span>
+                    <span className="text-gray-600">/</span>
+                    <span className="text-red-400 font-mono font-semibold">
+                      Lose {projectEloStakes(eloA, eloB).agentB.ifLose}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Big gap warning */}
+              {Math.abs(eloA - eloB) > 500 && (
+                <div className="mt-2 px-3 py-2 bg-amber-950/30 border border-amber-900/40 rounded-lg">
+                  <span className="text-xs text-amber-400 font-medium">
+                    Big rating gap — high stakes for the underdog
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Submit */}
           <button
