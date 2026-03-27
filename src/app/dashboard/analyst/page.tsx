@@ -46,7 +46,63 @@ interface Dataset {
   uploaded_at: string;
 }
 
-type Tab = "sources" | "taxonomy" | "datasets" | "analysis";
+interface ValidationRule {
+  id: string;
+  name: string;
+  description: string | null;
+  rule_type: string;
+  dimension_id: string | null;
+  config: Record<string, unknown>;
+  severity: "error" | "warning" | "info";
+  active: boolean;
+  created_at: string;
+}
+
+interface ValidationRun {
+  run_id: string;
+  status: string;
+  rules_applied: number;
+  total_findings: number;
+  errors: number;
+  warnings: number;
+  infos: number;
+  started_at: string;
+  completed_at: string | null;
+}
+
+interface AnomalyItem {
+  id: string;
+  metric: string;
+  value: number;
+  expected_mean: number;
+  expected_stddev: number;
+  z_score: number;
+  direction: "high" | "low";
+  severity: "error" | "warning" | "info";
+  context: Record<string, unknown>;
+  explanation: string | null;
+  status: string;
+  created_at: string;
+}
+
+interface DrillGroup {
+  entity_id: string;
+  entity_name: string | null;
+  record_count: number;
+  metrics: Record<string, { sum: number; avg: number; min: number; max: number; count: number }>;
+}
+
+interface CompileTemplate {
+  id: string;
+  name: string;
+  description: string | null;
+  output_type: string;
+  params: Record<string, unknown>;
+  active: boolean;
+  created_at: string;
+}
+
+type Tab = "sources" | "taxonomy" | "datasets" | "validation" | "analysis" | "compile";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -97,6 +153,36 @@ function datasetStatusBadge(status: string) {
 }
 
 // ---------------------------------------------------------------------------
+// Sub-components
+// ---------------------------------------------------------------------------
+
+function DetectStats({ result }: { result: Record<string, unknown> }) {
+  const stats = result.stats as Record<string, number> | undefined;
+  return (
+    <div className="p-4 bg-[#111118] border border-[#1f2028] rounded-lg mb-6">
+      <div className="grid grid-cols-4 gap-4 text-center">
+        <div>
+          <p className="text-xl font-bold text-white">{String(stats?.count ?? 0)}</p>
+          <p className="text-xs text-gray-500">Data Points</p>
+        </div>
+        <div>
+          <p className="text-xl font-bold text-gray-300">{Number(stats?.mean ?? 0).toFixed(2)}</p>
+          <p className="text-xs text-gray-500">Mean</p>
+        </div>
+        <div>
+          <p className="text-xl font-bold text-gray-300">{Number(stats?.stddev ?? 0).toFixed(2)}</p>
+          <p className="text-xs text-gray-500">Std Dev</p>
+        </div>
+        <div>
+          <p className="text-xl font-bold text-orange-400">{String(stats?.anomaly_count ?? 0)}</p>
+          <p className="text-xs text-gray-500">Anomalies Found</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -144,6 +230,54 @@ export default function AnalystSuiteDashboard() {
   const [dsPeriod, setDsPeriod] = useState("");
   const [dsFormError, setDsFormError] = useState<string | null>(null);
   const [dsSubmitting, setDsSubmitting] = useState(false);
+
+  // Validation state
+  const [rules, setRules] = useState<ValidationRule[]>([]);
+  const [rulesLoading, setRulesLoading] = useState(false);
+  const [showAddRule, setShowAddRule] = useState(false);
+  const [ruleName, setRuleName] = useState("");
+  const [ruleDesc, setRuleDesc] = useState("");
+  const [ruleType, setRuleType] = useState("required_field");
+  const [ruleSeverity, setRuleSeverity] = useState("warning");
+  const [ruleConfig, setRuleConfig] = useState("{}");
+  const [ruleFormError, setRuleFormError] = useState<string | null>(null);
+  const [ruleSubmitting, setRuleSubmitting] = useState(false);
+  const [validationRuns, setValidationRuns] = useState<ValidationRun[]>([]);
+  const [runsLoading, setRunsLoading] = useState(false);
+  const [runDatasetId, setRunDatasetId] = useState("");
+  const [runningValidation, setRunningValidation] = useState(false);
+  const [runResult, setRunResult] = useState<Record<string, unknown> | null>(null);
+
+  // Investigation state
+  const [anomalies, setAnomalies] = useState<AnomalyItem[]>([]);
+  const [anomaliesLoading, setAnomaliesLoading] = useState(false);
+  const [investigateDatasetId, setInvestigateDatasetId] = useState("");
+  const [investigateMetric, setInvestigateMetric] = useState("");
+  const [investigateThreshold, setInvestigateThreshold] = useState("2");
+  const [detecting, setDetecting] = useState(false);
+  const [detectResult, setDetectResult] = useState<Record<string, unknown> | null>(null);
+  const [explaining, setExplaining] = useState<string | null>(null);
+  const [drillDatasetId, setDrillDatasetId] = useState("");
+  const [drillDimensionId, setDrillDimensionId] = useState("");
+  const [drilling, setDrilling] = useState(false);
+  const [drillResult, setDrillResult] = useState<DrillGroup[] | null>(null);
+
+  // Compile state
+  const [templates, setTemplates] = useState<CompileTemplate[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [showAddTemplate, setShowAddTemplate] = useState(false);
+  const [tplName, setTplName] = useState("");
+  const [tplDesc, setTplDesc] = useState("");
+  const [tplType, setTplType] = useState("report");
+  const [tplParams, setTplParams] = useState("{}");
+  const [tplFormError, setTplFormError] = useState<string | null>(null);
+  const [tplSubmitting, setTplSubmitting] = useState(false);
+  const [compileType, setCompileType] = useState("report");
+  const [compileDatasetId, setCompileDatasetId] = useState("");
+  const [compileTitle, setCompileTitle] = useState("");
+  const [compileTemplateId, setCompileTemplateId] = useState("");
+  const [compiling, setCompiling] = useState(false);
+  const [compileResult, setCompileResult] = useState<Record<string, unknown> | null>(null);
 
   // ---------------------------------------------------------------------------
   // Fetchers
@@ -205,6 +339,20 @@ export default function AnalystSuiteDashboard() {
     }
   }, [router]);
 
+  const fetchRules = useCallback(async () => {
+    setRulesLoading(true);
+    try {
+      const res = await fetch("/api/analyst/validation-rules");
+      if (res.status === 401) { router.push("/login"); return; }
+      const data = await res.json();
+      setRules(data.rules ?? []);
+    } catch {
+      // ignore
+    } finally {
+      setRulesLoading(false);
+    }
+  }, [router]);
+
   // ---------------------------------------------------------------------------
   // Effects — fetch when tab becomes active
   // ---------------------------------------------------------------------------
@@ -228,6 +376,41 @@ export default function AnalystSuiteDashboard() {
   useEffect(() => {
     if (selectedDimension) fetchEntities(selectedDimension);
   }, [selectedDimension, fetchEntities]);
+
+  useEffect(() => {
+    if (activeTab === "validation") {
+      fetchRules();
+      fetchDatasets();
+    }
+  }, [activeTab, fetchRules, fetchDatasets]);
+
+  useEffect(() => {
+    if (activeTab === "analysis") {
+      fetchDatasets();
+      fetchDimensions();
+    }
+  }, [activeTab, fetchDatasets, fetchDimensions]);
+
+  const fetchTemplates = useCallback(async () => {
+    setTemplatesLoading(true);
+    try {
+      const res = await fetch("/api/analyst/templates");
+      if (res.status === 401) { router.push("/login"); return; }
+      const data = await res.json();
+      setTemplates(data.templates ?? []);
+    } catch {
+      // ignore
+    } finally {
+      setTemplatesLoading(false);
+    }
+  }, [router]);
+
+  useEffect(() => {
+    if (activeTab === "compile") {
+      fetchTemplates();
+      fetchDatasets();
+    }
+  }, [activeTab, fetchTemplates, fetchDatasets]);
 
   // ---------------------------------------------------------------------------
   // Source form handlers
@@ -362,6 +545,284 @@ export default function AnalystSuiteDashboard() {
   }
 
   // ---------------------------------------------------------------------------
+  // Validation rule form handlers
+  // ---------------------------------------------------------------------------
+
+  async function handleAddRule(e: React.FormEvent) {
+    e.preventDefault();
+    setRuleFormError(null);
+    setRuleSubmitting(true);
+
+    let parsedConfig: Record<string, unknown>;
+    try {
+      parsedConfig = JSON.parse(ruleConfig);
+    } catch {
+      setRuleFormError("Invalid JSON in config field");
+      setRuleSubmitting(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/analyst/validation-rules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: ruleName.trim(),
+          description: ruleDesc.trim() || null,
+          rule_type: ruleType,
+          severity: ruleSeverity,
+          config: parsedConfig,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setRuleFormError(data.error ?? "Failed to create rule"); return; }
+      setRuleName(""); setRuleDesc(""); setRuleType("required_field"); setRuleSeverity("warning"); setRuleConfig("{}");
+      setShowAddRule(false);
+      await fetchRules();
+    } catch {
+      setRuleFormError("Network error");
+    } finally {
+      setRuleSubmitting(false);
+    }
+  }
+
+  async function handleToggleRule(ruleId: string, active: boolean) {
+    await fetch("/api/analyst/validation-rules", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: ruleId, active }),
+    });
+    await fetchRules();
+  }
+
+  async function handleDeleteRule(ruleId: string) {
+    await fetch(`/api/analyst/validation-rules?id=${ruleId}`, {
+      method: "DELETE",
+    });
+    await fetchRules();
+  }
+
+  async function handleRunValidation() {
+    if (!runDatasetId) return;
+    setRunningValidation(true);
+    setRunResult(null);
+    try {
+      const res = await fetch("/api/analyst/validation-run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dataset_id: runDatasetId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setRunResult(data);
+        // Refresh run history
+        await fetchRunHistory(runDatasetId);
+      } else {
+        setRunResult({ error: data.error ?? "Validation run failed" });
+      }
+    } catch {
+      setRunResult({ error: "Network error" });
+    } finally {
+      setRunningValidation(false);
+    }
+  }
+
+  async function fetchRunHistory(datasetId: string) {
+    setRunsLoading(true);
+    try {
+      const res = await fetch(`/api/analyst/validation-run?dataset_id=${datasetId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setValidationRuns(data.history ?? []);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setRunsLoading(false);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Compile handlers
+  // ---------------------------------------------------------------------------
+
+  async function handleAddTemplate(e: React.FormEvent) {
+    e.preventDefault();
+    setTplFormError(null);
+    setTplSubmitting(true);
+
+    let parsedParams: Record<string, unknown>;
+    try {
+      parsedParams = JSON.parse(tplParams);
+    } catch {
+      setTplFormError("Invalid JSON in params field");
+      setTplSubmitting(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/analyst/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: tplName.trim(),
+          description: tplDesc.trim() || null,
+          output_type: tplType,
+          params: parsedParams,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setTplFormError(data.error ?? "Failed to create template"); return; }
+      setTplName(""); setTplDesc(""); setTplType("report"); setTplParams("{}");
+      setShowAddTemplate(false);
+      await fetchTemplates();
+    } catch {
+      setTplFormError("Network error");
+    } finally {
+      setTplSubmitting(false);
+    }
+  }
+
+  async function handleDeleteTemplate(id: string) {
+    await fetch(`/api/analyst/templates?id=${id}`, { method: "DELETE" });
+    await fetchTemplates();
+  }
+
+  async function handleCompile() {
+    if (!compileDatasetId) return;
+    setCompiling(true);
+    setCompileResult(null);
+
+    const payload: Record<string, unknown> = {
+      output_type: compileType,
+      template_id: compileTemplateId || undefined,
+    };
+
+    if (compileType === "report" || compileType === "slide") {
+      payload.dataset_ids = [compileDatasetId];
+      payload.title = compileTitle || "Untitled";
+    } else {
+      payload.dataset_id = compileDatasetId;
+    }
+
+    // For table/chart, provide minimal defaults
+    if (compileType === "table") {
+      payload.dimensions = [];
+      payload.metrics = ["value"];
+    } else if (compileType === "chart") {
+      payload.chart_type = "bar";
+      payload.x = "period";
+      payload.y = "value";
+    }
+
+    try {
+      const res = await fetch("/api/analyst/compile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      setCompileResult(data);
+    } catch {
+      setCompileResult({ error: "Network error" });
+    } finally {
+      setCompiling(false);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Investigation handlers
+  // ---------------------------------------------------------------------------
+
+  async function handleDetectAnomalies() {
+    if (!investigateDatasetId || !investigateMetric) return;
+    setDetecting(true);
+    setDetectResult(null);
+    try {
+      const res = await fetch("/api/analyst/investigate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "detect",
+          dataset_id: investigateDatasetId,
+          metric: investigateMetric,
+          threshold: Number(investigateThreshold) || 2,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setDetectResult(data);
+        setAnomalies(data.anomalies ?? []);
+      } else {
+        setDetectResult({ error: data.error ?? "Detection failed" });
+      }
+    } catch {
+      setDetectResult({ error: "Network error" });
+    } finally {
+      setDetecting(false);
+    }
+  }
+
+  async function handleExplain(anomalyId: string) {
+    setExplaining(anomalyId);
+    try {
+      const res = await fetch("/api/analyst/investigate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "explain", anomaly_id: anomalyId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAnomalies((prev) =>
+          prev.map((a) =>
+            a.id === anomalyId ? { ...a, explanation: data.explanation } : a
+          )
+        );
+      }
+    } catch {
+      // ignore
+    } finally {
+      setExplaining(null);
+    }
+  }
+
+  async function handleDrill() {
+    if (!drillDatasetId || !drillDimensionId) return;
+    setDrilling(true);
+    setDrillResult(null);
+    try {
+      const res = await fetch("/api/analyst/investigate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "drill",
+          dataset_id: drillDatasetId,
+          dimension_id: drillDimensionId,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setDrillResult(data.groups ?? []);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setDrilling(false);
+    }
+  }
+
+  async function handleUpdateAnomalyStatus(anomalyId: string, status: string) {
+    await fetch("/api/analyst/investigate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "status", anomaly_id: anomalyId, status }),
+    });
+    setAnomalies((prev) =>
+      prev.map((a) => (a.id === anomalyId ? { ...a, status } : a))
+    );
+  }
+
+  // ---------------------------------------------------------------------------
   // Skeleton loader
   // ---------------------------------------------------------------------------
 
@@ -397,7 +858,9 @@ export default function AnalystSuiteDashboard() {
     { key: "sources", label: "Sources" },
     { key: "taxonomy", label: "Taxonomy" },
     { key: "datasets", label: "Datasets" },
+    { key: "validation", label: "Validation" },
     { key: "analysis", label: "Analysis" },
+    { key: "compile", label: "Compile" },
   ];
 
   // ---------------------------------------------------------------------------
@@ -953,47 +1416,839 @@ export default function AnalystSuiteDashboard() {
         )}
 
         {/* ================================================================= */}
-        {/* TAB 4: ANALYSIS                                                   */}
+        {/* TAB 4: VALIDATION                                                 */}
+        {/* ================================================================= */}
+        {activeTab === "validation" && (
+          <div>
+            {/* --- Rules Section --- */}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">Validation Rules</h2>
+              <button
+                onClick={() => setShowAddRule(!showAddRule)}
+                className={btnPrimary}
+              >
+                Add Rule
+              </button>
+            </div>
+
+            {/* Add rule form */}
+            {showAddRule && (
+              <form
+                onSubmit={handleAddRule}
+                className="mb-6 p-5 bg-[#111118] border border-[#1f2028] rounded-lg"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className={labelCls}>Rule Name</label>
+                    <input
+                      type="text"
+                      value={ruleName}
+                      onChange={(e) => setRuleName(e.target.value)}
+                      placeholder="e.g. Market share must be positive"
+                      required
+                      className={inputCls}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Description</label>
+                    <input
+                      type="text"
+                      value={ruleDesc}
+                      onChange={(e) => setRuleDesc(e.target.value)}
+                      placeholder="Brief description"
+                      className={inputCls}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Rule Type</label>
+                    <select
+                      value={ruleType}
+                      onChange={(e) => setRuleType(e.target.value)}
+                      className={inputCls}
+                    >
+                      <option value="required_field">Required Field</option>
+                      <option value="range_check">Range Check</option>
+                      <option value="cross_source">Cross-Source</option>
+                      <option value="trend_deviation">Trend Deviation</option>
+                      <option value="custom">Custom Expression</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelCls}>Severity</label>
+                    <select
+                      value={ruleSeverity}
+                      onChange={(e) => setRuleSeverity(e.target.value)}
+                      className={inputCls}
+                    >
+                      <option value="error">Error</option>
+                      <option value="warning">Warning</option>
+                      <option value="info">Info</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className={labelCls}>Config (JSON)</label>
+                    <textarea
+                      value={ruleConfig}
+                      onChange={(e) => setRuleConfig(e.target.value)}
+                      placeholder='e.g. {"fields": ["unit_share", "volume"]}'
+                      rows={3}
+                      className={inputCls + " font-mono text-xs"}
+                    />
+                    <p className="text-xs text-gray-600 mt-1">
+                      {ruleType === "required_field" && 'Required: {"fields": ["field1", "field2"]}'}
+                      {ruleType === "range_check" && 'Required: {"field": "metric_name", "min": 0, "max": 100}'}
+                      {ruleType === "cross_source" && 'Required: {"compare_dataset_id": "uuid", "match_key": "field", "compare_field": "field", "tolerance_pct": 5}'}
+                      {ruleType === "trend_deviation" && 'Required: {"metric": "field_name", "std_dev_threshold": 2}'}
+                      {ruleType === "custom" && 'Required: {"expression": "field > 100"}'}
+                    </p>
+                  </div>
+                </div>
+
+                {ruleFormError && (
+                  <p className="text-sm text-red-400 mb-3">{ruleFormError}</p>
+                )}
+
+                <div className="flex items-center gap-3">
+                  <button
+                    type="submit"
+                    disabled={ruleSubmitting || !ruleName.trim()}
+                    className={btnPrimary}
+                  >
+                    {ruleSubmitting ? "Creating..." : "Create Rule"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAddRule(false);
+                      setRuleFormError(null);
+                    }}
+                    className={btnCancel}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {rulesLoading && <Skeleton />}
+
+            {!rulesLoading && rules.length === 0 && (
+              <div className="text-center py-8 text-gray-600 text-sm">
+                No validation rules configured yet. Add your first rule above.
+              </div>
+            )}
+
+            {!rulesLoading && rules.length > 0 && (
+              <div className="space-y-2 mb-8">
+                {/* Header */}
+                <div className="grid grid-cols-12 gap-2 px-4 py-2 text-xs text-gray-600 uppercase tracking-widest">
+                  <div className="col-span-3">Name</div>
+                  <div className="col-span-2">Type</div>
+                  <div className="col-span-2 text-center">Severity</div>
+                  <div className="col-span-2 text-center">Status</div>
+                  <div className="col-span-3 text-right">Actions</div>
+                </div>
+
+                {rules.map((rule) => (
+                  <div
+                    key={rule.id}
+                    className="grid grid-cols-12 gap-2 items-center p-4 bg-[#111118] border border-[#1f2028] rounded-lg hover:border-[#2d3044] transition-colors"
+                  >
+                    <div className="col-span-3">
+                      <p className="font-mono text-sm text-white truncate">{rule.name}</p>
+                      {rule.description && (
+                        <p className="text-xs text-gray-500 truncate">{rule.description}</p>
+                      )}
+                    </div>
+                    <div className="col-span-2">
+                      <Badge variant="tag">{rule.rule_type.replace("_", " ")}</Badge>
+                    </div>
+                    <div className="col-span-2 text-center">
+                      <Badge
+                        variant="status"
+                        status={
+                          rule.severity === "error" ? "failed" :
+                          rule.severity === "warning" ? "pending" : "active"
+                        }
+                      >
+                        {rule.severity}
+                      </Badge>
+                    </div>
+                    <div className="col-span-2 text-center">
+                      <Badge variant="status" status={rule.active ? "active" : "inactive"}>
+                        {rule.active ? "active" : "disabled"}
+                      </Badge>
+                    </div>
+                    <div className="col-span-3 flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => handleToggleRule(rule.id, !rule.active)}
+                        className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+                      >
+                        {rule.active ? "Disable" : "Enable"}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteRule(rule.id)}
+                        className="text-xs text-red-500 hover:text-red-400 transition-colors"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                <div className="pt-2 text-xs text-gray-600">
+                  {rules.length} rule{rules.length !== 1 ? "s" : ""} configured
+                  ({rules.filter((r) => r.active).length} active)
+                </div>
+              </div>
+            )}
+
+            {/* --- Run Validation Section --- */}
+            <div className="border-t border-[#1f2028] pt-6 mt-6">
+              <h2 className="text-lg font-semibold mb-4">Run Validation</h2>
+
+              <div className="flex items-end gap-4 mb-6">
+                <div className="flex-1">
+                  <label className={labelCls}>Dataset</label>
+                  <select
+                    value={runDatasetId}
+                    onChange={(e) => {
+                      setRunDatasetId(e.target.value);
+                      setRunResult(null);
+                      if (e.target.value) fetchRunHistory(e.target.value);
+                    }}
+                    className={inputCls}
+                  >
+                    <option value="">Select a dataset...</option>
+                    {datasets.map((ds) => (
+                      <option key={ds.id} value={ds.id}>
+                        {ds.name} ({ds.period})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  onClick={handleRunValidation}
+                  disabled={!runDatasetId || runningValidation || rules.filter((r) => r.active).length === 0}
+                  className={btnPrimary}
+                >
+                  {runningValidation ? "Running..." : "Run Sentinel"}
+                </button>
+              </div>
+
+              {/* Run result */}
+              {runResult && (
+                <div className={`p-5 rounded-lg border mb-6 ${
+                  (runResult as Record<string, unknown>).error
+                    ? "bg-red-950/20 border-red-800/30"
+                    : "bg-[#111118] border-[#1f2028]"
+                }`}>
+                  {(runResult as Record<string, unknown>).error ? (
+                    <p className="text-sm text-red-400">
+                      {String((runResult as Record<string, unknown>).error)}
+                    </p>
+                  ) : (
+                    <div>
+                      <div className="flex items-center gap-4 mb-4">
+                        <h3 className="text-sm font-semibold text-white">Validation Complete</h3>
+                        <Badge variant="status" status="active">
+                          {String((runResult as Record<string, unknown>).status)}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-4 gap-4 mb-4">
+                        <div className="text-center">
+                          <p className="text-2xl font-bold text-white">
+                            {String((runResult as Record<string, unknown>).rules_applied ?? 0)}
+                          </p>
+                          <p className="text-xs text-gray-500">Rules Applied</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-2xl font-bold text-red-400">
+                            {String((runResult as Record<string, unknown>).errors ?? 0)}
+                          </p>
+                          <p className="text-xs text-gray-500">Errors</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-2xl font-bold text-yellow-400">
+                            {String((runResult as Record<string, unknown>).warnings ?? 0)}
+                          </p>
+                          <p className="text-xs text-gray-500">Warnings</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-2xl font-bold text-blue-400">
+                            {String((runResult as Record<string, unknown>).infos ?? 0)}
+                          </p>
+                          <p className="text-xs text-gray-500">Info</p>
+                        </div>
+                      </div>
+
+                      {/* Findings list */}
+                      {Array.isArray((runResult as Record<string, unknown>).findings) &&
+                        ((runResult as Record<string, unknown>).findings as Array<Record<string, unknown>>).length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-xs text-gray-500 uppercase tracking-widest mb-2">Findings</p>
+                          {((runResult as Record<string, unknown>).findings as Array<Record<string, unknown>>).map((f, i) => (
+                            <div
+                              key={i}
+                              className={`p-3 rounded border text-sm ${
+                                f.severity === "error"
+                                  ? "border-red-800/30 bg-red-950/10 text-red-300"
+                                  : f.severity === "warning"
+                                  ? "border-yellow-800/30 bg-yellow-950/10 text-yellow-300"
+                                  : "border-blue-800/30 bg-blue-950/10 text-blue-300"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 mb-1">
+                                <Badge variant="status" status={
+                                  f.severity === "error" ? "failed" :
+                                  f.severity === "warning" ? "pending" : "active"
+                                }>
+                                  {String(f.severity)}
+                                </Badge>
+                                <span className="font-mono text-xs text-gray-400">{String(f.rule_name)}</span>
+                              </div>
+                              <p>{String(f.message)}</p>
+                              {Array.isArray(f.record_ids) && f.record_ids.length > 0 && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Affects {f.record_ids.length} record{f.record_ids.length !== 1 ? "s" : ""}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {Array.isArray((runResult as Record<string, unknown>).findings) &&
+                        ((runResult as Record<string, unknown>).findings as unknown[]).length === 0 && (
+                        <p className="text-sm text-green-400">
+                          All checks passed — no issues found.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Run history */}
+              {runDatasetId && !runsLoading && validationRuns.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-white mb-3">Run History</h3>
+                  <div className="space-y-2">
+                    {validationRuns.map((run) => (
+                      <div
+                        key={run.run_id}
+                        className="grid grid-cols-12 gap-2 items-center p-3 bg-[#111118] border border-[#1f2028] rounded-lg text-sm"
+                      >
+                        <div className="col-span-2">
+                          <Badge variant="status" status={
+                            run.status === "completed" ? "active" :
+                            run.status === "failed" ? "failed" : "running"
+                          }>
+                            {run.status}
+                          </Badge>
+                        </div>
+                        <div className="col-span-2 text-gray-400 text-center">
+                          {run.rules_applied} rules
+                        </div>
+                        <div className="col-span-2 text-center">
+                          <span className="text-red-400">{run.errors}E</span>
+                          {" / "}
+                          <span className="text-yellow-400">{run.warnings}W</span>
+                          {" / "}
+                          <span className="text-blue-400">{run.infos}I</span>
+                        </div>
+                        <div className="col-span-2 text-gray-400 text-center">
+                          {run.total_findings} findings
+                        </div>
+                        <div className="col-span-4 text-right text-gray-500">
+                          {new Date(run.started_at).toLocaleString()}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {runDatasetId && runsLoading && <Skeleton count={2} />}
+            </div>
+          </div>
+        )}
+
+        {/* ================================================================= */}
+        {/* TAB 5: ANALYSIS                                                   */}
         {/* ================================================================= */}
         {activeTab === "analysis" && (
           <div>
-            <div className="text-center py-12">
-              <p className="text-gray-500 text-sm mb-8">
-                Select a validated dataset to begin analysis
-              </p>
+            {/* --- Anomaly Detection --- */}
+            <h2 className="text-lg font-semibold mb-4">Anomaly Detection</h2>
 
-              <div className="grid grid-cols-3 gap-4">
-                {[
-                  {
-                    step: "1",
-                    title: "Validate",
-                    desc: "Run Sentinel to check data quality",
-                  },
-                  {
-                    step: "2",
-                    title: "Investigate",
-                    desc: "Run Pathfinder on flagged anomalies",
-                  },
-                  {
-                    step: "3",
-                    title: "Compile",
-                    desc: "Generate presentation-ready output with Brief",
-                  },
-                ].map((card) => (
+            <div className="flex items-end gap-4 mb-6">
+              <div className="flex-1">
+                <label className={labelCls}>Dataset</label>
+                <select
+                  value={investigateDatasetId}
+                  onChange={(e) => setInvestigateDatasetId(e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="">Select a dataset...</option>
+                  {datasets.map((ds) => (
+                    <option key={ds.id} value={ds.id}>
+                      {ds.name} ({ds.period})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="w-48">
+                <label className={labelCls}>Metric</label>
+                <input
+                  type="text"
+                  value={investigateMetric}
+                  onChange={(e) => setInvestigateMetric(e.target.value)}
+                  placeholder="e.g. unit_share"
+                  className={inputCls}
+                />
+              </div>
+              <div className="w-24">
+                <label className={labelCls}>Threshold</label>
+                <input
+                  type="number"
+                  value={investigateThreshold}
+                  onChange={(e) => setInvestigateThreshold(e.target.value)}
+                  step="0.5"
+                  min="1"
+                  className={inputCls}
+                />
+              </div>
+              <button
+                onClick={handleDetectAnomalies}
+                disabled={!investigateDatasetId || !investigateMetric || detecting}
+                className={btnPrimary}
+              >
+                {detecting ? "Scanning..." : "Detect"}
+              </button>
+            </div>
+
+            {/* Detection stats */}
+            {detectResult && !detectResult.error && (
+              <DetectStats result={detectResult} />
+            )}
+
+            {detectResult && "error" in detectResult && detectResult.error != null && (
+              <p className="text-sm text-red-400 mb-6">
+                {String(detectResult.error)}
+              </p>
+            )}
+
+            {/* Anomalies list */}
+            {anomalies.length > 0 && (
+              <div className="space-y-2 mb-8">
+                <p className="text-xs text-gray-500 uppercase tracking-widest mb-2">
+                  Detected Anomalies
+                </p>
+                {anomalies.map((a) => (
                   <div
-                    key={card.step}
-                    className="p-5 bg-[#111118] border border-[#1f2028] rounded-lg text-center"
+                    key={a.id}
+                    className={`p-4 rounded-lg border ${
+                      a.severity === "error"
+                        ? "border-red-800/30 bg-red-950/10"
+                        : a.severity === "warning"
+                        ? "border-yellow-800/30 bg-yellow-950/10"
+                        : "border-blue-800/30 bg-blue-950/10"
+                    }`}
                   >
-                    <div className="w-8 h-8 rounded-full bg-cyan-400/10 text-cyan-400 font-bold text-sm flex items-center justify-center mx-auto mb-3">
-                      {card.step}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="status" status={
+                          a.severity === "error" ? "failed" :
+                          a.severity === "warning" ? "pending" : "active"
+                        }>
+                          {a.severity}
+                        </Badge>
+                        <span className="text-sm font-mono text-white">
+                          {a.metric} = {a.value}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          (z={Number(a.z_score).toFixed(2)}, {a.direction})
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="tag">{a.status}</Badge>
+                        {a.status === "open" && (
+                          <>
+                            <button
+                              onClick={() => handleUpdateAnomalyStatus(a.id, "acknowledged")}
+                              className="text-xs text-gray-500 hover:text-gray-300"
+                            >
+                              Acknowledge
+                            </button>
+                            <button
+                              onClick={() => handleUpdateAnomalyStatus(a.id, "false_positive")}
+                              className="text-xs text-gray-500 hover:text-gray-300"
+                            >
+                              False Positive
+                            </button>
+                          </>
+                        )}
+                        {!a.explanation && (
+                          <button
+                            onClick={() => handleExplain(a.id)}
+                            disabled={explaining === a.id}
+                            className={btnPrimary + " text-xs !px-2 !py-1"}
+                          >
+                            {explaining === a.id ? "Analyzing..." : "Explain"}
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-sm font-medium text-white mb-1">
-                      {card.title}
-                    </p>
-                    <p className="text-xs text-gray-500">{card.desc}</p>
+                    <div className="text-xs text-gray-500 mb-1">
+                      Expected: {Number(a.expected_mean).toFixed(2)} +/- {Number(a.expected_stddev).toFixed(2)}
+                    </div>
+                    {a.explanation && (
+                      <div className="mt-3 p-3 bg-[#0a0a0f] rounded border border-[#1f2028] text-sm text-gray-300 whitespace-pre-wrap">
+                        {a.explanation}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
+            )}
+
+            {/* --- Dimension Drill-Down --- */}
+            <div className="border-t border-[#1f2028] pt-6 mt-6">
+              <h2 className="text-lg font-semibold mb-4">Dimension Drill-Down</h2>
+
+              <div className="flex items-end gap-4 mb-6">
+                <div className="flex-1">
+                  <label className={labelCls}>Dataset</label>
+                  <select
+                    value={drillDatasetId}
+                    onChange={(e) => setDrillDatasetId(e.target.value)}
+                    className={inputCls}
+                  >
+                    <option value="">Select a dataset...</option>
+                    {datasets.map((ds) => (
+                      <option key={ds.id} value={ds.id}>
+                        {ds.name} ({ds.period})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className={labelCls}>Dimension</label>
+                  <select
+                    value={drillDimensionId}
+                    onChange={(e) => setDrillDimensionId(e.target.value)}
+                    className={inputCls}
+                  >
+                    <option value="">Select a dimension...</option>
+                    {dimensions.map((dim) => (
+                      <option key={dim.id} value={dim.id}>
+                        {dim.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  onClick={handleDrill}
+                  disabled={!drillDatasetId || !drillDimensionId || drilling}
+                  className={btnPrimary}
+                >
+                  {drilling ? "Drilling..." : "Drill Down"}
+                </button>
+              </div>
+
+              {/* Drill results */}
+              {drillResult && drillResult.length > 0 && (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-12 gap-2 px-4 py-2 text-xs text-gray-600 uppercase tracking-widest">
+                    <div className="col-span-4">Entity</div>
+                    <div className="col-span-2 text-right">Records</div>
+                    <div className="col-span-6 text-right">Metrics (avg)</div>
+                  </div>
+                  {drillResult.map((group) => (
+                    <div
+                      key={group.entity_id}
+                      className="grid grid-cols-12 gap-2 items-center p-4 bg-[#111118] border border-[#1f2028] rounded-lg"
+                    >
+                      <div className="col-span-4 font-mono text-sm text-white truncate">
+                        {group.entity_name ?? group.entity_id.slice(0, 8)}
+                      </div>
+                      <div className="col-span-2 text-right text-sm text-gray-400">
+                        {group.record_count}
+                      </div>
+                      <div className="col-span-6 text-right">
+                        <div className="flex flex-wrap gap-2 justify-end">
+                          {Object.entries(group.metrics).slice(0, 4).map(([key, m]) => (
+                            <span key={key} className="text-xs text-gray-400">
+                              <span className="text-gray-600">{key}:</span>{" "}
+                              {m.avg.toFixed(2)}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="pt-2 text-xs text-gray-600">
+                    {drillResult.length} group{drillResult.length !== 1 ? "s" : ""}
+                  </div>
+                </div>
+              )}
+
+              {drillResult && drillResult.length === 0 && (
+                <p className="text-sm text-gray-600">
+                  No records found for this dimension in the selected dataset.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+        {/* ================================================================= */}
+        {/* TAB 6: COMPILE                                                    */}
+        {/* ================================================================= */}
+        {activeTab === "compile" && (
+          <div>
+            {/* --- Templates Section --- */}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">Output Templates</h2>
+              <button
+                onClick={() => setShowAddTemplate(!showAddTemplate)}
+                className={btnPrimary}
+              >
+                New Template
+              </button>
+            </div>
+
+            {/* Add template form */}
+            {showAddTemplate && (
+              <form
+                onSubmit={handleAddTemplate}
+                className="mb-6 p-5 bg-[#111118] border border-[#1f2028] rounded-lg"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className={labelCls}>Template Name</label>
+                    <input
+                      type="text"
+                      value={tplName}
+                      onChange={(e) => setTplName(e.target.value)}
+                      placeholder="e.g. Q1 Market Share Report"
+                      required
+                      className={inputCls}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Description</label>
+                    <input
+                      type="text"
+                      value={tplDesc}
+                      onChange={(e) => setTplDesc(e.target.value)}
+                      placeholder="Brief description"
+                      className={inputCls}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Output Type</label>
+                    <select
+                      value={tplType}
+                      onChange={(e) => setTplType(e.target.value)}
+                      className={inputCls}
+                    >
+                      <option value="report">Report</option>
+                      <option value="slide">Slide Deck</option>
+                      <option value="table">Table</option>
+                      <option value="chart">Chart</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className={labelCls}>Params (JSON)</label>
+                    <textarea
+                      value={tplParams}
+                      onChange={(e) => setTplParams(e.target.value)}
+                      rows={5}
+                      className={inputCls + " font-mono text-xs"}
+                      placeholder={
+                        tplType === "report"
+                          ? '{\n  "sections": ["executive_summary", "metrics", "breakdown"],\n  "metrics": ["unit_share", "growth_rate"],\n  "group_by": "brand"\n}'
+                          : tplType === "slide"
+                          ? '{\n  "slides": [\n    {"type": "title"},\n    {"type": "kpi_grid", "metrics": ["unit_share"]},\n    {"type": "chart", "chart_type": "bar", "metric": "unit_share", "group_by": "brand"}\n  ]\n}'
+                          : tplType === "table"
+                          ? '{\n  "dimensions": ["brand", "region"],\n  "metrics": ["unit_share", "volume"],\n  "sort_by": "unit_share",\n  "top_n": 20,\n  "include_totals": true\n}'
+                          : '{\n  "chart_type": "bar",\n  "x": "brand",\n  "y": "unit_share",\n  "group_by": "region",\n  "top_n": 10\n}'
+                      }
+                    />
+                  </div>
+                </div>
+
+                {tplFormError && (
+                  <p className="text-sm text-red-400 mb-3">{tplFormError}</p>
+                )}
+
+                <div className="flex items-center gap-3">
+                  <button
+                    type="submit"
+                    disabled={tplSubmitting || !tplName.trim()}
+                    className={btnPrimary}
+                  >
+                    {tplSubmitting ? "Creating..." : "Create Template"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowAddTemplate(false); setTplFormError(null); }}
+                    className={btnCancel}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {templatesLoading && <Skeleton />}
+
+            {!templatesLoading && templates.length === 0 && (
+              <div className="text-center py-8 text-gray-600 text-sm">
+                No templates yet. Create your first output template above.
+              </div>
+            )}
+
+            {!templatesLoading && templates.length > 0 && (
+              <div className="space-y-2 mb-8">
+                <div className="grid grid-cols-12 gap-2 px-4 py-2 text-xs text-gray-600 uppercase tracking-widest">
+                  <div className="col-span-4">Name</div>
+                  <div className="col-span-2">Type</div>
+                  <div className="col-span-3">Description</div>
+                  <div className="col-span-3 text-right">Actions</div>
+                </div>
+
+                {templates.map((tpl) => (
+                  <div
+                    key={tpl.id}
+                    className="grid grid-cols-12 gap-2 items-center p-4 bg-[#111118] border border-[#1f2028] rounded-lg hover:border-[#2d3044] transition-colors"
+                  >
+                    <div className="col-span-4 font-mono text-sm text-white truncate">
+                      {tpl.name}
+                    </div>
+                    <div className="col-span-2">
+                      <Badge variant="tag">{tpl.output_type}</Badge>
+                    </div>
+                    <div className="col-span-3 text-sm text-gray-500 truncate">
+                      {tpl.description ?? "—"}
+                    </div>
+                    <div className="col-span-3 flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => {
+                          setCompileTemplateId(tpl.id);
+                          setCompileType(tpl.output_type);
+                        }}
+                        className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
+                      >
+                        Use
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTemplate(tpl.id)}
+                        className="text-xs text-red-500 hover:text-red-400 transition-colors"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                <div className="pt-2 text-xs text-gray-600">
+                  {templates.length} template{templates.length !== 1 ? "s" : ""}
+                </div>
+              </div>
+            )}
+
+            {/* --- Run Compile Section --- */}
+            <div className="border-t border-[#1f2028] pt-6 mt-6">
+              <h2 className="text-lg font-semibold mb-4">Run Compilation</h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className={labelCls}>Output Type</label>
+                  <select
+                    value={compileType}
+                    onChange={(e) => { setCompileType(e.target.value); setCompileTemplateId(""); }}
+                    className={inputCls}
+                  >
+                    <option value="report">Report</option>
+                    <option value="slide">Slide Deck</option>
+                    <option value="table">Table</option>
+                    <option value="chart">Chart</option>
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>Dataset</label>
+                  <select
+                    value={compileDatasetId}
+                    onChange={(e) => setCompileDatasetId(e.target.value)}
+                    className={inputCls}
+                  >
+                    <option value="">Select a dataset...</option>
+                    {datasets.map((ds) => (
+                      <option key={ds.id} value={ds.id}>
+                        {ds.name} ({ds.period})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {(compileType === "report" || compileType === "slide") && (
+                  <div>
+                    <label className={labelCls}>Title</label>
+                    <input
+                      type="text"
+                      value={compileTitle}
+                      onChange={(e) => setCompileTitle(e.target.value)}
+                      placeholder="e.g. Q1 2026 Market Overview"
+                      className={inputCls}
+                    />
+                  </div>
+                )}
+                <div>
+                  <label className={labelCls}>Template (optional)</label>
+                  <select
+                    value={compileTemplateId}
+                    onChange={(e) => setCompileTemplateId(e.target.value)}
+                    className={inputCls}
+                  >
+                    <option value="">No template (defaults)</option>
+                    {templates
+                      .filter((t) => t.output_type === compileType)
+                      .map((t) => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+
+              <button
+                onClick={handleCompile}
+                disabled={!compileDatasetId || compiling}
+                className={btnPrimary + " mb-6"}
+              >
+                {compiling ? "Compiling..." : "Run Brief"}
+              </button>
+
+              {/* Compile result */}
+              {compileResult && (
+                <div className="p-5 bg-[#111118] border border-[#1f2028] rounded-lg">
+                  {"error" in compileResult && compileResult.error != null ? (
+                    <p className="text-sm text-red-400">{String(compileResult.error)}</p>
+                  ) : (
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <Badge variant="status" status="active">compiled</Badge>
+                        <span className="text-xs text-gray-500">
+                          {String((compileResult as Record<string, unknown>).generated_at ?? "")}
+                        </span>
+                      </div>
+                      <pre className="text-xs text-gray-300 bg-[#0a0a0f] p-4 rounded border border-[#1f2028] overflow-auto max-h-96 font-mono whitespace-pre-wrap">
+                        {JSON.stringify(compileResult, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}

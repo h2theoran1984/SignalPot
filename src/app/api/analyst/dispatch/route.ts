@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { checkDispatchRateLimit } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveNames, learnAlias } from "@/lib/analyst/rosetta/engine";
+import { runValidation, getValidationRun, getValidationHistory } from "@/lib/analyst/sentinel/engine";
+import { detectAnomalies, explainAnomaly, drillDown } from "@/lib/analyst/pathfinder/engine";
+import { compileReport, compileSlides, compileTable, compileChart } from "@/lib/analyst/brief/engine";
 import { timingSafeEqual } from "crypto";
 import { z } from "zod";
 
@@ -255,11 +258,39 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      return NextResponse.json({
-        status: "not_implemented",
-        capability,
-        input: parsed.data,
-      });
+
+      // Resolve owner from job_id
+      let validateOwnerId: string | null = null;
+      if (jobId) {
+        const { data: job } = await admin
+          .from("jobs")
+          .select("requester_profile_id")
+          .eq("id", jobId)
+          .single();
+        validateOwnerId = job?.requester_profile_id ?? null;
+      }
+      if (!validateOwnerId) {
+        return NextResponse.json(
+          { error: "validate.run requires an authenticated caller (job_id)" },
+          { status: 401 }
+        );
+      }
+
+      try {
+        const result = await runValidation(
+          admin,
+          validateOwnerId,
+          parsed.data.dataset_id,
+          parsed.data.rules
+        );
+        return NextResponse.json(result);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Validation run failed";
+        return NextResponse.json(
+          { error: `validate.run failed: ${message}` },
+          { status: 500 }
+        );
+      }
     }
 
     case "validate.check": {
@@ -270,11 +301,31 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      return NextResponse.json({
-        status: "not_implemented",
-        capability,
-        input: parsed.data,
-      });
+
+      let checkOwnerId: string | null = null;
+      if (jobId) {
+        const { data: job } = await admin
+          .from("jobs")
+          .select("requester_profile_id")
+          .eq("id", jobId)
+          .single();
+        checkOwnerId = job?.requester_profile_id ?? null;
+      }
+      if (!checkOwnerId) {
+        return NextResponse.json(
+          { error: "validate.check requires an authenticated caller (job_id)" },
+          { status: 401 }
+        );
+      }
+
+      const runResult = await getValidationRun(admin, checkOwnerId, parsed.data.check_id);
+      if (!runResult) {
+        return NextResponse.json(
+          { error: "Validation run not found" },
+          { status: 404 }
+        );
+      }
+      return NextResponse.json(runResult);
     }
 
     case "validate.history": {
@@ -285,11 +336,30 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      return NextResponse.json({
-        status: "not_implemented",
-        capability,
-        input: parsed.data,
-      });
+
+      let historyOwnerId: string | null = null;
+      if (jobId) {
+        const { data: job } = await admin
+          .from("jobs")
+          .select("requester_profile_id")
+          .eq("id", jobId)
+          .single();
+        historyOwnerId = job?.requester_profile_id ?? null;
+      }
+      if (!historyOwnerId) {
+        return NextResponse.json(
+          { error: "validate.history requires an authenticated caller (job_id)" },
+          { status: 401 }
+        );
+      }
+
+      const history = await getValidationHistory(
+        admin,
+        historyOwnerId,
+        parsed.data.dataset_id,
+        parsed.data.limit
+      );
+      return NextResponse.json({ history });
     }
 
     /* -------------------------------------------------------------- */
@@ -303,11 +373,39 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      return NextResponse.json({
-        status: "not_implemented",
-        capability,
-        input: parsed.data,
-      });
+
+      let detectOwnerId: string | null = null;
+      if (jobId) {
+        const { data: job } = await admin
+          .from("jobs")
+          .select("requester_profile_id")
+          .eq("id", jobId)
+          .single();
+        detectOwnerId = job?.requester_profile_id ?? null;
+      }
+      if (!detectOwnerId) {
+        return NextResponse.json(
+          { error: "investigate.anomaly requires an authenticated caller (job_id)" },
+          { status: 401 }
+        );
+      }
+
+      try {
+        const result = await detectAnomalies(
+          admin,
+          detectOwnerId,
+          parsed.data.dataset_id,
+          parsed.data.metric,
+          parsed.data.threshold
+        );
+        return NextResponse.json(result);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Anomaly detection failed";
+        return NextResponse.json(
+          { error: `investigate.anomaly failed: ${message}` },
+          { status: 500 }
+        );
+      }
     }
 
     case "investigate.explain": {
@@ -318,11 +416,41 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      return NextResponse.json({
-        status: "not_implemented",
-        capability,
-        input: parsed.data,
-      });
+
+      let explainOwnerId: string | null = null;
+      if (jobId) {
+        const { data: job } = await admin
+          .from("jobs")
+          .select("requester_profile_id")
+          .eq("id", jobId)
+          .single();
+        explainOwnerId = job?.requester_profile_id ?? null;
+      }
+      if (!explainOwnerId) {
+        return NextResponse.json(
+          { error: "investigate.explain requires an authenticated caller (job_id)" },
+          { status: 401 }
+        );
+      }
+
+      const apiKey = process.env.ANTHROPIC_API_KEY;
+      if (!apiKey) {
+        return NextResponse.json(
+          { error: "ANTHROPIC_API_KEY not configured" },
+          { status: 503 }
+        );
+      }
+
+      try {
+        const result = await explainAnomaly(admin, explainOwnerId, parsed.data.anomaly_id, apiKey);
+        return NextResponse.json(result);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Explanation failed";
+        return NextResponse.json(
+          { error: `investigate.explain failed: ${message}` },
+          { status: 500 }
+        );
+      }
     }
 
     case "investigate.drill": {
@@ -333,11 +461,39 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      return NextResponse.json({
-        status: "not_implemented",
-        capability,
-        input: parsed.data,
-      });
+
+      let drillOwnerId: string | null = null;
+      if (jobId) {
+        const { data: job } = await admin
+          .from("jobs")
+          .select("requester_profile_id")
+          .eq("id", jobId)
+          .single();
+        drillOwnerId = job?.requester_profile_id ?? null;
+      }
+      if (!drillOwnerId) {
+        return NextResponse.json(
+          { error: "investigate.drill requires an authenticated caller (job_id)" },
+          { status: 401 }
+        );
+      }
+
+      try {
+        const result = await drillDown(
+          admin,
+          drillOwnerId,
+          parsed.data.dataset_id,
+          parsed.data.dimension_id,
+          parsed.data.filters as Record<string, unknown> | undefined
+        );
+        return NextResponse.json(result);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Drill-down failed";
+        return NextResponse.json(
+          { error: `investigate.drill failed: ${message}` },
+          { status: 500 }
+        );
+      }
     }
 
     /* -------------------------------------------------------------- */
@@ -351,11 +507,37 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      return NextResponse.json({
-        status: "not_implemented",
-        capability,
-        input: parsed.data,
-      });
+
+      let reportOwnerId: string | null = null;
+      if (jobId) {
+        const { data: job } = await admin
+          .from("jobs")
+          .select("requester_profile_id")
+          .eq("id", jobId)
+          .single();
+        reportOwnerId = job?.requester_profile_id ?? null;
+      }
+      if (!reportOwnerId) {
+        return NextResponse.json(
+          { error: "compile.report requires an authenticated caller (job_id)" },
+          { status: 401 }
+        );
+      }
+
+      try {
+        const result = await compileReport(
+          admin,
+          reportOwnerId,
+          parsed.data.dataset_ids,
+          parsed.data.title,
+          undefined, // template_id — use inline sections as params
+          { sections: parsed.data.sections }
+        );
+        return NextResponse.json(result);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Report compilation failed";
+        return NextResponse.json({ error: `compile.report failed: ${message}` }, { status: 500 });
+      }
     }
 
     case "compile.slide": {
@@ -366,11 +548,37 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      return NextResponse.json({
-        status: "not_implemented",
-        capability,
-        input: parsed.data,
-      });
+
+      let slideOwnerId: string | null = null;
+      if (jobId) {
+        const { data: job } = await admin
+          .from("jobs")
+          .select("requester_profile_id")
+          .eq("id", jobId)
+          .single();
+        slideOwnerId = job?.requester_profile_id ?? null;
+      }
+      if (!slideOwnerId) {
+        return NextResponse.json(
+          { error: "compile.slide requires an authenticated caller (job_id)" },
+          { status: 401 }
+        );
+      }
+
+      try {
+        const result = await compileSlides(
+          admin,
+          slideOwnerId,
+          parsed.data.dataset_ids,
+          parsed.data.title,
+          undefined,
+          { slide_count: parsed.data.slide_count }
+        );
+        return NextResponse.json(result);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Slide compilation failed";
+        return NextResponse.json({ error: `compile.slide failed: ${message}` }, { status: 500 });
+      }
     }
 
     case "compile.table": {
@@ -381,11 +589,36 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      return NextResponse.json({
-        status: "not_implemented",
-        capability,
-        input: parsed.data,
-      });
+
+      let tableOwnerId: string | null = null;
+      if (jobId) {
+        const { data: job } = await admin
+          .from("jobs")
+          .select("requester_profile_id")
+          .eq("id", jobId)
+          .single();
+        tableOwnerId = job?.requester_profile_id ?? null;
+      }
+      if (!tableOwnerId) {
+        return NextResponse.json(
+          { error: "compile.table requires an authenticated caller (job_id)" },
+          { status: 401 }
+        );
+      }
+
+      try {
+        const result = await compileTable(
+          admin,
+          tableOwnerId,
+          parsed.data.dataset_id,
+          parsed.data.dimensions,
+          parsed.data.metrics
+        );
+        return NextResponse.json(result);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Table compilation failed";
+        return NextResponse.json({ error: `compile.table failed: ${message}` }, { status: 500 });
+      }
     }
 
     case "compile.chart": {
@@ -396,11 +629,38 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      return NextResponse.json({
-        status: "not_implemented",
-        capability,
-        input: parsed.data,
-      });
+
+      let chartOwnerId: string | null = null;
+      if (jobId) {
+        const { data: job } = await admin
+          .from("jobs")
+          .select("requester_profile_id")
+          .eq("id", jobId)
+          .single();
+        chartOwnerId = job?.requester_profile_id ?? null;
+      }
+      if (!chartOwnerId) {
+        return NextResponse.json(
+          { error: "compile.chart requires an authenticated caller (job_id)" },
+          { status: 401 }
+        );
+      }
+
+      try {
+        const result = await compileChart(
+          admin,
+          chartOwnerId,
+          parsed.data.dataset_id,
+          parsed.data.chart_type,
+          parsed.data.x,
+          parsed.data.y,
+          parsed.data.group_by
+        );
+        return NextResponse.json(result);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Chart compilation failed";
+        return NextResponse.json({ error: `compile.chart failed: ${message}` }, { status: 500 });
+      }
     }
 
     default:
