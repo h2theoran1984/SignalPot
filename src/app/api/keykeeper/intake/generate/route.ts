@@ -5,7 +5,7 @@ import { z } from "zod";
 
 const generateSchema = z.object({
   secret_name: z.string().min(1).max(100).trim(),
-  provider: z.enum(["openai", "stripe", "github", "other"]),
+  provider: z.enum(["openai", "stripe", "github", "anthropic", "google", "other"]),
   expires_in_minutes: z.number().int().min(5).max(1440).optional().default(30),
 });
 
