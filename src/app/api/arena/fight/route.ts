@@ -199,29 +199,52 @@ export async function POST(request: NextRequest) {
   // Fetch both agents (explicit columns — no select(*))
   const AGENT_COLS = "id, name, slug, mcp_endpoint, rate_amount, owner_id, capability_schema";
 
-  const { data: agentA } = await admin
+  const SPARRING_SLUG = "sparring-partner";
+
+  const agentAQuery = admin
     .from("agents")
     .select(AGENT_COLS)
     .eq("slug", agent_a_slug)
-    .eq("status", "active")
-    .single();
+    .eq("status", "active");
+  if (agent_a_slug !== SPARRING_SLUG) agentAQuery.eq("arena_eligible", true);
+  const { data: agentA } = await agentAQuery.single();
 
-  const { data: agentB } = await admin
+  const agentBQuery = admin
     .from("agents")
     .select(AGENT_COLS)
     .eq("slug", agent_b_slug)
-    .eq("status", "active")
-    .single();
+    .eq("status", "active");
+  if (agent_b_slug !== SPARRING_SLUG) agentBQuery.eq("arena_eligible", true);
+  const { data: agentB } = await agentBQuery.single();
 
   if (!agentA) return NextResponse.json({ error: `Agent '${agent_a_slug}' not found or inactive` }, { status: 404 });
   if (!agentB) return NextResponse.json({ error: `Agent '${agent_b_slug}' not found or inactive` }, { status: 404 });
 
   // Block placeholder agents (no endpoint) from arena fights — Sparring Partner is exempt (handled internally)
-  if (agent_a_slug !== "sparring-partner" && !agentA.mcp_endpoint) {
+  if (agent_a_slug !== SPARRING_SLUG && !agentA.mcp_endpoint) {
     return NextResponse.json({ error: `Agent '${agent_a_slug}' has no endpoint — cannot fight` }, { status: 400 });
   }
-  if (agent_b_slug !== "sparring-partner" && !agentB.mcp_endpoint) {
+  if (agent_b_slug !== SPARRING_SLUG && !agentB.mcp_endpoint) {
     return NextResponse.json({ error: `Agent '${agent_b_slug}' has no endpoint — cannot fight` }, { status: 400 });
+  }
+
+  // Verify both agents support the requested capability
+  // The Sparring Partner is a universal opponent — skip capability check for it
+  const capsA = (agentA.capability_schema as Array<{ name: string }>) ?? [];
+  const capsB = (agentB.capability_schema as Array<{ name: string }>) ?? [];
+
+  if (agent_a_slug !== SPARRING_SLUG && !capsA.find((c) => c.name === capability)) {
+    return NextResponse.json(
+      { error: `Agent ${agentA.name} does not support capability ${capability}`, available: capsA.map((c) => c.name) },
+      { status: 400 }
+    );
+  }
+
+  if (agent_b_slug !== SPARRING_SLUG && !capsB.find((c) => c.name === capability)) {
+    return NextResponse.json(
+      { error: `Agent ${agentB.name} does not support capability ${capability}`, available: capsB.map((c) => c.name) },
+      { status: 400 }
+    );
   }
 
   // ELO gate — only applies when fighting the Sparring Partner at Level 2+

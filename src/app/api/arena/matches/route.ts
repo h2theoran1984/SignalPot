@@ -63,23 +63,27 @@ export async function POST(request: NextRequest) {
   const { agent_a_slug, agent_b_slug, capability, prompt: rawPrompt, prompt_text: rawPromptText, challenge_id } = parsed.data;
 
   // Look up both agents
-  const { data: agentA } = await admin
+  const SPARRING_SLUG = "sparring-partner";
+
+  const agentAQuery = admin
     .from("agents")
     .select("id, slug, name, status, capability_schema, rate_amount")
     .eq("slug", agent_a_slug)
-    .eq("status", "active")
-    .single();
+    .eq("status", "active");
+  if (agent_a_slug !== SPARRING_SLUG) agentAQuery.eq("arena_eligible", true);
+  const { data: agentA } = await agentAQuery.single();
 
   if (!agentA) {
     return NextResponse.json({ error: `Agent '${agent_a_slug}' not found or inactive` }, { status: 404 });
   }
 
-  const { data: agentB } = await admin
+  const agentBQuery = admin
     .from("agents")
     .select("id, slug, name, status, capability_schema, rate_amount")
     .eq("slug", agent_b_slug)
-    .eq("status", "active")
-    .single();
+    .eq("status", "active");
+  if (agent_b_slug !== SPARRING_SLUG) agentBQuery.eq("arena_eligible", true);
+  const { data: agentB } = await agentBQuery.single();
 
   if (!agentB) {
     return NextResponse.json({ error: `Agent '${agent_b_slug}' not found or inactive` }, { status: 404 });
@@ -87,7 +91,6 @@ export async function POST(request: NextRequest) {
 
   // Verify both agents have the specified capability
   // The Sparring Partner is a universal opponent — skip capability check for it
-  const SPARRING_SLUG = "sparring-partner";
   const capsA = (agentA.capability_schema as Array<{ name: string; input_schema?: Record<string, unknown> }>) ?? [];
   const capsB = (agentB.capability_schema as Array<{ name: string; input_schema?: Record<string, unknown> }>) ?? [];
 

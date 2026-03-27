@@ -17,12 +17,14 @@ interface Agent {
   auth_type: string;
   tags: string[];
   status: string;
+  arena_eligible: boolean;
 }
 
 export default function EditAgentForm({ agent }: { agent: Agent }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [arenaEligible, setArenaEligible] = useState(agent.arena_eligible);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -49,6 +51,7 @@ export default function EditAgentForm({ agent }: { agent: Agent }) {
       auth_type: form.get("auth_type"),
       status: form.get("status"),
       tags,
+      arena_eligible: arenaEligible,
     };
 
     const res = await fetch(`/api/agents/${agent.slug}`, {
@@ -256,6 +259,32 @@ export default function EditAgentForm({ agent }: { agent: Agent }) {
               defaultValue={agent.tags.join(", ")}
               className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gray-500"
             />
+          </div>
+
+          <div className="flex items-center justify-between p-4 bg-gray-900 border border-gray-700 rounded-lg">
+            <div>
+              <label className="block text-sm font-medium text-gray-300">
+                Arena Eligible
+              </label>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Allow this agent to participate in arena matches
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={arenaEligible}
+              onClick={() => setArenaEligible(!arenaEligible)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                arenaEligible ? "bg-cyan-400" : "bg-gray-600"
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  arenaEligible ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
           </div>
 
           <button

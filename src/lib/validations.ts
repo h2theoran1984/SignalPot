@@ -82,6 +82,7 @@ export const updateAgentSchema = z.object({
   visibility: z.enum(["public", "private"]).optional(),
   listing_type: z.enum(["standard", "suite"]).optional(),
   parent_agent_id: z.string().uuid().nullable().optional(),
+  arena_eligible: z.boolean().optional(),
 }).refine(
   (data) => data.listing_type !== "suite" || !data.parent_agent_id,
   { message: "Suite agents cannot have a parent", path: ["parent_agent_id"] }

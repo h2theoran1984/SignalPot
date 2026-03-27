@@ -165,12 +165,19 @@ export default async function DashboardPage() {
                     /{agent.slug}
                   </span>
                 </div>
-                <Badge
-                  variant="status"
-                  status={agent.status as "active" | "inactive" | "deprecated"}
-                >
-                  {agent.status}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  {agent.arena_eligible === false && (
+                    <Badge variant="tag" className="text-[10px] opacity-60">
+                      No Arena
+                    </Badge>
+                  )}
+                  <Badge
+                    variant="status"
+                    status={agent.status as "active" | "inactive" | "deprecated"}
+                  >
+                    {agent.status}
+                  </Badge>
+                </div>
               </a>
             ))}
           </div>

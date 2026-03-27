@@ -64,13 +64,26 @@ export async function POST(request: NextRequest) {
   const admin = createAdminClient();
   const { data: agent } = await admin
     .from("agents")
-    .select("id, name, slug, rate_amount")
+    .select("id, name, slug, rate_amount, capability_schema")
     .eq("slug", agent_slug)
     .eq("status", "active")
+    .eq("arena_eligible", true)
     .single();
 
   if (!agent) {
     return NextResponse.json({ error: `Agent '${agent_slug}' not found or inactive` }, { status: 404 });
+  }
+
+  // Verify the agent supports the requested capability before starting the grind loop
+  const agentCaps = (agent as Record<string, unknown>).capability_schema as Array<{ name: string }> | undefined;
+  if (!agentCaps?.find((c) => c.name === capability)) {
+    return NextResponse.json(
+      {
+        error: `Agent ${agent.name} does not support capability ${capability}`,
+        available: agentCaps?.map((c) => c.name) ?? [],
+      },
+      { status: 400 }
+    );
   }
 
   // Check user's credit balance upfront (skip for service-role — unlimited budget)
