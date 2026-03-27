@@ -208,6 +208,12 @@ export async function generateTrainingReport(
 
   const matchesWithBreakdown = totalScores.length;
 
+  if (matchesWithBreakdown === 0) {
+    throw new Error(
+      "No completed training matches with scoring data found. Run some training matches first."
+    );
+  }
+
   // ── 6. Build criteria analysis ────────────────────────────────────
   const criteriaAnalysis: TrainingReport["criteria"] = [];
 
@@ -321,7 +327,7 @@ ${criteriaBreakdown}
 Give 2-3 sentences of specific, actionable coaching advice. Focus on the weaknesses and what concrete changes would improve them. Be direct and practical — no fluff.`;
 
     const message = await anthropic.messages.create({
-      model: "claude-haiku-4-20250414",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 256,
       messages: [{ role: "user", content: prompt }],
     });
