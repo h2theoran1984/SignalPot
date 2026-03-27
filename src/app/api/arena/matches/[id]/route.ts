@@ -41,8 +41,8 @@ export async function GET(
   let elo_a: number = 1200;
   let elo_b: number = 1200;
 
-  const agentA = match.agent_a as { id: string; slug: string } | null;
-  const agentB = match.agent_b as { id: string; slug: string } | null;
+  const agentA = match.agent_a as unknown as { id: string; slug: string } | null;
+  const agentB = match.agent_b as unknown as { id: string; slug: string } | null;
   const SPARRING_SLUG = "sparring-partner";
 
   if (agentA && agentA.slug !== SPARRING_SLUG) {
