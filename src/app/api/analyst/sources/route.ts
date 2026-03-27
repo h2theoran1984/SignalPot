@@ -36,8 +36,8 @@ const createSourceSchema = z.object({
   slug: z.string().min(1).max(100).trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase alphanumeric with hyphens"),
   description: z.string().max(1000).trim().optional(),
   format_type: z.enum(["csv", "json", "excel", "parquet", "api"]),
-  column_map: z.record(z.string()).optional(),
-  dimension_map: z.record(z.string()).optional(),
+  column_map: z.record(z.string(), z.string()).optional(),
+  dimension_map: z.record(z.string(), z.string()).optional(),
 });
 
 /**

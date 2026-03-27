@@ -44,7 +44,7 @@ const createEntitySchema = z.object({
   dimension_id: z.string().uuid(),
   canonical_name: z.string().min(1).max(500).trim(),
   parent_entity_id: z.string().uuid().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 /**
