@@ -230,6 +230,11 @@ export default function AnalystSuiteDashboard() {
   const [dsPeriod, setDsPeriod] = useState("");
   const [dsFormError, setDsFormError] = useState<string | null>(null);
   const [dsSubmitting, setDsSubmitting] = useState(false);
+  const [dsFile, setDsFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [pipelineRunId, setPipelineRunId] = useState<string | null>(null);
+  const [pipelineStatus, setPipelineStatus] = useState<Record<string, unknown> | null>(null);
+  const [pipelinePolling, setPipelinePolling] = useState(false);
 
   // Validation state
   const [rules, setRules] = useState<ValidationRule[]>([]);
@@ -522,25 +527,87 @@ export default function AnalystSuiteDashboard() {
     e.preventDefault();
     setDsFormError(null);
     setDsSubmitting(true);
+
     try {
-      const res = await fetch("/api/analyst/datasets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          source_id: dsSourceId,
-          name: dsName.trim(),
-          period: dsPeriod.trim(),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setDsFormError(data.error ?? "Failed to import dataset"); return; }
-      setDsSourceId(""); setDsName(""); setDsPeriod("");
-      setShowImportDataset(false);
-      await fetchDatasets();
+      if (dsFile) {
+        // File upload → full pipeline
+        const formData = new FormData();
+        formData.append("file", dsFile);
+        formData.append("source_id", dsSourceId);
+        formData.append("name", dsName.trim());
+        formData.append("period", dsPeriod.trim());
+
+        const res = await fetch("/api/analyst/ingest", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+        if (!res.ok) { setDsFormError(data.error ?? "Failed to upload"); return; }
+
+        // Start polling pipeline status
+        setPipelineRunId(data.pipeline_run_id);
+        setPipelinePolling(true);
+        setDsSourceId(""); setDsName(""); setDsPeriod(""); setDsFile(null);
+        setShowImportDataset(false);
+        await fetchDatasets();
+        pollPipeline(data.pipeline_run_id);
+      } else {
+        // Metadata-only import (legacy)
+        const res = await fetch("/api/analyst/datasets", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            source_id: dsSourceId,
+            name: dsName.trim(),
+            period: dsPeriod.trim(),
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) { setDsFormError(data.error ?? "Failed to import dataset"); return; }
+        setDsSourceId(""); setDsName(""); setDsPeriod("");
+        setShowImportDataset(false);
+        await fetchDatasets();
+      }
     } catch {
       setDsFormError("Network error");
     } finally {
       setDsSubmitting(false);
+    }
+  }
+
+  async function pollPipeline(runId: string) {
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/analyst/pipeline-status?id=${runId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setPipelineStatus(data.pipeline);
+        const status = (data.pipeline as Record<string, unknown>)?.status;
+        if (status === "completed" || status === "failed") {
+          setPipelinePolling(false);
+          await fetchDatasets();
+          return;
+        }
+        // Poll again in 2 seconds
+        setTimeout(poll, 2000);
+      } catch {
+        setPipelinePolling(false);
+      }
+    };
+    poll();
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      const name = file.name.toLowerCase();
+      if (name.endsWith(".csv") || name.endsWith(".xlsx") || name.endsWith(".xls")) {
+        setDsFile(file);
+        setShowImportDataset(true);
+        if (!dsName) setDsName(file.name.replace(/\.(csv|xlsx|xls)$/i, ""));
+      }
     }
   }
 
@@ -1288,12 +1355,170 @@ export default function AnalystSuiteDashboard() {
               </button>
             </div>
 
+            {/* Drop zone */}
+            {!showImportDataset && !pipelinePolling && (
+              <div
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={handleDrop}
+                className={`mb-6 p-8 border-2 border-dashed rounded-lg text-center transition-colors cursor-pointer ${
+                  isDragging
+                    ? "border-cyan-400 bg-cyan-400/5"
+                    : "border-[#1f2028] hover:border-[#2d3044]"
+                }`}
+                onClick={() => setShowImportDataset(true)}
+              >
+                <p className="text-sm text-gray-500">
+                  Drop a CSV or XLSX file here to start the full pipeline
+                </p>
+                <p className="text-xs text-gray-600 mt-1">
+                  Rosetta → Sentinel → Pathfinder → Brief — all automatic
+                </p>
+              </div>
+            )}
+
+            {/* Pipeline progress */}
+            {pipelinePolling && pipelineStatus && (
+              <div className="mb-6 p-5 bg-[#111118] border border-cyan-400/30 rounded-lg">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-white">Pipeline Running</h3>
+                  <Badge variant="status" status="running">
+                    {String((pipelineStatus as Record<string, unknown>).status ?? "running")}
+                  </Badge>
+                </div>
+
+                {/* Progress bar */}
+                <div className="w-full bg-[#0a0a0f] rounded-full h-2 mb-3">
+                  <div
+                    className="bg-cyan-400 h-2 rounded-full transition-all duration-500"
+                    style={{
+                      width: `${(Number((pipelineStatus as Record<string, unknown>).steps_completed ?? 0) / Number((pipelineStatus as Record<string, unknown>).steps_total ?? 6)) * 100}%`,
+                    }}
+                  />
+                </div>
+
+                <p className="text-sm text-cyan-400 mb-2">
+                  {String((pipelineStatus as Record<string, unknown>).current_step ?? "Starting...")}
+                </p>
+
+                <div className="flex items-center gap-4 text-xs text-gray-500">
+                  <span>
+                    Step {String((pipelineStatus as Record<string, unknown>).steps_completed ?? 0)} of {String((pipelineStatus as Record<string, unknown>).steps_total ?? 6)}
+                  </span>
+                  {"file_name" in pipelineStatus && pipelineStatus.file_name != null && (
+                    <span>{String(pipelineStatus.file_name)}</span>
+                  )}
+                  {"row_count" in pipelineStatus && pipelineStatus.row_count != null && (
+                    <span>{Number(pipelineStatus.row_count).toLocaleString()} rows</span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Pipeline completed */}
+            {!pipelinePolling && pipelineStatus && (pipelineStatus as Record<string, unknown>).status === "completed" && (
+              <div className="mb-6 p-5 bg-[#111118] border border-green-700/30 rounded-lg">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-white">Pipeline Complete</h3>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="status" status="active">completed</Badge>
+                    <button
+                      onClick={() => { setPipelineStatus(null); setPipelineRunId(null); }}
+                      className={btnCancel}
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+
+                {"results" in pipelineStatus && pipelineStatus.results != null && (
+                  <div className="grid grid-cols-4 gap-4 text-center">
+                    {(() => {
+                      const r = (pipelineStatus as Record<string, unknown>).results as Record<string, unknown>;
+                      const rosetta = r?.rosetta as Record<string, unknown> | undefined;
+                      const sentinel = r?.sentinel as Record<string, unknown> | undefined;
+                      const pathfinder = r?.pathfinder as Record<string, unknown> | undefined;
+                      return (
+                        <>
+                          <div>
+                            <p className="text-lg font-bold text-cyan-400">
+                              {String(rosetta?.totalResolved ?? 0)}
+                            </p>
+                            <p className="text-xs text-gray-500">Entities Resolved</p>
+                          </div>
+                          <div>
+                            <p className="text-lg font-bold text-yellow-400">
+                              {String(sentinel?.total_findings ?? 0)}
+                            </p>
+                            <p className="text-xs text-gray-500">Validation Findings</p>
+                          </div>
+                          <div>
+                            <p className="text-lg font-bold text-orange-400">
+                              {String(pathfinder?.total_anomalies ?? 0)}
+                            </p>
+                            <p className="text-xs text-gray-500">Anomalies Detected</p>
+                          </div>
+                          <div>
+                            <p className="text-lg font-bold text-green-400">1</p>
+                            <p className="text-xs text-gray-500">Report Compiled</p>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Import dataset form */}
             {showImportDataset && (
               <form
                 onSubmit={handleImportDataset}
                 className="mb-6 p-5 bg-[#111118] border border-[#1f2028] rounded-lg"
               >
+                {/* File input */}
+                <div className="mb-4">
+                  <label className={labelCls}>File (CSV or XLSX)</label>
+                  <div
+                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsDragging(false);
+                      const f = e.dataTransfer.files[0];
+                      if (f) { setDsFile(f); if (!dsName) setDsName(f.name.replace(/\.(csv|xlsx|xls)$/i, "")); }
+                    }}
+                    className={`p-4 border-2 border-dashed rounded-lg text-center transition-colors ${
+                      isDragging ? "border-cyan-400 bg-cyan-400/5" :
+                      dsFile ? "border-green-700/30 bg-green-950/10" : "border-[#1f2028]"
+                    }`}
+                  >
+                    {dsFile ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <span className="text-sm text-green-400">{dsFile.name}</span>
+                        <span className="text-xs text-gray-500">({(dsFile.size / 1024).toFixed(1)} KB)</span>
+                        <button type="button" onClick={() => setDsFile(null)} className="text-xs text-red-400 hover:text-red-300">Remove</button>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-sm text-gray-500">Drop a file here or</p>
+                        <label className="text-sm text-cyan-400 hover:text-cyan-300 cursor-pointer">
+                          browse
+                          <input
+                            type="file"
+                            accept=".csv,.xlsx,.xls"
+                            className="hidden"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f) { setDsFile(f); if (!dsName) setDsName(f.name.replace(/\.(csv|xlsx|xls)$/i, "")); }
+                            }}
+                          />
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div>
                     <label className={labelCls}>Source</label>
@@ -1335,6 +1560,12 @@ export default function AnalystSuiteDashboard() {
                   </div>
                 </div>
 
+                {dsFile && (
+                  <p className="text-xs text-cyan-400/70 mb-3">
+                    Full pipeline will run: Parse → Rosetta → Sentinel → Pathfinder → Brief
+                  </p>
+                )}
+
                 {dsFormError && (
                   <p className="text-sm text-red-400 mb-3">{dsFormError}</p>
                 )}
@@ -1345,13 +1576,14 @@ export default function AnalystSuiteDashboard() {
                     disabled={dsSubmitting || !dsSourceId || !dsName.trim() || !dsPeriod.trim()}
                     className={btnPrimary}
                   >
-                    {dsSubmitting ? "Importing..." : "Import Dataset"}
+                    {dsSubmitting ? "Uploading..." : dsFile ? "Upload & Run Pipeline" : "Create Dataset"}
                   </button>
                   <button
                     type="button"
                     onClick={() => {
                       setShowImportDataset(false);
                       setDsFormError(null);
+                      setDsFile(null);
                     }}
                     className={btnCancel}
                   >

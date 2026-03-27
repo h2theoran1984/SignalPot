@@ -35,6 +35,16 @@ export type SignalPotEvents = {
       match_id: string;
     };
   };
+  "analyst/pipeline.start": {
+    data: {
+      pipeline_run_id: string;
+      dataset_id: string;
+      owner_id: string;
+      source_id: string;
+      column_map: Record<string, { type: string; confidence: string }>;
+      template_id: string | null;
+    };
+  };
   "dispute/escalated-t3": {
     data: {
       dispute_id: string;
