@@ -154,6 +154,28 @@ export async function checkAdminAuthRateLimit(
   };
 }
 
+// KeyKeeper dispatch: 30 requests/min per IP — tight enough to block brute-force,
+// loose enough for legitimate agent bursts
+export async function checkDispatchRateLimit(
+  ip: string
+): Promise<{ success: boolean; remaining: number; reset: number }> {
+  const r = getRedis();
+  if (!r) return { success: false, remaining: 0, reset: Date.now() + 60_000 };
+
+  const limiter = new Ratelimit({
+    redis: r,
+    limiter: Ratelimit.slidingWindow(30, "1 m"),
+    prefix: "sp:kk-dispatch",
+  });
+
+  const result = await limiter.limit(ip);
+  return {
+    success: result.success,
+    remaining: result.remaining,
+    reset: result.reset,
+  };
+}
+
 // Global IP-based rate limiter for unauthenticated endpoints
 export async function checkIpRateLimit(
   ip: string

@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { readSecret, storeSecret } from "@/lib/keykeeper/vault";
 import { getProvider } from "@/lib/keykeeper/providers";
+import { checkDispatchRateLimit } from "@/lib/rate-limit";
 import { timingSafeEqual } from "crypto";
 import { z } from "zod";
 
@@ -28,7 +29,21 @@ const rotateInputSchema = z.object({
  * Internal suite dispatch endpoint — receives forwarded requests from the proxy
  * when a caller invokes keykeeper-courier through the suite routing.
  */
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  // 0. Rate limit by IP — throttle brute-force key guessing
+  const forwarded = request.headers.get("x-forwarded-for");
+  const ip = forwarded
+    ? forwarded.split(",").pop()!.trim()
+    : request.headers.get("x-real-ip") || "unknown";
+
+  const rateCheck = await checkDispatchRateLimit(ip);
+  if (!rateCheck.success) {
+    return NextResponse.json(
+      { error: "Rate limit exceeded" },
+      { status: 429 }
+    );
+  }
+
   // 1. Verify internal origin — fail-closed: reject if key is not configured
   if (!INTERNAL_KEY) {
     return NextResponse.json(
