@@ -10,22 +10,24 @@ interface CriterionBreakdown {
   name: string;
   weight: number;
   avgScore: number;
-  trend: "up" | "down" | "stable";
-  bestScore: number;
-  worstScore: number;
+  trend: "improving" | "declining" | "stable";
+  best: number;
+  worst: number;
   matchScores: number[];
 }
 
 interface TrainingReport {
   agentId: string;
   agentName: string;
-  agentSlug: string;
   period: { from: string; to: string };
   matchCount: number;
-  winRate: number;
-  eloStart: number;
-  eloCurrent: number;
-  eloChange: number;
+  overall: {
+    winRate: number;
+    avgScore: number;
+    eloStart: number;
+    eloCurrent: number;
+    eloChange: number;
+  };
   criteria: CriterionBreakdown[];
   strengths: string[];
   weaknesses: string[];
@@ -35,22 +37,22 @@ interface TrainingReport {
 // ── Helpers ──
 
 function scoreColor(score: number): string {
-  if (score > 7) return "text-emerald-400";
-  if (score >= 5) return "text-yellow-400";
+  if (score > 0.7) return "text-emerald-400";
+  if (score >= 0.5) return "text-yellow-400";
   return "text-red-400";
 }
 
 function scoreBgColor(score: number): string {
-  if (score > 7) return "bg-emerald-400";
-  if (score >= 5) return "bg-yellow-400";
+  if (score > 0.7) return "bg-emerald-400";
+  if (score >= 0.5) return "bg-yellow-400";
   return "bg-red-400";
 }
 
-function trendArrow(trend: "up" | "down" | "stable"): { icon: string; color: string } {
+function trendArrow(trend: "improving" | "declining" | "stable"): { icon: string; color: string } {
   switch (trend) {
-    case "up":
+    case "improving":
       return { icon: "\u2191", color: "text-emerald-400" };
-    case "down":
+    case "declining":
       return { icon: "\u2193", color: "text-red-400" };
     case "stable":
       return { icon: "\u2192", color: "text-gray-500" };
@@ -166,18 +168,18 @@ export default function TrainingReportPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               <div className="p-4 bg-[#111118] border border-[#1f2028] rounded-lg">
                 <p className="text-xs text-gray-500 mb-1">Win Rate</p>
-                <p className={`text-2xl font-bold ${report.winRate >= 50 ? "text-emerald-400" : "text-red-400"}`}>
-                  {report.winRate}%
+                <p className={`text-2xl font-bold ${report.overall.winRate >= 0.5 ? "text-emerald-400" : "text-red-400"}`}>
+                  {Math.round(report.overall.winRate * 100)}%
                 </p>
               </div>
               <div className="p-4 bg-[#111118] border border-[#1f2028] rounded-lg">
                 <p className="text-xs text-gray-500 mb-1">ELO Change</p>
-                <p className={`text-2xl font-bold ${report.eloChange >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                  {report.eloChange > 0 ? "+" : ""}
-                  {report.eloChange}
+                <p className={`text-2xl font-bold ${report.overall.eloChange >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                  {report.overall.eloChange > 0 ? "+" : ""}
+                  {report.overall.eloChange}
                 </p>
                 <p className="text-[10px] text-gray-600">
-                  {report.eloStart} &rarr; {report.eloCurrent}
+                  {report.overall.eloStart} &rarr; {report.overall.eloCurrent}
                 </p>
               </div>
               <div className="p-4 bg-[#111118] border border-[#1f2028] rounded-lg">
@@ -186,7 +188,7 @@ export default function TrainingReportPage() {
               </div>
               <div className="p-4 bg-[#111118] border border-[#1f2028] rounded-lg">
                 <p className="text-xs text-gray-500 mb-1">Current ELO</p>
-                <p className="text-2xl font-bold text-cyan-400">{report.eloCurrent}</p>
+                <p className="text-2xl font-bold text-cyan-400">{report.overall.eloCurrent}</p>
               </div>
             </div>
 
@@ -218,19 +220,19 @@ export default function TrainingReportPage() {
                           {c.name}
                         </div>
                         <div className="col-span-1 text-center text-xs text-gray-600">
-                          {c.weight}
+                          {(c.weight * 100).toFixed(0)}%
                         </div>
                         <div className={`col-span-1 text-center text-sm font-bold ${scoreColor(c.avgScore)}`}>
-                          {c.avgScore.toFixed(1)}
+                          {(c.avgScore * 100).toFixed(0)}%
                         </div>
                         <div className={`col-span-1 text-center text-sm font-bold ${trend.color}`}>
                           {trend.icon}
                         </div>
                         <div className="col-span-1 text-center text-xs text-emerald-400 font-mono">
-                          {c.bestScore.toFixed(1)}
+                          {(c.best * 100).toFixed(0)}%
                         </div>
                         <div className="col-span-1 text-center text-xs text-red-400 font-mono">
-                          {c.worstScore.toFixed(1)}
+                          {(c.worst * 100).toFixed(0)}%
                         </div>
                         {/* Mini sparkline: colored dots */}
                         <div className="col-span-4 flex items-center gap-0.5">
@@ -238,7 +240,7 @@ export default function TrainingReportPage() {
                             <div
                               key={idx}
                               className={`w-2 h-2 rounded-full ${scoreBgColor(score)}`}
-                              title={`Match ${idx + 1}: ${score.toFixed(1)}`}
+                              title={`Match ${idx + 1}: ${(score * 100).toFixed(0)}%`}
                               style={{ opacity: 0.4 + (idx / c.matchScores.length) * 0.6 }}
                             />
                           ))}
