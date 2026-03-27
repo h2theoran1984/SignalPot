@@ -5,8 +5,8 @@
  */
 
 import { SupabaseClient } from "@supabase/supabase-js";
-import { runFastPass, type FastPassResult } from "./fast-pass.js";
-import { runSmartPass } from "./smart-pass.js";
+import { runFastPass, type FastPassResult } from "./fast-pass";
+import { runSmartPass } from "./smart-pass";
 
 export interface ResolveResult {
   resolved: Array<{

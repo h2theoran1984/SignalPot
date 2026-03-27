@@ -4,7 +4,7 @@
  */
 
 import { SupabaseClient } from "@supabase/supabase-js";
-import { normalize, extractBaseName, tokenize, tokenSimilarity, editSimilarity } from "./normalize.js";
+import { normalize, extractBaseName, tokenize, tokenSimilarity, editSimilarity } from "./normalize";
 
 export interface MatchCandidate {
   entityId: string;
