@@ -739,6 +739,116 @@ async function main() {
   console.log(
     `Brief sub-agent: ${brief.id} (${brief.slug}) -> parent ${brief.parent_agent_id}`
   );
+
+  // 6. Upsert Pulse sub-agent (Account Health Monitor)
+  const { data: pulse, error: pulseErr } = await admin
+    .from("agents")
+    .upsert(
+      {
+        owner_id: ownerId,
+        name: "Pulse",
+        slug: "analyst-pulse",
+        description:
+          "Account health monitoring engine. Tracks order frequency, volume trends, SKU adoption, and reorder consistency to score account health and flag at-risk clients before they churn.",
+        listing_type: "standard",
+        parent_agent_id: suite.id,
+        mcp_endpoint: null,
+        capability_schema: [
+          { name: "monitor.scan", description: "Scan all accounts in a dataset for health signals", inputSchema: { type: "object", properties: { dataset_id: { type: "string" }, account_dimension: { type: "string" } }, required: ["dataset_id", "account_dimension"] } },
+          { name: "monitor.check", description: "Check a single account's health score", inputSchema: { type: "object", properties: { dataset_id: { type: "string" }, entity_id: { type: "string" } }, required: ["dataset_id", "entity_id"] } },
+          { name: "monitor.history", description: "Get health score history for an account over time", inputSchema: { type: "object", properties: { entity_id: { type: "string" }, limit: { type: "number" } }, required: ["entity_id"] } },
+        ],
+        rate_type: "per_call",
+        rate_amount: 0,
+        rate_currency: "USD",
+        auth_type: "none",
+        tags: ["account-health", "retention", "churn-prevention", "monitoring"],
+        status: "active",
+        visibility: "public",
+        goal: "Detect account health deterioration early — flag declining order patterns, volume drops, and engagement changes before they become churn.",
+        decision_logic: "monitor.scan: computes composite health scores from order frequency, volume trends, revenue trends, and SKU adoption. monitor.check: retrieves a single account's score. monitor.history: shows health trajectory over time.",
+        agent_type: "reactive",
+      },
+      { onConflict: "slug" }
+    )
+    .select("id, slug, parent_agent_id")
+    .single();
+
+  if (pulseErr) { console.error("Failed to upsert Pulse:", pulseErr.message); process.exit(1); }
+  console.log(`Pulse sub-agent: ${pulse.id} (${pulse.slug}) -> parent ${pulse.parent_agent_id}`);
+
+  // 7. Upsert Radar sub-agent (Growth Opportunity Detection)
+  const { data: radar, error: radarErr } = await admin
+    .from("agents")
+    .upsert(
+      {
+        owner_id: ownerId,
+        name: "Radar",
+        slug: "analyst-radar",
+        description:
+          "Growth opportunity detector. Identifies whitespace (products accounts should buy but don't), win-back opportunities (lapsed purchases), and cross-sell signals by analyzing account-product matrices.",
+        listing_type: "standard",
+        parent_agent_id: suite.id,
+        mcp_endpoint: null,
+        capability_schema: [
+          { name: "opportunity.scan", description: "Scan a dataset for all growth opportunities", inputSchema: { type: "object", properties: { dataset_id: { type: "string" }, account_dimension: { type: "string" }, product_dimension: { type: "string" } }, required: ["dataset_id", "account_dimension", "product_dimension"] } },
+        ],
+        rate_type: "per_call",
+        rate_amount: 0,
+        rate_currency: "USD",
+        auth_type: "none",
+        tags: ["growth", "whitespace", "cross-sell", "win-back", "opportunities"],
+        status: "active",
+        visibility: "public",
+        goal: "Surface revenue growth opportunities that are invisible in aggregate data — product gaps, lapsed purchases, and competitive displacement signals at the account level.",
+        decision_logic: "opportunity.scan: builds account-product adoption matrix, identifies products with >40% peer adoption that this account doesn't buy (whitespace), and detects products that stopped appearing in recent periods (win-back).",
+        agent_type: "reactive",
+      },
+      { onConflict: "slug" }
+    )
+    .select("id, slug, parent_agent_id")
+    .single();
+
+  if (radarErr) { console.error("Failed to upsert Radar:", radarErr.message); process.exit(1); }
+  console.log(`Radar sub-agent: ${radar.id} (${radar.slug}) -> parent ${radar.parent_agent_id}`);
+
+  // 8. Upsert Playbook sub-agent (Sales Output Compiler)
+  const { data: playbook, error: playbookErr } = await admin
+    .from("agents")
+    .upsert(
+      {
+        owner_id: ownerId,
+        name: "Playbook",
+        slug: "analyst-playbook",
+        description:
+          "Sales-ready output compiler. Combines health scores, opportunities, and data into structured account reviews, QBR decks, territory plans, and rep scorecards. Template-driven for repeatable output.",
+        listing_type: "standard",
+        parent_agent_id: suite.id,
+        mcp_endpoint: null,
+        capability_schema: [
+          { name: "playbook.review", description: "Compile an account review with health, opportunities, and recommendations", inputSchema: { type: "object", properties: { dataset_id: { type: "string" }, entity_id: { type: "string" }, template_id: { type: "string" } }, required: ["dataset_id", "entity_id"] } },
+          { name: "playbook.qbr", description: "Compile a quarterly business review", inputSchema: { type: "object", properties: { dataset_id: { type: "string" }, title: { type: "string" }, template_id: { type: "string" } }, required: ["dataset_id", "title"] } },
+          { name: "playbook.territory", description: "Compile a territory plan with prioritized accounts", inputSchema: { type: "object", properties: { dataset_id: { type: "string" }, title: { type: "string" }, template_id: { type: "string" } }, required: ["dataset_id", "title"] } },
+        ],
+        rate_type: "per_call",
+        rate_amount: 0,
+        rate_currency: "USD",
+        auth_type: "none",
+        tags: ["sales-ops", "account-review", "qbr", "territory-planning", "output"],
+        status: "active",
+        visibility: "public",
+        goal: "Turn raw data, health scores, and opportunity signals into the documents sales teams actually need — account reviews, QBRs, territory plans.",
+        decision_logic: "playbook.review: single account deep dive combining health + opportunities + recent activity. playbook.qbr: territory-wide quarterly review with top accounts, risk accounts, and pipeline. playbook.territory: prioritized account list with strategies (focus/maintain/monitor/rescue).",
+        agent_type: "reactive",
+      },
+      { onConflict: "slug" }
+    )
+    .select("id, slug, parent_agent_id")
+    .single();
+
+  if (playbookErr) { console.error("Failed to upsert Playbook:", playbookErr.message); process.exit(1); }
+  console.log(`Playbook sub-agent: ${playbook.id} (${playbook.slug}) -> parent ${playbook.parent_agent_id}`);
+
   console.log("Done.");
 }
 

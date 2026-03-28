@@ -5,6 +5,9 @@ import { resolveNames, learnAlias } from "@/lib/analyst/rosetta/engine";
 import { runValidation, getValidationRun, getValidationHistory } from "@/lib/analyst/sentinel/engine";
 import { detectAnomalies, explainAnomaly, drillDown } from "@/lib/analyst/pathfinder/engine";
 import { compileReport, compileSlides, compileTable, compileChart } from "@/lib/analyst/brief/engine";
+import { scanAccountHealth, checkAccountHealth, getHealthHistory } from "@/lib/analyst/pulse/engine";
+import { scanOpportunities } from "@/lib/analyst/radar/engine";
+import { compileAccountReview, compileQBR, compileTerritoryPlan } from "@/lib/analyst/playbook/engine";
 import { timingSafeEqual } from "crypto";
 import { z } from "zod";
 
@@ -93,6 +96,48 @@ const compileChartSchema = z.object({
   x: z.string().min(1),
   y: z.string().min(1),
   group_by: z.string().optional(),
+});
+
+// monitor.*
+const monitorScanSchema = z.object({
+  dataset_id: z.string().uuid(),
+  account_dimension: z.string().min(1).max(100),
+});
+
+const monitorCheckSchema = z.object({
+  dataset_id: z.string().uuid(),
+  entity_id: z.string().uuid(),
+});
+
+const monitorHistorySchema = z.object({
+  entity_id: z.string().uuid(),
+  limit: z.number().int().min(1).max(100).optional().default(20),
+});
+
+// opportunity.*
+const opportunityScanSchema = z.object({
+  dataset_id: z.string().uuid(),
+  account_dimension: z.string().min(1).max(100),
+  product_dimension: z.string().min(1).max(100),
+});
+
+// playbook.*
+const playbookReviewSchema = z.object({
+  dataset_id: z.string().uuid(),
+  entity_id: z.string().uuid(),
+  template_id: z.string().uuid().optional(),
+});
+
+const playbookQBRSchema = z.object({
+  dataset_id: z.string().uuid(),
+  title: z.string().min(1).max(200).trim(),
+  template_id: z.string().uuid().optional(),
+});
+
+const playbookTerritorySchema = z.object({
+  dataset_id: z.string().uuid(),
+  title: z.string().min(1).max(200).trim(),
+  template_id: z.string().uuid().optional(),
 });
 
 /* ------------------------------------------------------------------ */
@@ -661,6 +706,96 @@ export async function POST(request: NextRequest) {
         const message = err instanceof Error ? err.message : "Chart compilation failed";
         return NextResponse.json({ error: `compile.chart failed: ${message}` }, { status: 500 });
       }
+    }
+
+    /* -------------------------------------------------------------- */
+    /*  monitor.* (Pulse)                                              */
+    /* -------------------------------------------------------------- */
+    case "monitor.scan": {
+      const parsed = monitorScanSchema.safeParse(input);
+      if (!parsed.success) return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, { status: 400 });
+      let monScanOwner: string | null = null;
+      if (jobId) { const { data: job } = await admin.from("jobs").select("requester_profile_id").eq("id", jobId).single(); monScanOwner = job?.requester_profile_id ?? null; }
+      if (!monScanOwner) return NextResponse.json({ error: "monitor.scan requires an authenticated caller (job_id)" }, { status: 401 });
+      try {
+        const result = await scanAccountHealth(admin, monScanOwner, parsed.data.dataset_id, parsed.data.account_dimension);
+        return NextResponse.json(result);
+      } catch (err) { return NextResponse.json({ error: `monitor.scan failed: ${err instanceof Error ? err.message : "Unknown"}` }, { status: 500 }); }
+    }
+
+    case "monitor.check": {
+      const parsed = monitorCheckSchema.safeParse(input);
+      if (!parsed.success) return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, { status: 400 });
+      let monCheckOwner: string | null = null;
+      if (jobId) { const { data: job } = await admin.from("jobs").select("requester_profile_id").eq("id", jobId).single(); monCheckOwner = job?.requester_profile_id ?? null; }
+      if (!monCheckOwner) return NextResponse.json({ error: "monitor.check requires an authenticated caller (job_id)" }, { status: 401 });
+      const result = await checkAccountHealth(admin, monCheckOwner, parsed.data.dataset_id, parsed.data.entity_id);
+      if (!result) return NextResponse.json({ error: "Account health not found" }, { status: 404 });
+      return NextResponse.json(result);
+    }
+
+    case "monitor.history": {
+      const parsed = monitorHistorySchema.safeParse(input);
+      if (!parsed.success) return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, { status: 400 });
+      let monHistOwner: string | null = null;
+      if (jobId) { const { data: job } = await admin.from("jobs").select("requester_profile_id").eq("id", jobId).single(); monHistOwner = job?.requester_profile_id ?? null; }
+      if (!monHistOwner) return NextResponse.json({ error: "monitor.history requires an authenticated caller (job_id)" }, { status: 401 });
+      const history = await getHealthHistory(admin, monHistOwner, parsed.data.entity_id, parsed.data.limit);
+      return NextResponse.json({ history });
+    }
+
+    /* -------------------------------------------------------------- */
+    /*  opportunity.* (Radar)                                          */
+    /* -------------------------------------------------------------- */
+    case "opportunity.scan": {
+      const parsed = opportunityScanSchema.safeParse(input);
+      if (!parsed.success) return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, { status: 400 });
+      let oppOwner: string | null = null;
+      if (jobId) { const { data: job } = await admin.from("jobs").select("requester_profile_id").eq("id", jobId).single(); oppOwner = job?.requester_profile_id ?? null; }
+      if (!oppOwner) return NextResponse.json({ error: "opportunity.scan requires an authenticated caller (job_id)" }, { status: 401 });
+      try {
+        const result = await scanOpportunities(admin, oppOwner, parsed.data.dataset_id, parsed.data.account_dimension, parsed.data.product_dimension);
+        return NextResponse.json(result);
+      } catch (err) { return NextResponse.json({ error: `opportunity.scan failed: ${err instanceof Error ? err.message : "Unknown"}` }, { status: 500 }); }
+    }
+
+    /* -------------------------------------------------------------- */
+    /*  playbook.* (Playbook)                                          */
+    /* -------------------------------------------------------------- */
+    case "playbook.review": {
+      const parsed = playbookReviewSchema.safeParse(input);
+      if (!parsed.success) return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, { status: 400 });
+      let pbRevOwner: string | null = null;
+      if (jobId) { const { data: job } = await admin.from("jobs").select("requester_profile_id").eq("id", jobId).single(); pbRevOwner = job?.requester_profile_id ?? null; }
+      if (!pbRevOwner) return NextResponse.json({ error: "playbook.review requires an authenticated caller (job_id)" }, { status: 401 });
+      try {
+        const result = await compileAccountReview(admin, pbRevOwner, parsed.data.dataset_id, parsed.data.entity_id, parsed.data.template_id);
+        return NextResponse.json(result);
+      } catch (err) { return NextResponse.json({ error: `playbook.review failed: ${err instanceof Error ? err.message : "Unknown"}` }, { status: 500 }); }
+    }
+
+    case "playbook.qbr": {
+      const parsed = playbookQBRSchema.safeParse(input);
+      if (!parsed.success) return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, { status: 400 });
+      let pbQbrOwner: string | null = null;
+      if (jobId) { const { data: job } = await admin.from("jobs").select("requester_profile_id").eq("id", jobId).single(); pbQbrOwner = job?.requester_profile_id ?? null; }
+      if (!pbQbrOwner) return NextResponse.json({ error: "playbook.qbr requires an authenticated caller (job_id)" }, { status: 401 });
+      try {
+        const result = await compileQBR(admin, pbQbrOwner, parsed.data.dataset_id, parsed.data.title, parsed.data.template_id);
+        return NextResponse.json(result);
+      } catch (err) { return NextResponse.json({ error: `playbook.qbr failed: ${err instanceof Error ? err.message : "Unknown"}` }, { status: 500 }); }
+    }
+
+    case "playbook.territory": {
+      const parsed = playbookTerritorySchema.safeParse(input);
+      if (!parsed.success) return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, { status: 400 });
+      let pbTerrOwner: string | null = null;
+      if (jobId) { const { data: job } = await admin.from("jobs").select("requester_profile_id").eq("id", jobId).single(); pbTerrOwner = job?.requester_profile_id ?? null; }
+      if (!pbTerrOwner) return NextResponse.json({ error: "playbook.territory requires an authenticated caller (job_id)" }, { status: 401 });
+      try {
+        const result = await compileTerritoryPlan(admin, pbTerrOwner, parsed.data.dataset_id, parsed.data.title, parsed.data.template_id);
+        return NextResponse.json(result);
+      } catch (err) { return NextResponse.json({ error: `playbook.territory failed: ${err instanceof Error ? err.message : "Unknown"}` }, { status: 500 }); }
     }
 
     default:
