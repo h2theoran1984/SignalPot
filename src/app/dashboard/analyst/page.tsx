@@ -102,7 +102,33 @@ interface CompileTemplate {
   created_at: string;
 }
 
-type Tab = "sources" | "taxonomy" | "datasets" | "validation" | "analysis" | "compile";
+interface AccountHealthItem {
+  id: string;
+  entity_id: string;
+  account_name: string;
+  health_score: number;
+  status: "healthy" | "at_risk" | "declining" | "churned";
+  signals: Record<string, unknown>;
+  risk_factors: Array<{ factor: string; severity: string; detail: string }>;
+  last_order_date: string | null;
+  computed_at: string;
+}
+
+interface OpportunityItem {
+  id: string;
+  entity_id: string;
+  account_name: string;
+  opportunity_type: string;
+  product_or_category: string;
+  estimated_value: number | null;
+  confidence: number;
+  priority: string;
+  status: string;
+  created_at: string;
+}
+
+type Mode = "analytics" | "sales_ops";
+type Tab = "sources" | "taxonomy" | "datasets" | "validation" | "analysis" | "compile" | "health" | "opportunities" | "playbook";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -190,6 +216,7 @@ export default function AnalystSuiteDashboard() {
   const router = useRouter();
 
   // Tab state
+  const [mode, setMode] = useState<Mode>("analytics");
   const [activeTab, setActiveTab] = useState<Tab>("sources");
 
   // Sources state
@@ -283,6 +310,28 @@ export default function AnalystSuiteDashboard() {
   const [compileTemplateId, setCompileTemplateId] = useState("");
   const [compiling, setCompiling] = useState(false);
   const [compileResult, setCompileResult] = useState<Record<string, unknown> | null>(null);
+
+  // Health state (Pulse)
+  const [healthAccounts, setHealthAccounts] = useState<AccountHealthItem[]>([]);
+  const [healthLoading, setHealthLoading] = useState(false);
+  const [healthDatasetId, setHealthDatasetId] = useState("");
+  const [healthDimension, setHealthDimension] = useState("");
+  const [scanning, setScanning] = useState(false);
+
+  // Opportunities state (Radar)
+  const [opportunities, setOpportunities] = useState<OpportunityItem[]>([]);
+  const [oppsLoading, setOppsLoading] = useState(false);
+  const [oppsDatasetId, setOppsDatasetId] = useState("");
+  const [oppsAcctDim, setOppsAcctDim] = useState("");
+  const [oppsProdDim, setOppsProdDim] = useState("");
+  const [scanningOpps, setScanningOpps] = useState(false);
+
+  // Playbook state
+  const [playbookDatasetId, setPlaybookDatasetId] = useState("");
+  const [playbookType, setPlaybookType] = useState("qbr");
+  const [playbookTitle, setPlaybookTitle] = useState("");
+  const [compilingPlaybook, setCompilingPlaybook] = useState(false);
+  const [playbookResult, setPlaybookResult] = useState<Record<string, unknown> | null>(null);
 
   // ---------------------------------------------------------------------------
   // Fetchers
@@ -416,6 +465,13 @@ export default function AnalystSuiteDashboard() {
       fetchDatasets();
     }
   }, [activeTab, fetchTemplates, fetchDatasets]);
+
+  useEffect(() => {
+    if (activeTab === "health" || activeTab === "opportunities" || activeTab === "playbook") {
+      fetchDatasets();
+      fetchDimensions();
+    }
+  }, [activeTab, fetchDatasets, fetchDimensions]);
 
   // ---------------------------------------------------------------------------
   // Source form handlers
@@ -710,6 +766,71 @@ export default function AnalystSuiteDashboard() {
   }
 
   // ---------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // Sales Ops handlers
+  // ---------------------------------------------------------------------------
+
+  async function handleScanHealth() {
+    if (!healthDatasetId || !healthDimension) return;
+    setScanning(true);
+    try {
+      const res = await fetch("/api/analyst/account-health", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "scan", dataset_id: healthDatasetId, account_dimension: healthDimension }),
+      });
+      const data = await res.json();
+      if (res.ok) setHealthAccounts(data.accounts ?? []);
+    } catch { /* ignore */ } finally { setScanning(false); }
+  }
+
+  async function fetchHealth(datasetId: string) {
+    setHealthLoading(true);
+    try {
+      const res = await fetch(`/api/analyst/account-health?dataset_id=${datasetId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setHealthAccounts(data.accounts ?? []);
+      }
+    } catch { /* ignore */ } finally { setHealthLoading(false); }
+  }
+
+  async function handleScanOpportunities() {
+    if (!oppsDatasetId || !oppsAcctDim || !oppsProdDim) return;
+    setScanningOpps(true);
+    try {
+      const res = await fetch("/api/analyst/opportunities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "scan", dataset_id: oppsDatasetId, account_dimension: oppsAcctDim, product_dimension: oppsProdDim }),
+      });
+      const data = await res.json();
+      if (res.ok) setOpportunities(data.opportunities ?? []);
+    } catch { /* ignore */ } finally { setScanningOpps(false); }
+  }
+
+  async function handleCompilePlaybook() {
+    if (!playbookDatasetId) return;
+    setCompilingPlaybook(true);
+    setPlaybookResult(null);
+    try {
+      const res = await fetch("/api/analyst/playbook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          output_type: playbookType,
+          dataset_id: playbookDatasetId,
+          title: playbookTitle || `${playbookType.toUpperCase()} — ${new Date().toLocaleDateString()}`,
+          ...(playbookType === "account_review" ? { entity_id: healthAccounts[0]?.entity_id } : {}),
+        }),
+      });
+      const data = await res.json();
+      setPlaybookResult(data);
+    } catch {
+      setPlaybookResult({ error: "Network error" });
+    } finally { setCompilingPlaybook(false); }
+  }
+
   // Compile handlers
   // ---------------------------------------------------------------------------
 
@@ -921,7 +1042,7 @@ export default function AnalystSuiteDashboard() {
   // Tab definitions
   // ---------------------------------------------------------------------------
 
-  const tabs: { key: Tab; label: string }[] = [
+  const analyticsTabs: { key: Tab; label: string }[] = [
     { key: "sources", label: "Sources" },
     { key: "taxonomy", label: "Taxonomy" },
     { key: "datasets", label: "Datasets" },
@@ -929,6 +1050,15 @@ export default function AnalystSuiteDashboard() {
     { key: "analysis", label: "Analysis" },
     { key: "compile", label: "Compile" },
   ];
+
+  const salesOpsTabs: { key: Tab; label: string }[] = [
+    { key: "datasets", label: "Datasets" },
+    { key: "health", label: "Health" },
+    { key: "opportunities", label: "Opportunities" },
+    { key: "playbook", label: "Playbook" },
+  ];
+
+  const tabs = mode === "analytics" ? analyticsTabs : salesOpsTabs;
 
   // ---------------------------------------------------------------------------
   // Render
@@ -939,12 +1069,38 @@ export default function AnalystSuiteDashboard() {
       <SiteNav />
 
       <main className="max-w-5xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold">Analyst Suite</h1>
-          <p className="text-sm text-gray-500">
-            Multi-source data normalization &amp; analysis
-          </p>
+        {/* Header + Mode switcher */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold">Analyst Suite</h1>
+            <p className="text-sm text-gray-500">
+              {mode === "analytics"
+                ? "Multi-source data normalization & analysis"
+                : "Account health, growth opportunities & sales playbooks"}
+            </p>
+          </div>
+          <div className="flex items-center gap-1 bg-[#111118] border border-[#1f2028] rounded-lg p-1">
+            <button
+              onClick={() => { setMode("analytics"); setActiveTab("sources"); }}
+              className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                mode === "analytics"
+                  ? "bg-cyan-400 text-gray-950"
+                  : "text-gray-500 hover:text-gray-300"
+              }`}
+            >
+              Analytics
+            </button>
+            <button
+              onClick={() => { setMode("sales_ops"); setActiveTab("datasets"); }}
+              className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                mode === "sales_ops"
+                  ? "bg-cyan-400 text-gray-950"
+                  : "text-gray-500 hover:text-gray-300"
+              }`}
+            >
+              Sales Ops
+            </button>
+          </div>
         </div>
 
         {/* Tab bar */}
@@ -2482,6 +2638,266 @@ export default function AnalystSuiteDashboard() {
                 </div>
               )}
             </div>
+          </div>
+        )}
+        {/* ================================================================= */}
+        {/* TAB 7: HEALTH (Pulse)                                              */}
+        {/* ================================================================= */}
+        {activeTab === "health" && (
+          <div>
+            <h2 className="text-lg font-semibold mb-4">Account Health</h2>
+
+            <div className="flex items-end gap-4 mb-6">
+              <div className="flex-1">
+                <label className={labelCls}>Dataset</label>
+                <select
+                  value={healthDatasetId}
+                  onChange={(e) => { setHealthDatasetId(e.target.value); if (e.target.value) fetchHealth(e.target.value); }}
+                  className={inputCls}
+                >
+                  <option value="">Select a dataset...</option>
+                  {datasets.map((ds) => (
+                    <option key={ds.id} value={ds.id}>{ds.name} ({ds.period})</option>
+                  ))}
+                </select>
+              </div>
+              <div className="w-48">
+                <label className={labelCls}>Account Dimension</label>
+                <select value={healthDimension} onChange={(e) => setHealthDimension(e.target.value)} className={inputCls}>
+                  <option value="">Select...</option>
+                  {dimensions.map((d) => (
+                    <option key={d.id} value={d.slug}>{d.name}</option>
+                  ))}
+                </select>
+              </div>
+              <button
+                onClick={handleScanHealth}
+                disabled={!healthDatasetId || !healthDimension || scanning}
+                className={btnPrimary}
+              >
+                {scanning ? "Scanning..." : "Run Pulse"}
+              </button>
+            </div>
+
+            {healthLoading && <Skeleton />}
+
+            {!healthLoading && healthAccounts.length > 0 && (
+              <div>
+                {/* Summary cards */}
+                <div className="grid grid-cols-4 gap-4 mb-6">
+                  {[
+                    { label: "Healthy", count: healthAccounts.filter((a) => a.status === "healthy").length, color: "text-green-400" },
+                    { label: "At Risk", count: healthAccounts.filter((a) => a.status === "at_risk").length, color: "text-yellow-400" },
+                    { label: "Declining", count: healthAccounts.filter((a) => a.status === "declining").length, color: "text-orange-400" },
+                    { label: "Churned", count: healthAccounts.filter((a) => a.status === "churned").length, color: "text-red-400" },
+                  ].map((s) => (
+                    <div key={s.label} className="p-4 bg-[#111118] border border-[#1f2028] rounded-lg text-center">
+                      <p className={`text-2xl font-bold ${s.color}`}>{s.count}</p>
+                      <p className="text-xs text-gray-500">{s.label}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Account list */}
+                <div className="space-y-2">
+                  <div className="grid grid-cols-12 gap-2 px-4 py-2 text-xs text-gray-600 uppercase tracking-widest">
+                    <div className="col-span-4">Account</div>
+                    <div className="col-span-2 text-center">Score</div>
+                    <div className="col-span-2 text-center">Status</div>
+                    <div className="col-span-4 text-right">Risk Factors</div>
+                  </div>
+                  {healthAccounts.map((acct) => (
+                    <div key={acct.id} className="grid grid-cols-12 gap-2 items-center p-4 bg-[#111118] border border-[#1f2028] rounded-lg">
+                      <div className="col-span-4 font-mono text-sm text-white truncate">{acct.account_name}</div>
+                      <div className="col-span-2 text-center">
+                        <span className={`text-lg font-bold ${
+                          acct.health_score >= 70 ? "text-green-400" :
+                          acct.health_score >= 50 ? "text-yellow-400" :
+                          acct.health_score >= 20 ? "text-orange-400" : "text-red-400"
+                        }`}>{acct.health_score}</span>
+                      </div>
+                      <div className="col-span-2 text-center">
+                        <Badge variant="status" status={
+                          acct.status === "healthy" ? "active" :
+                          acct.status === "at_risk" ? "pending" :
+                          acct.status === "declining" ? "running" : "failed"
+                        }>{acct.status.replace("_", " ")}</Badge>
+                      </div>
+                      <div className="col-span-4 text-right text-xs text-gray-500">
+                        {acct.risk_factors.length > 0
+                          ? acct.risk_factors.map((rf) => rf.factor).join(", ")
+                          : "None"}
+                      </div>
+                    </div>
+                  ))}
+                  <div className="pt-2 text-xs text-gray-600">{healthAccounts.length} accounts</div>
+                </div>
+              </div>
+            )}
+
+            {!healthLoading && healthAccounts.length === 0 && healthDatasetId && (
+              <div className="text-center py-12 text-gray-600 text-sm">
+                No health data yet. Select a dimension and run Pulse to scan.
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ================================================================= */}
+        {/* TAB 8: OPPORTUNITIES (Radar)                                       */}
+        {/* ================================================================= */}
+        {activeTab === "opportunities" && (
+          <div>
+            <h2 className="text-lg font-semibold mb-4">Growth Opportunities</h2>
+
+            <div className="flex items-end gap-4 mb-6">
+              <div className="flex-1">
+                <label className={labelCls}>Dataset</label>
+                <select value={oppsDatasetId} onChange={(e) => setOppsDatasetId(e.target.value)} className={inputCls}>
+                  <option value="">Select a dataset...</option>
+                  {datasets.map((ds) => (
+                    <option key={ds.id} value={ds.id}>{ds.name} ({ds.period})</option>
+                  ))}
+                </select>
+              </div>
+              <div className="w-40">
+                <label className={labelCls}>Account Dim</label>
+                <select value={oppsAcctDim} onChange={(e) => setOppsAcctDim(e.target.value)} className={inputCls}>
+                  <option value="">Select...</option>
+                  {dimensions.map((d) => (
+                    <option key={d.id} value={d.slug}>{d.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="w-40">
+                <label className={labelCls}>Product Dim</label>
+                <select value={oppsProdDim} onChange={(e) => setOppsProdDim(e.target.value)} className={inputCls}>
+                  <option value="">Select...</option>
+                  {dimensions.map((d) => (
+                    <option key={d.id} value={d.slug}>{d.name}</option>
+                  ))}
+                </select>
+              </div>
+              <button
+                onClick={handleScanOpportunities}
+                disabled={!oppsDatasetId || !oppsAcctDim || !oppsProdDim || scanningOpps}
+                className={btnPrimary}
+              >
+                {scanningOpps ? "Scanning..." : "Run Radar"}
+              </button>
+            </div>
+
+            {oppsLoading && <Skeleton />}
+
+            {!oppsLoading && opportunities.length > 0 && (
+              <div className="space-y-2">
+                <div className="grid grid-cols-12 gap-2 px-4 py-2 text-xs text-gray-600 uppercase tracking-widest">
+                  <div className="col-span-3">Account</div>
+                  <div className="col-span-2">Type</div>
+                  <div className="col-span-3">Product</div>
+                  <div className="col-span-1 text-center">Priority</div>
+                  <div className="col-span-2 text-right">Est. Value</div>
+                  <div className="col-span-1 text-right">Conf.</div>
+                </div>
+                {opportunities.map((opp) => (
+                  <div key={opp.id} className="grid grid-cols-12 gap-2 items-center p-4 bg-[#111118] border border-[#1f2028] rounded-lg">
+                    <div className="col-span-3 font-mono text-sm text-white truncate">{opp.account_name}</div>
+                    <div className="col-span-2">
+                      <Badge variant="tag">{opp.opportunity_type.replace("_", " ")}</Badge>
+                    </div>
+                    <div className="col-span-3 text-sm text-gray-400 truncate">{opp.product_or_category}</div>
+                    <div className="col-span-1 text-center">
+                      <Badge variant="status" status={
+                        opp.priority === "high" ? "failed" :
+                        opp.priority === "medium" ? "pending" : "active"
+                      }>{opp.priority}</Badge>
+                    </div>
+                    <div className="col-span-2 text-right text-sm text-cyan-400">
+                      {opp.estimated_value ? `$${opp.estimated_value.toLocaleString()}` : "—"}
+                    </div>
+                    <div className="col-span-1 text-right text-xs text-gray-500">
+                      {Math.round(opp.confidence * 100)}%
+                    </div>
+                  </div>
+                ))}
+                <div className="pt-2 text-xs text-gray-600">{opportunities.length} opportunities</div>
+              </div>
+            )}
+
+            {!oppsLoading && opportunities.length === 0 && oppsDatasetId && (
+              <div className="text-center py-12 text-gray-600 text-sm">
+                No opportunities found yet. Select dimensions and run Radar.
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ================================================================= */}
+        {/* TAB 9: PLAYBOOK                                                    */}
+        {/* ================================================================= */}
+        {activeTab === "playbook" && (
+          <div>
+            <h2 className="text-lg font-semibold mb-4">Sales Playbook</h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className={labelCls}>Output Type</label>
+                <select value={playbookType} onChange={(e) => setPlaybookType(e.target.value)} className={inputCls}>
+                  <option value="qbr">Quarterly Business Review</option>
+                  <option value="territory_plan">Territory Plan</option>
+                  <option value="account_review">Account Review</option>
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>Dataset</label>
+                <select value={playbookDatasetId} onChange={(e) => setPlaybookDatasetId(e.target.value)} className={inputCls}>
+                  <option value="">Select a dataset...</option>
+                  {datasets.map((ds) => (
+                    <option key={ds.id} value={ds.id}>{ds.name} ({ds.period})</option>
+                  ))}
+                </select>
+              </div>
+              {playbookType !== "account_review" && (
+                <div className="md:col-span-2">
+                  <label className={labelCls}>Title</label>
+                  <input
+                    type="text"
+                    value={playbookTitle}
+                    onChange={(e) => setPlaybookTitle(e.target.value)}
+                    placeholder={playbookType === "qbr" ? "e.g. Q1 2026 Business Review" : "e.g. West Region Territory Plan"}
+                    className={inputCls}
+                  />
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={handleCompilePlaybook}
+              disabled={!playbookDatasetId || compilingPlaybook}
+              className={btnPrimary + " mb-6"}
+            >
+              {compilingPlaybook ? "Compiling..." : "Run Playbook"}
+            </button>
+
+            {playbookResult && (
+              <div className="p-5 bg-[#111118] border border-[#1f2028] rounded-lg">
+                {"error" in playbookResult && playbookResult.error != null ? (
+                  <p className="text-sm text-red-400">{String(playbookResult.error)}</p>
+                ) : (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Badge variant="status" status="active">compiled</Badge>
+                      <span className="text-xs text-gray-500">
+                        {String((playbookResult as Record<string, unknown>).generated_at ?? "")}
+                      </span>
+                    </div>
+                    <pre className="text-xs text-gray-300 bg-[#0a0a0f] p-4 rounded border border-[#1f2028] overflow-auto max-h-96 font-mono whitespace-pre-wrap">
+                      {JSON.stringify(playbookResult, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </main>
