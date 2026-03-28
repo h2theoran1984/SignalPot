@@ -133,7 +133,9 @@ ${JSON.stringify(outputSchema, null, 2)}
 
 Respond with ONLY valid JSON matching the output schema. No markdown, no explanation, no code blocks. Just the JSON object.
 
-Provide deep strategic analysis. Identify winners and losers with the WHY. Connect data points to competitive dynamics. Give actionable recommendations.`;
+Provide deep strategic analysis. Identify winners and losers with the WHY. Connect data points to competitive dynamics. Give actionable recommendations.
+
+CRITICAL: winners, losers, competitive_dynamics, and recommendations MUST be arrays of objects, not single objects. Keep each field's text concise — aim for 1-2 sentences per driver/insight/rationale. Ensure your JSON is complete and properly closed.`;
 
   let message;
   try {
@@ -168,8 +170,33 @@ Provide deep strategic analysis. Identify winners and losers with the WHY. Conne
   try {
     data = JSON.parse(text);
   } catch {
-    console.error("[goliath] JSON parse failed. Raw text:", text.slice(0, 500));
-    return NextResponse.json({ error: "Failed to parse response as JSON", raw_preview: text.slice(0, 200) }, { status: 500 });
+    // Try to repair truncated JSON by closing open braces/brackets
+    let repaired = text;
+    let openBraces = 0;
+    let openBrackets = 0;
+    let inString = false;
+    let escaped = false;
+    for (const ch of repaired) {
+      if (escaped) { escaped = false; continue; }
+      if (ch === "\\") { escaped = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (ch === "{") openBraces++;
+      if (ch === "}") openBraces--;
+      if (ch === "[") openBrackets++;
+      if (ch === "]") openBrackets--;
+    }
+    // Close any unclosed structures
+    for (let i = 0; i < openBrackets; i++) repaired += "]";
+    for (let i = 0; i < openBraces; i++) repaired += "}";
+
+    try {
+      data = JSON.parse(repaired);
+      console.log("[goliath] Repaired truncated JSON successfully");
+    } catch {
+      console.error("[goliath] JSON parse failed even after repair. Raw text:", text.slice(0, 500));
+      return NextResponse.json({ error: "Failed to parse response as JSON", raw_preview: text.slice(0, 200) }, { status: 500 });
+    }
   }
 
   return NextResponse.json({

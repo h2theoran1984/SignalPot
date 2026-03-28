@@ -151,7 +151,9 @@ ${JSON.stringify(outputSchema, null, 2)}
 
 Respond with ONLY valid JSON matching the output schema. No markdown, no explanation, no code blocks. Just the JSON object.
 
-Apply your full market analytics expertise. Identify winners and losers with the WHY behind each shift. Connect the data points to competitive dynamics. Give actionable recommendations a brand team can act on.`;
+Apply your full market analytics expertise. Identify winners and losers with the WHY behind each shift. Connect the data points to competitive dynamics. Give actionable recommendations a brand team can act on.
+
+CRITICAL: winners, losers, competitive_dynamics, and recommendations MUST be arrays of objects, not single objects. Keep each field's text concise — aim for 1-2 sentences per driver/insight/rationale. Ensure your JSON is complete and properly closed.`;
 
   const message = await anthropic.messages.create({
     model: "claude-haiku-4-5-20251001",
@@ -178,7 +180,30 @@ Apply your full market analytics expertise. Identify winners and losers with the
   try {
     data = JSON.parse(text);
   } catch {
-    return NextResponse.json({ error: "Failed to parse response as JSON" }, { status: 500 });
+    // Try to repair truncated JSON
+    let repaired = text;
+    let openBraces = 0;
+    let openBrackets = 0;
+    let inString = false;
+    let escaped = false;
+    for (const ch of repaired) {
+      if (escaped) { escaped = false; continue; }
+      if (ch === "\\") { escaped = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (ch === "{") openBraces++;
+      if (ch === "}") openBraces--;
+      if (ch === "[") openBrackets++;
+      if (ch === "]") openBrackets--;
+    }
+    for (let i = 0; i < openBrackets; i++) repaired += "]";
+    for (let i = 0; i < openBraces; i++) repaired += "}";
+
+    try {
+      data = JSON.parse(repaired);
+    } catch {
+      return NextResponse.json({ error: "Failed to parse response as JSON" }, { status: 500 });
+    }
   }
 
   // A2A JSON-RPC response format matching what the Arena engine expects
