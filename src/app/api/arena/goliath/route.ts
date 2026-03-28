@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 
+// Allow up to 5 minutes for Opus to think
+export const maxDuration = 300;
+
 /**
  * The Goliath — Opus-powered generic agent endpoint.
  *
@@ -134,7 +137,7 @@ Provide deep strategic analysis. Identify winners and losers with the WHY. Conne
 
   const message = await anthropic.messages.create({
     model: MODEL,
-    max_tokens: 4096,
+    max_tokens: 2048,
     system: SYSTEM_PROMPT,
     messages: [{ role: "user", content: userPrompt }],
   });

@@ -17,8 +17,8 @@ import { analystPipeline } from "@/lib/inngest/functions/analyst-pipeline";
 
 // Inngest webhook handler — receives events from Inngest cloud and executes functions.
 // Vercel env vars needed: INNGEST_EVENT_KEY, INNGEST_SIGNING_KEY
-// Arena match execution calls agents (up to 30s each) + judging — needs more than 10s default.
-export const maxDuration = 60;
+// Each Inngest step gets its own invocation. Agent calls can take up to 5 min.
+export const maxDuration = 300;
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
