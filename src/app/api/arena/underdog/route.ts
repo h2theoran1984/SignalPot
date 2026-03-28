@@ -61,10 +61,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  // A2A JSON-RPC format: { method, params: { capability, input } }
-  const params = body.params as Record<string, unknown> | undefined;
-  const input = (params?.input ?? body.input ?? {}) as Record<string, unknown>;
-  const capability = (params?.capability ?? body.capability ?? "analyze") as string;
+  // A2A JSON-RPC format from Arena engine:
+  // { jsonrpc: "2.0", method: "message/send", params: { message: { parts: [{ data: prompt }] }, metadata: { capability_used } } }
+  const rpcParams = body.params as Record<string, unknown> | undefined;
+  const rpcMessage = rpcParams?.message as Record<string, unknown> | undefined;
+  const parts = rpcMessage?.parts as Array<Record<string, unknown>> | undefined;
+  const metadata = rpcParams?.metadata as Record<string, unknown> | undefined;
+
+  // Extract input from A2A parts or fall back to simpler formats
+  const input = (parts?.[0]?.data ?? rpcParams?.input ?? body.input ?? {}) as Record<string, unknown>;
+  const capability = (metadata?.capability_used ?? rpcParams?.capability ?? body.capability ?? "analyze") as string;
 
   const outputSchema = {
     type: "object",
@@ -132,15 +138,23 @@ Apply your full market analytics expertise to this data. Don't give a surface-le
     return NextResponse.json({ error: "Failed to parse response as JSON" }, { status: 500 });
   }
 
-  // A2A response format
+  // A2A JSON-RPC response format matching what the Arena engine expects
   return NextResponse.json({
+    jsonrpc: "2.0",
+    id: (body.id as string) ?? null,
     result: {
-      data,
-      metadata: {
-        api_cost_usd: Math.round(apiCost * 1_000_000) / 1_000_000,
-        input_tokens: message.usage.input_tokens,
-        output_tokens: message.usage.output_tokens,
-        model: "claude-haiku-4-5-20251001",
+      artifacts: [
+        {
+          parts: [{ type: "data", data }],
+        },
+      ],
+      _meta: {
+        provider_cost: {
+          api_cost_usd: Math.round(apiCost * 1_000_000) / 1_000_000,
+          input_tokens: message.usage.input_tokens,
+          output_tokens: message.usage.output_tokens,
+          model: "claude-haiku-4-5-20251001",
+        },
       },
     },
   });
