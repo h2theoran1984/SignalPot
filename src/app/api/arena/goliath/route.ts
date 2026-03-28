@@ -135,12 +135,19 @@ Respond with ONLY valid JSON matching the output schema. No markdown, no explana
 
 Provide deep strategic analysis. Identify winners and losers with the WHY. Connect data points to competitive dynamics. Give actionable recommendations.`;
 
-  const message = await anthropic.messages.create({
-    model: MODEL,
-    max_tokens: 4096,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: "user", content: userPrompt }],
-  });
+  let message;
+  try {
+    message = await anthropic.messages.create({
+      model: MODEL,
+      max_tokens: 4096,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: "user", content: userPrompt }],
+    });
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : "Unknown Anthropic error";
+    console.error("[goliath] Anthropic API error:", errMsg);
+    return NextResponse.json({ error: `Anthropic API failed: ${errMsg}` }, { status: 500 });
+  }
 
   const apiCost =
     message.usage.input_tokens * MODEL_PRICING.input +
@@ -148,6 +155,7 @@ Provide deep strategic analysis. Identify winners and losers with the WHY. Conne
 
   const content = message.content[0];
   if (content.type !== "text") {
+    console.error("[goliath] Unexpected content type:", content.type);
     return NextResponse.json({ error: "Unexpected response type" }, { status: 500 });
   }
 
@@ -160,7 +168,8 @@ Provide deep strategic analysis. Identify winners and losers with the WHY. Conne
   try {
     data = JSON.parse(text);
   } catch {
-    return NextResponse.json({ error: "Failed to parse response as JSON" }, { status: 500 });
+    console.error("[goliath] JSON parse failed. Raw text:", text.slice(0, 500));
+    return NextResponse.json({ error: "Failed to parse response as JSON", raw_preview: text.slice(0, 200) }, { status: 500 });
   }
 
   return NextResponse.json({
