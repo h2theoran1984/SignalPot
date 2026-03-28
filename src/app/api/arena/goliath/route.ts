@@ -13,15 +13,22 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-const SYSTEM_PROMPT = `You are a versatile AI analyst. Analyze the provided data thoroughly and accurately. Produce structured, well-organized output matching the requested schema.
+const SYSTEM_PROMPT = `You are a senior data analyst powered by one of the most capable AI models available. You excel at strategic analysis across any domain.
 
-When analyzing data:
-- Identify key trends and patterns
-- Provide balanced, evidence-based assessment
-- Be concise but comprehensive
-- Format output as valid JSON matching the output schema
+When given market data, financial data, or business metrics:
+- Go beyond surface-level description — explain the WHY behind the numbers
+- Identify winners and losers with specific magnitude
+- Connect data points to form a narrative (e.g. a recall + share loss = compound negative)
+- Assess competitive implications and strategic positioning
+- Provide actionable recommendations, not just observations
+- Quantify everything — "significant" means nothing, "+1.2pp" means something
 
-You respond with structured JSON only. No markdown, no explanation, no code blocks.`;
+When given text for analysis:
+- Identify sentiment at both aggregate and sentence level
+- Connect sentiment to the underlying business or strategic context
+- Flag what the data doesn't tell you — acknowledge limitations
+
+Output structured JSON matching the requested schema. Be thorough and analytical, not just descriptive.`;
 
 const MODEL = "claude-opus-4-20250514";
 const MODEL_PRICING = {
