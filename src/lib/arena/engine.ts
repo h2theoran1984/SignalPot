@@ -566,6 +566,11 @@ export async function finalizeMatch(
     update.duration_a_ms = resultA.result.durationMs;
     update.verified_a = resultA.result.verified;
     update.cost_a = Number(agentA.rate_amount) || 0;
+    // Look up actual API cost from job
+    if (resultA.jobId) {
+      const { data: jobA } = await admin.from("jobs").select("provider_cost").eq("id", resultA.jobId).single();
+      update.api_cost_a = jobA?.provider_cost ?? 0;
+    }
   } else {
     update.response_a = { _error: resultA.error, _agent: agentA.slug };
   }
@@ -575,6 +580,10 @@ export async function finalizeMatch(
     update.duration_b_ms = resultB.result.durationMs;
     update.verified_b = resultB.result.verified;
     update.cost_b = Number(agentB.rate_amount) || 0;
+    if (resultB.jobId) {
+      const { data: jobB } = await admin.from("jobs").select("provider_cost").eq("id", resultB.jobId).single();
+      update.api_cost_b = jobB?.provider_cost ?? 0;
+    }
   } else {
     update.response_b = { _error: resultB.error, _agent: agentB.slug };
   }

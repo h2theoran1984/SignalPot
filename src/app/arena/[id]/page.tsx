@@ -29,6 +29,8 @@ interface MatchDetail {
   created_at: string;
   cost_a: number;
   cost_b: number;
+  api_cost_a: number;
+  api_cost_b: number;
   match_type: ArenaMatchType;
   judgment_reasoning: string | null;
   judgment_confidence: number | null;
@@ -385,6 +387,7 @@ function ResponsePanel({
   durationMs,
   verified,
   isWinner,
+  apiCost,
 }: {
   side: "A" | "B";
   agentName: string;
@@ -394,6 +397,7 @@ function ResponsePanel({
   durationMs: number | null;
   verified: boolean | null;
   isWinner: boolean;
+  apiCost?: number;
 }) {
   const isRunning = status === "running" && !response;
   const hasResponse = !!response;
@@ -421,7 +425,12 @@ function ResponsePanel({
         <div className="flex items-center gap-2">
           {durationMs !== null && (
             <span className="text-xs text-gray-500">
-              {(durationMs / 1000).toFixed(2)}s
+              {(durationMs / 1000).toFixed(1)}s
+            </span>
+          )}
+          {apiCost != null && apiCost > 0 && (
+            <span className="text-xs text-orange-400 font-mono">
+              ${apiCost.toFixed(4)}
             </span>
           )}
           {verified !== null && (
@@ -735,6 +744,7 @@ export default function MatchPage() {
             durationMs={match.duration_a_ms}
             verified={match.verified_a}
             isWinner={isCompleted && match.winner === "a"}
+            apiCost={match.api_cost_a}
           />
           <ResponsePanel
             side="B"
@@ -745,6 +755,7 @@ export default function MatchPage() {
             durationMs={match.duration_b_ms}
             verified={match.verified_b}
             isWinner={isCompleted && match.winner === "b"}
+            apiCost={match.api_cost_b}
           />
         </div>
 
