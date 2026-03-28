@@ -498,7 +498,7 @@ export default function AnalystSuiteDashboard() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) { setSourceFormError(data.error ?? "Failed to create source"); return; }
+      if (!res.ok) { setSourceFormError(data.detail ?? data.error ?? "Failed to create source"); return; }
       setSourceName(""); setSourceSlug(""); setSourceDesc(""); setSourceFormat("csv");
       setShowAddSource(false);
       await fetchSources();

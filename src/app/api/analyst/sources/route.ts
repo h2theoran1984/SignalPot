@@ -22,8 +22,9 @@ export async function GET(request: NextRequest) {
     .order("created_at", { ascending: false });
 
   if (error) {
+    console.error("[analyst/sources] GET error:", error.message, error.code);
     return NextResponse.json(
-      { error: "Failed to fetch sources" },
+      { error: "Failed to fetch sources", detail: error.message },
       { status: 500 }
     );
   }
@@ -35,7 +36,7 @@ const createSourceSchema = z.object({
   name: z.string().min(1).max(200).trim(),
   slug: z.string().min(1).max(100).trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase alphanumeric with hyphens"),
   description: z.string().max(1000).trim().optional(),
-  format_type: z.enum(["csv", "json", "excel", "parquet", "api"]),
+  format_type: z.enum(["csv", "json", "excel", "xlsx", "parquet", "api"]),
   column_map: z.record(z.string(), z.string()).optional(),
   dimension_map: z.record(z.string(), z.string()).optional(),
 });
@@ -93,8 +94,9 @@ export async function POST(request: NextRequest) {
         { status: 409 }
       );
     }
+    console.error("[analyst/sources] POST error:", error.message, error.code);
     return NextResponse.json(
-      { error: "Failed to create source" },
+      { error: "Failed to create source", detail: error.message },
       { status: 500 }
     );
   }
