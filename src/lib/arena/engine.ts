@@ -19,13 +19,17 @@ const SPARRING_SLUG = "sparring-partner";
 
 /**
  * Derive the A2A RPC endpoint from a stored mcp_endpoint URL.
- * Stored endpoints are typically /mcp/tools — the RPC endpoint
- * lives at /a2a/rpc on the same host.
+ *
+ * If the endpoint path ends with /mcp/tools (the MCP convention),
+ * rewrite to /a2a/rpc on the same host. Otherwise, use the endpoint
+ * as-is — it's already a direct RPC endpoint (e.g. /api/arena/underdog).
  */
 async function deriveRpcEndpoint(mcpEndpoint: string): Promise<string> {
   await assertSafeUrl(mcpEndpoint);
   const url = new URL(mcpEndpoint);
-  url.pathname = "/a2a/rpc";
+  if (url.pathname.endsWith("/mcp/tools") || url.pathname.endsWith("/mcp")) {
+    url.pathname = "/a2a/rpc";
+  }
   return url.toString();
 }
 
