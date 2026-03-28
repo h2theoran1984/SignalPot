@@ -131,8 +131,6 @@ async function callAgent(
       }
 
       const rpcEndpoint = await deriveRpcEndpoint(agent.mcp_endpoint);
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), AGENT_CALL_TIMEOUT_MS);
 
       try {
         const res = await fetch(rpcEndpoint, {
@@ -154,10 +152,8 @@ async function callAgent(
               },
             },
           }),
-          signal: controller.signal,
         });
 
-        clearTimeout(timeout);
 
         if (!res.ok) {
           throw new Error(`Agent returned ${res.status}`);
@@ -181,8 +177,8 @@ async function callAgent(
         if (typeof pc?.api_cost_usd === "number") {
           providerCostUsd = pc.api_cost_usd;
         }
-      } finally {
-        clearTimeout(timeout);
+      } catch (fetchErr) {
+        throw fetchErr;
       }
     }
 
