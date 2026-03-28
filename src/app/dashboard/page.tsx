@@ -44,7 +44,7 @@ export default async function DashboardPage() {
   const { data: providerJobs } = agentIds.length > 0
     ? await supabase
         .from("jobs")
-        .select("id, cost, provider_cost, capability_used, provider_agent_id, created_at, status")
+        .select("id, cost, provider_cost, capability_used, provider_agent_id, created_at, status, provider_agent:agents!jobs_provider_agent_id_fkey(name)")
         .in("provider_agent_id", agentIds)
         .eq("status", "completed")
         .order("created_at", { ascending: false })
@@ -283,6 +283,8 @@ export default async function DashboardPage() {
                     className="flex items-center justify-between p-3 bg-[#111118] border border-[#1f2028] rounded-lg text-sm"
                   >
                     <span className="font-mono text-xs text-gray-500">
+                      <span className="text-white">{(j.provider_agent as unknown as { name: string } | null)?.name ?? "Agent"}</span>
+                      {" · "}
                       {j.capability_used ?? "call"}
                     </span>
                     <div className="flex items-center gap-4">
