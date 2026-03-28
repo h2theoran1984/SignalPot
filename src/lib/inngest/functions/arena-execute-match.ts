@@ -78,6 +78,16 @@ export const arenaExecuteMatch = inngest.createFunction(
       );
     });
 
+    // Step 5: Fire judging event if both agents succeeded (undercard)
+    if (outcome.status === "judging") {
+      await step.run("trigger-judging", async () => {
+        await inngest.send({
+          name: "arena/match.judging",
+          data: { match_id: setup.matchId },
+        });
+      });
+    }
+
     return { match_id, ...outcome };
   }
 );
