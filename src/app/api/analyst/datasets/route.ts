@@ -17,9 +17,9 @@ export async function GET(request: NextRequest) {
 
   const { data: datasets, error } = await admin
     .from("analyst_datasets")
-    .select("id, source_id, name, period, created_at, updated_at, analyst_sources(name)")
+    .select("id, source_id, name, period, row_count, status, uploaded_at, processed_at, analyst_sources(name)")
     .eq("owner_id", auth.profileId)
-    .order("created_at", { ascending: false });
+    .order("uploaded_at", { ascending: false });
 
   if (error) {
     return NextResponse.json(
@@ -37,8 +37,9 @@ export async function GET(request: NextRequest) {
       source_name: source?.name ?? null,
       name: d.name,
       period: d.period,
-      created_at: d.created_at,
-      updated_at: d.updated_at,
+      row_count: d.row_count,
+      status: d.status,
+      uploaded_at: d.uploaded_at,
     };
   });
 
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
       name: parsed.data.name,
       period: parsed.data.period,
     })
-    .select("id, source_id, name, period, created_at")
+    .select("id, source_id, name, period, uploaded_at")
     .single();
 
   if (error) {
