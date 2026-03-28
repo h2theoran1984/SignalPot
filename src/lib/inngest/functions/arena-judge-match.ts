@@ -81,6 +81,7 @@ export const arenaJudgeMatch = inngest.createFunction(
         rate_b: Number(agentB.rate_amount ?? 0),
         capability: match.capability as string,
         creator_id: match.creator_id as string | null,
+        level: match.level as number | null,
       };
     });
 
@@ -108,7 +109,8 @@ export const arenaJudgeMatch = inngest.createFunction(
         judgment.capability,
         judgment.winner,
         judgment.slug_a,
-        judgment.slug_b
+        judgment.slug_b,
+        judgment.level
       );
     });
 

@@ -5,7 +5,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 const K_FACTOR = 32;
 const DEFAULT_ELO = 1200;
-const SPARRING_PARTNER_ELO = 1200; // Fixed — never changes
+const SPARRING_PARTNER_ELO = 1200; // Default — scales with level
+const SPARRING_ELO_BY_LEVEL: Record<number, number> = {
+  1: 1200,
+  2: 1300,
+  3: 1500,
+  4: 1700,
+};
 
 /**
  * Calculate new ELO ratings given current ratings and match result.
@@ -58,7 +64,8 @@ export async function updateElo(
   capability: string,
   winner: "a" | "b" | "tie",
   slugA?: string,
-  slugB?: string
+  slugB?: string,
+  level?: number | null
 ): Promise<{ eloA: number; eloB: number; deltaA: number; deltaB: number }> {
   const admin = createAdminClient();
 
@@ -68,9 +75,10 @@ export async function updateElo(
 
   const RATING_COLS = "elo, matches_played, wins, losses, ties";
 
-  // Sparring Partner always plays at fixed 1200 — no DB row needed
-  let oldEloA = SPARRING_PARTNER_ELO;
-  let oldEloB = SPARRING_PARTNER_ELO;
+  // Sparring Partner ELO scales with level
+  const sparringElo = SPARRING_ELO_BY_LEVEL[level ?? 1] ?? SPARRING_PARTNER_ELO;
+  let oldEloA = sparringElo;
+  let oldEloB = sparringElo;
 
   // Fetch or create rating for Agent A (skip if Sparring Partner)
   let ratingA: Record<string, unknown> | null = null;
@@ -182,8 +190,8 @@ export async function updateElo(
   }
 
   return {
-    eloA: aIsSparring ? SPARRING_PARTNER_ELO : newA,
-    eloB: bIsSparring ? SPARRING_PARTNER_ELO : newB,
+    eloA: aIsSparring ? sparringElo : newA,
+    eloB: bIsSparring ? sparringElo : newB,
     deltaA: aIsSparring ? 0 : newA - oldEloA,
     deltaB: bIsSparring ? 0 : newB - oldEloB,
   };

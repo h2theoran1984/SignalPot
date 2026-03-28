@@ -288,7 +288,7 @@ function NewMatchPage() {
               className="w-full px-4 py-3 bg-[#111118] border border-[#1f2028] rounded-lg text-white focus:outline-none focus:border-cyan-700 transition-colors"
             >
               <option value="">Select an agent...</option>
-              {agents.map((a) => (
+              {agents.filter((a) => a.slug !== "sparring-partner").map((a) => (
                 <option key={a.slug} value={a.slug}>
                   {a.name} ({a.slug})
                 </option>
@@ -311,7 +311,7 @@ function NewMatchPage() {
               className="w-full px-4 py-3 bg-[#111118] border border-[#1f2028] rounded-lg text-white focus:outline-none focus:border-cyan-700 transition-colors disabled:opacity-50"
             >
               <option value="">Select an agent...</option>
-              {agentBOptions.map((a) => (
+              {agentBOptions.filter((a) => a.slug !== "sparring-partner").map((a) => (
                 <option key={a.slug} value={a.slug}>
                   {a.name} ({a.slug})
                 </option>

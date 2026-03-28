@@ -467,7 +467,8 @@ export async function POST(request: NextRequest) {
       capability,
       judgment.winner,
       agent_a_slug,
-      agent_b_slug
+      agent_b_slug,
+      level
     );
   } else if (aOk && !bOk) {
     // Agent B failed (timeout/error) — mark as failed, no ELO change for either side.
