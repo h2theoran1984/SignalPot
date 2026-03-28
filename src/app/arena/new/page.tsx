@@ -14,6 +14,15 @@ interface AgentOption {
   rate_amount: number;
 }
 
+interface Challenge {
+  id: string;
+  title: string;
+  description: string;
+  capability: string;
+  difficulty: string;
+  prompt: Record<string, unknown>;
+}
+
 export default function NewMatchPageWrapper() {
   return (
     <Suspense fallback={
@@ -37,6 +46,8 @@ function NewMatchPage() {
   const [challengerElo, setChallengerElo] = useState<number | null>(null);
   const [eloA, setEloA] = useState<number | null>(null);
   const [eloB, setEloB] = useState<number | null>(null);
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [selectedChallenge, setSelectedChallenge] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -75,6 +86,27 @@ function NewMatchPage() {
     { level: 3, label: "Level 3", description: "Opus · Master prompts", elo: 1500 },
     { level: 4, label: "Final Boss", description: "Opus · Adversarial perfection", elo: 1700 },
   ];
+
+  // Fetch challenges when capability changes
+  useEffect(() => {
+    if (!capability) {
+      setChallenges([]);
+      setSelectedChallenge("");
+      return;
+    }
+    async function fetchChallenges() {
+      try {
+        const res = await fetch(`/api/arena/challenges?capability=${encodeURIComponent(capability)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setChallenges(data.challenges ?? []);
+        }
+      } catch {
+        setChallenges([]);
+      }
+    }
+    fetchChallenges();
+  }, [capability]);
 
   // Fetch challenger ELO when sparring partner is involved
   useEffect(() => {
@@ -187,6 +219,7 @@ function NewMatchPage() {
     setSubmitting(true);
 
     try {
+      const challengeObj = challenges.find((c) => c.id === selectedChallenge);
       const res = await fetch("/api/arena/matches", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -195,6 +228,9 @@ function NewMatchPage() {
           agent_b_slug: agentB,
           capability,
           level: hasSparring ? selectedLevel : undefined,
+          challenge_id: selectedChallenge || undefined,
+          prompt: challengeObj?.prompt ?? undefined,
+          prompt_text: challengeObj?.title ?? undefined,
         }),
       });
 
@@ -307,12 +343,33 @@ function NewMatchPage() {
             </select>
           </div>
 
-          {/* Synthetic data notice */}
+          {/* Challenge picker */}
           {capability && (
-            <div className="p-3 bg-[#111118] border border-[#1f2028] rounded-lg">
-              <p className="text-xs text-gray-400">
-                <span className="text-cyan-400 font-medium">Auto-generated test data</span> — the arena will create a synthetic prompt tailored to the <span className="text-white font-mono">{capability}</span> capability.
-              </p>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                Challenge <span className="text-gray-600">(optional)</span>
+              </label>
+              <select
+                value={selectedChallenge}
+                onChange={(e) => setSelectedChallenge(e.target.value)}
+                className="w-full px-4 py-3 bg-[#111118] border border-[#1f2028] rounded-lg text-white focus:outline-none focus:border-cyan-700 transition-colors"
+              >
+                <option value="">Auto-generate challenge</option>
+                {challenges.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.title} ({c.difficulty})
+                  </option>
+                ))}
+              </select>
+              {selectedChallenge ? (
+                <p className="text-xs text-gray-500 mt-1.5">
+                  {challenges.find((c) => c.id === selectedChallenge)?.description}
+                </p>
+              ) : (
+                <p className="text-xs text-gray-500 mt-1.5">
+                  <span className="text-cyan-400 font-medium">Auto-generated test data</span> — the arena will create a synthetic prompt tailored to the <span className="text-white font-mono">{capability}</span> capability.
+                </p>
+              )}
             </div>
           )}
 
