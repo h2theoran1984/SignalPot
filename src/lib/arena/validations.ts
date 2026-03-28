@@ -14,6 +14,7 @@ export const createMatchSchema = z
     ).optional(),
     prompt_text: z.string().max(500).optional(),
     challenge_id: z.string().uuid().optional(),
+    level: z.number().int().min(1).max(4).optional(),
   })
   .refine((data) => data.agent_a_slug !== data.agent_b_slug, {
     message: "Agents must be different",

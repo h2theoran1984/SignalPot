@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { agent_a_slug, agent_b_slug, capability, prompt: rawPrompt, prompt_text: rawPromptText, challenge_id } = parsed.data;
+  const { agent_a_slug, agent_b_slug, capability, prompt: rawPrompt, prompt_text: rawPromptText, challenge_id, level } = parsed.data;
 
   // Look up both agents
   const SPARRING_SLUG = "sparring-partner";
@@ -166,6 +166,7 @@ export async function POST(request: NextRequest) {
       prompt,
       prompt_text: prompt_text ?? null,
       challenge_id: challenge_id ?? null,
+      level: level ?? null,
       status: "pending",
     })
     .select("id, status, capability, created_at")
