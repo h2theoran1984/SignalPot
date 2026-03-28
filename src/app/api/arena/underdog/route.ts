@@ -75,30 +75,71 @@ export async function POST(request: NextRequest) {
   const outputSchema = {
     type: "object",
     properties: {
-      sentiment: { type: "string", enum: ["positive", "negative", "neutral", "mixed"] },
-      scores: {
+      category_health: {
         type: "object",
+        description: "Overall category assessment",
         properties: {
-          positive: { type: "number" },
-          negative: { type: "number" },
-          neutral: { type: "number" },
+          status: { type: "string", enum: ["growing", "stable", "declining", "mixed"] },
+          summary: { type: "string", description: "2-3 sentence category overview" },
+          total_revenue: { type: "string" },
+          revenue_change_pct: { type: "number" },
+          unit_change_pct: { type: "number" },
         },
       },
-      sentences: {
+      winners: {
         type: "array",
+        description: "Brands gaining share — explain WHY they are winning",
         items: {
           type: "object",
           properties: {
-            text: { type: "string" },
-            sentiment: { type: "string" },
-            score: { type: "number" },
+            brand: { type: "string" },
+            share: { type: "number" },
+            share_change_pp: { type: "number" },
+            driver: { type: "string", description: "What is driving this brand's gains" },
+          },
+        },
+      },
+      losers: {
+        type: "array",
+        description: "Brands losing share — explain WHY they are losing",
+        items: {
+          type: "object",
+          properties: {
+            brand: { type: "string" },
+            share: { type: "number" },
+            share_change_pp: { type: "number" },
+            driver: { type: "string", description: "What is driving this brand's losses" },
+          },
+        },
+      },
+      competitive_dynamics: {
+        type: "array",
+        description: "Key competitive shifts and what they mean strategically",
+        items: {
+          type: "object",
+          properties: {
+            insight: { type: "string" },
+            implication: { type: "string" },
+            severity: { type: "string", enum: ["high", "medium", "low"] },
+          },
+        },
+      },
+      recommendations: {
+        type: "array",
+        description: "Actionable recommendations for a brand team",
+        items: {
+          type: "object",
+          properties: {
+            action: { type: "string" },
+            rationale: { type: "string" },
+            priority: { type: "string", enum: ["immediate", "short_term", "monitor"] },
           },
         },
       },
     },
   };
 
-  const userPrompt = `You are handling the "${capability}" capability.
+  const userPrompt = `You are handling the "${capability}" capability — competitive market analysis.
 
 INPUT:
 ${JSON.stringify(input, null, 2)}
@@ -108,7 +149,7 @@ ${JSON.stringify(outputSchema, null, 2)}
 
 Respond with ONLY valid JSON matching the output schema. No markdown, no explanation, no code blocks. Just the JSON object.
 
-Apply your full market analytics expertise to this data. Don't give a surface-level analysis — dig into the dynamics.`;
+Apply your full market analytics expertise. Identify winners and losers with the WHY behind each shift. Connect the data points to competitive dynamics. Give actionable recommendations a brand team can act on.`;
 
   const message = await anthropic.messages.create({
     model: "claude-haiku-4-5-20251001",
