@@ -55,6 +55,17 @@ function isPrivateIp(ip: string): boolean {
 export async function assertSafeUrl(endpoint: string): Promise<void> {
   const url = new URL(endpoint);
 
+  // Skip SSRF checks for same-origin calls (our own agents)
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.VERCEL_URL;
+  if (siteUrl) {
+    try {
+      const self = new URL(siteUrl.startsWith("http") ? siteUrl : `https://${siteUrl}`);
+      if (url.hostname === self.hostname) return;
+    } catch {
+      // Ignore parse errors, continue with checks
+    }
+  }
+
   // Enforce HTTPS in production
   if (process.env.NODE_ENV === "production" && url.protocol !== "https:") {
     throw new Error("Agent endpoints must use HTTPS");
