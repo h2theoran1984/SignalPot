@@ -1,24 +1,24 @@
 import { inngest } from "@/lib/inngest/client";
-import { setupMatch, fireAgentCall, finalizeMatch } from "@/lib/arena/engine";
+import { setupMatch, callSingleAgent, fireAgentCall, finalizeMatch } from "@/lib/arena/engine";
 import type { Agent } from "@/lib/types";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://signalpot.dev";
 
 /**
- * Async match execution — fire-and-forget + waitForEvent pattern.
+ * Async match execution — hybrid sync/async pattern.
  *
- * Instead of blocking a Vercel function while agents think, we:
- * 1. Fire both agent requests with callback URLs (returns immediately)
- * 2. Wait for callback events (up to 15 min — no Vercel timeout pressure)
- * 3. Finalize when both agents respond (or timeout)
+ * Each agent call runs in its own Inngest step (5 min budget via maxDuration: 300).
+ * For sync agents (current): step awaits the full call, then fires callback event.
+ * For async agents (future): step fires request, then waitForEvent for callback.
  *
- * The callback endpoint (POST /api/arena/matches/[id]/callback) fires
- * the "arena/agent.responded" event, which wakes up the waitForEvent.
+ * This eliminates the old 60s timeout. Each agent gets up to 5 minutes.
+ * When agents support A2A async (202 Accepted + callback), the waitForEvent
+ * path gives them up to 15 minutes.
  */
 export const arenaExecuteMatch = inngest.createFunction(
   {
     id: "arena-execute-match",
-    name: "Arena — Execute Match (Async)",
+    name: "Arena — Execute Match",
     retries: 1,
   },
   { event: "arena/match.created" },
@@ -44,73 +44,64 @@ export const arenaExecuteMatch = inngest.createFunction(
       return { match_id, status: "skipped" };
     }
 
-    // Step 2: Fire Agent A (returns immediately — no blocking)
-    const fireA = await step.run("fire-agent-a", async () => {
-      return fireAgentCall(
+    // Step 2: Call Agent A (sync — gets up to 5 min via maxDuration: 300)
+    // Also fires the callback event so the flow is consistent with future async agents.
+    const resultA = await step.run("call-agent-a", async () => {
+      const result = await callSingleAgent(
         setup.agentA as Agent,
         setup.capability,
         setup.prompt,
         setup.matchId,
-        "a",
-        SITE_URL
+        "a"
       );
+
+      // Fire callback event for consistency (finalizeMatch expects this format)
+      await inngest.send({
+        name: "arena/agent.responded",
+        data: {
+          match_id: setup.matchId,
+          side: "a" as const,
+          job_id: result.jobId,
+          response: "result" in result ? result.result.response : {},
+          duration_ms: "result" in result ? result.result.durationMs : 0,
+          verified: "result" in result ? result.result.verified : false,
+          provider_cost_usd: null,
+          error: "error" in result ? result.error : null,
+        },
+      });
+
+      return result;
     });
 
-    // Step 3: Fire Agent B (returns immediately — no blocking)
-    const fireB = await step.run("fire-agent-b", async () => {
-      return fireAgentCall(
+    // Step 3: Call Agent B (sync — gets up to 5 min via maxDuration: 300)
+    const resultB = await step.run("call-agent-b", async () => {
+      const result = await callSingleAgent(
         setup.agentB as Agent,
         setup.capability,
         setup.prompt,
         setup.matchId,
-        "b",
-        SITE_URL
+        "b"
       );
+
+      await inngest.send({
+        name: "arena/agent.responded",
+        data: {
+          match_id: setup.matchId,
+          side: "b" as const,
+          job_id: result.jobId,
+          response: "result" in result ? result.result.response : {},
+          duration_ms: "result" in result ? result.result.durationMs : 0,
+          verified: "result" in result ? result.result.verified : false,
+          provider_cost_usd: null,
+          error: "error" in result ? result.error : null,
+        },
+      });
+
+      return result;
     });
 
-    // Step 4: Wait for Agent A to respond (up to 15 min)
-    // Inngest `if` expression: `event` = the waited-for event, `async` = the triggering event
-    const responseA = await step.waitForEvent("wait-agent-a", {
-      event: "arena/agent.responded",
-      if: `event.data.match_id == '${setup.matchId}' && event.data.side == 'a'`,
-      timeout: "15m",
-    });
-
-    // Step 5: Wait for Agent B to respond (up to 15 min)
-    const responseB = await step.waitForEvent("wait-agent-b", {
-      event: "arena/agent.responded",
-      if: `event.data.match_id == '${setup.matchId}' && event.data.side == 'b'`,
-      timeout: "15m",
-    });
-
-    // Step 6: Finalize — build results from callback data
+    // Step 4: Finalize
     const outcome = await step.run("finalize", async () => {
-      const resultA = responseA
-        ? responseA.data.error
-          ? { jobId: responseA.data.job_id, error: responseA.data.error }
-          : {
-              jobId: responseA.data.job_id,
-              result: {
-                response: responseA.data.response,
-                durationMs: responseA.data.duration_ms,
-                verified: responseA.data.verified,
-              },
-            }
-        : { jobId: fireA.jobId, error: "Agent A timed out (15 min)" };
-
-      const resultB = responseB
-        ? responseB.data.error
-          ? { jobId: responseB.data.job_id, error: responseB.data.error }
-          : {
-              jobId: responseB.data.job_id,
-              result: {
-                response: responseB.data.response,
-                durationMs: responseB.data.duration_ms,
-                verified: responseB.data.verified,
-              },
-            }
-        : { jobId: fireB.jobId, error: "Agent B timed out (15 min)" };
-
       return finalizeMatch(
         setup.matchId,
         setup.agentA as Agent,
@@ -122,7 +113,7 @@ export const arenaExecuteMatch = inngest.createFunction(
       );
     });
 
-    // Step 7: Trigger judging if both succeeded
+    // Step 5: Trigger judging if both succeeded
     if (outcome.status === "judging") {
       await step.run("trigger-judging", async () => {
         await inngest.send({
