@@ -9,6 +9,7 @@ export type TaskState =
   | "submitted"
   | "working"
   | "input-required"
+  | "auth-required"
   | "completed"
   | "canceled"
   | "rejected"
@@ -139,13 +140,32 @@ export interface AgentProvider {
   url?: string;
 }
 
+export interface SecurityScheme {
+  type: "apiKey" | "http" | "oauth2" | "openIdConnect" | "mutualTLS";
+  description?: string;
+  // apiKey
+  in?: "header" | "query" | "cookie";
+  name?: string;
+  // http
+  scheme?: string;
+  bearerFormat?: string;
+  // oauth2 / openIdConnect
+  flows?: Record<string, unknown>;
+  openIdConnectUrl?: string;
+}
+
 export interface AgentCard {
+  protocolVersion: string;
   name: string;
   description?: string;
   url: string; // A2A RPC endpoint URL
   version: string;
   documentationUrl?: string;
+  iconUrl?: string;
   capabilities: AgentCapabilities;
+  securitySchemes?: Record<string, SecurityScheme>;
+  security?: Array<Record<string, string[]>>;
+  supportsAuthenticatedExtendedCard?: boolean;
   skills: AgentSkill[];
   defaultInputModes?: string[];
   defaultOutputModes?: string[];
@@ -211,6 +231,35 @@ export interface TaskIdParams {
 }
 
 // ---------------------------------------------------------------------------
+// Push Notification Config
+// ---------------------------------------------------------------------------
+export interface PushNotificationConfig {
+  id: string;
+  taskId: string;
+  url: string;
+  token?: string;
+  eventTypes?: string[];
+}
+
+export interface PushNotificationConfigParams {
+  taskId: string;
+  pushNotificationConfig: {
+    url: string;
+    token?: string;
+    eventTypes?: string[];
+  };
+}
+
+export interface PushNotificationConfigQueryParams {
+  taskId: string;
+  id: string;
+}
+
+export interface PushNotificationConfigListParams {
+  taskId: string;
+}
+
+// ---------------------------------------------------------------------------
 // A2A error codes
 // ---------------------------------------------------------------------------
 export const A2AErrorCodes = {
@@ -225,4 +274,7 @@ export const A2AErrorCodes = {
   UnsupportedOperation: -32004,
   ContentTypeNotSupported: -32005,
   InvalidAgentResponse: -32006,
+  ExtendedAgentCardNotConfigured: -32007,
+  ExtensionSupportRequired: -32008,
+  VersionNotSupported: -32009,
 } as const;

@@ -7,11 +7,10 @@ import { validateOutput } from "@/lib/schema-validator";
 import { inngest } from "@/lib/inngest/client";
 import { resolveTemplate } from "@/lib/arena/rubric";
 import { handleSparringRequest } from "@/lib/arena/sparring-partner";
+import { dispatchPushNotifications } from "@/lib/a2a/handler";
 import { assertSafeUrl } from "@/lib/ssrf";
 import type { Agent } from "@/lib/types";
 
-/** How long to wait for an external agent response before aborting. */
-const AGENT_CALL_TIMEOUT_MS = 55_000;
 /** Championship voting window. */
 const VOTING_PERIOD_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -426,6 +425,7 @@ export async function fireAgentCall(
 /**
  * Fire request to agent, wait for response, then POST to callback.
  * Runs in background — no timeout pressure from the caller.
+ * Also dispatches A2A push notifications on state transitions.
  */
 async function fireAndForget(
   endpoint: string,
@@ -435,6 +435,12 @@ async function fireAndForget(
   admin: ReturnType<typeof createAdminClient>
 ): Promise<void> {
   const startTime = Date.now();
+
+  // Dispatch "working" push notification
+  dispatchPushNotifications(jobId, "working", {
+    kind: "task", id: jobId, contextId: jobId,
+    status: { state: "working", timestamp: new Date().toISOString() },
+  }).catch(() => {});
 
   try {
     const res = await fetch(endpoint, {
@@ -461,6 +467,13 @@ async function fireAndForget(
       verified: true,
     }).eq("id", jobId);
 
+    // Dispatch "completed" push notification
+    dispatchPushNotifications(jobId, "completed", {
+      kind: "task", id: jobId, contextId: jobId,
+      status: { state: "completed", timestamp: new Date().toISOString() },
+      artifacts: rpcResult.artifacts ? [{ artifactId: jobId, parts: [{ kind: "data", data: agentResponse }] }] : undefined,
+    }).catch(() => {});
+
     // POST to callback
     await fetch(callbackUrl, {
       method: "POST",
@@ -479,6 +492,12 @@ async function fireAndForget(
       completed_at: new Date().toISOString(),
       duration_ms: durationMs,
     }).eq("id", jobId);
+
+    // Dispatch "failed" push notification
+    dispatchPushNotifications(jobId, "failed", {
+      kind: "task", id: jobId, contextId: jobId,
+      status: { state: "failed", message: { kind: "message", role: "agent", parts: [{ kind: "text", text: message }] }, timestamp: new Date().toISOString() },
+    }).catch(() => {});
 
     // POST error to callback
     await fetch(callbackUrl, {

@@ -19,6 +19,7 @@ export async function GET() {
 
   return NextResponse.json(
     {
+      protocolVersion: "0.2.5",
       name: "SignalPot",
       description:
         "AI Agent Marketplace — discover, register, and connect AI agents. " +
@@ -27,11 +28,28 @@ export async function GET() {
       url: `${baseUrl}/api/agents`,
       version: "1.0",
       documentationUrl: `${baseUrl}/api/openapi.json`,
+      iconUrl: `${baseUrl}/icon.png`,
       capabilities: {
         streaming: true,
-        pushNotifications: false,
+        pushNotifications: true,
         stateTransitionHistory: true,
       },
+      securitySchemes: {
+        apiKey: {
+          type: "apiKey",
+          in: "header",
+          name: "X-API-Key",
+          description: "SignalPot API key",
+        },
+        bearer: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+          description: "Supabase JWT token",
+        },
+      },
+      security: [{ apiKey: [] }, { bearer: [] }],
+      supportsAuthenticatedExtendedCard: false,
       defaultInputModes: ["application/json", "text/plain"],
       defaultOutputModes: ["application/json"],
       skills: [
