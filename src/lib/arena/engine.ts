@@ -11,7 +11,7 @@ import { assertSafeUrl } from "@/lib/ssrf";
 import type { Agent } from "@/lib/types";
 
 /** How long to wait for an external agent response before aborting. */
-const AGENT_CALL_TIMEOUT_MS = 30_000;
+const AGENT_CALL_TIMEOUT_MS = 45_000;
 /** Championship voting window. */
 const VOTING_PERIOD_MS = 24 * 60 * 60 * 1000; // 24 hours
 
