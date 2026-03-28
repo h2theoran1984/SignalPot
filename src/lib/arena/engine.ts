@@ -254,6 +254,185 @@ async function callAgent(
  * 3. Updates the match row with responses
  * 4. Transitions to voting or failed
  */
+/**
+ * Setup phase — load match, agents, resolve template, mark running.
+ * Returns all context needed for agent calls.
+ */
+export async function setupMatch(matchId: string): Promise<{
+  matchId: string;
+  capability: string;
+  prompt: Record<string, unknown>;
+  matchType: string;
+  creatorId: string | null;
+  agentA: Agent;
+  agentB: Agent;
+} | null> {
+  const admin = createAdminClient();
+
+  const { data: match } = await admin
+    .from("arena_matches")
+    .select("id, status, agent_a_id, agent_b_id, capability, prompt, challenge_id, match_type, creator_id")
+    .eq("id", matchId)
+    .single();
+
+  if (!match || match.status !== "pending") {
+    console.warn("[arena] Match not found or not pending:", matchId);
+    return null;
+  }
+
+  const AGENT_COLS = "id, name, slug, mcp_endpoint, rate_amount, capability_schema, status, owner_id";
+  const { data: agentA } = await admin.from("agents").select(AGENT_COLS).eq("id", match.agent_a_id).single();
+  const { data: agentB } = await admin.from("agents").select(AGENT_COLS).eq("id", match.agent_b_id).single();
+
+  if (!agentA || !agentB) {
+    await admin.from("arena_matches").update({ status: "failed" }).eq("id", matchId);
+    return null;
+  }
+
+  // Resolve template
+  let actualPrompt = match.prompt as Record<string, unknown>;
+  if (match.challenge_id) {
+    const { data: challenge } = await admin
+      .from("arena_challenges")
+      .select("template_prompt, task_variables, prompt")
+      .eq("id", match.challenge_id)
+      .single();
+    if (challenge?.template_prompt && challenge?.task_variables) {
+      actualPrompt = resolveTemplate({
+        template_prompt: challenge.template_prompt as Record<string, unknown> | null,
+        task_variables: challenge.task_variables as Record<string, unknown[]> | null,
+        prompt: challenge.prompt as Record<string, unknown>,
+      });
+    }
+  }
+
+  await admin.from("arena_matches").update({
+    status: "running",
+    started_at: new Date().toISOString(),
+    resolved_prompt: actualPrompt,
+  }).eq("id", matchId);
+
+  return {
+    matchId,
+    capability: match.capability as string,
+    prompt: actualPrompt,
+    matchType: (match.match_type as string) ?? "undercard",
+    creatorId: match.creator_id as string | null,
+    agentA: agentA as Agent,
+    agentB: agentB as Agent,
+  };
+}
+
+/**
+ * Call a single agent and return the result.
+ * Exported so Inngest can run each call as a separate step.
+ */
+export async function callSingleAgent(
+  agent: Agent,
+  capability: string,
+  prompt: Record<string, unknown>,
+  matchId: string,
+  side: "a" | "b"
+): Promise<{ jobId: string; result: AgentCallResult } | { jobId: string; error: string }> {
+  const admin = createAdminClient();
+  return callAgent(admin, agent, capability, prompt, matchId, side);
+}
+
+/**
+ * Finalize match — save results, determine winner or transition to judging/voting.
+ */
+export async function finalizeMatch(
+  matchId: string,
+  agentA: Agent,
+  agentB: Agent,
+  matchType: string,
+  creatorId: string | null,
+  resultA: { jobId: string; result: AgentCallResult } | { jobId: string; error: string },
+  resultB: { jobId: string; result: AgentCallResult } | { jobId: string; error: string }
+): Promise<{ status: string }> {
+  const admin = createAdminClient();
+
+  const aSuccess = "result" in resultA;
+  const bSuccess = "result" in resultB;
+
+  const update: Record<string, unknown> = {
+    job_a_id: resultA.jobId || null,
+    job_b_id: resultB.jobId || null,
+  };
+
+  if (aSuccess) {
+    update.response_a = resultA.result.response;
+    update.duration_a_ms = resultA.result.durationMs;
+    update.verified_a = resultA.result.verified;
+    update.cost_a = Number(agentA.rate_amount) || 0;
+  } else {
+    update.response_a = { _error: resultA.error, _agent: agentA.slug };
+  }
+
+  if (bSuccess) {
+    update.response_b = resultB.result.response;
+    update.duration_b_ms = resultB.result.durationMs;
+    update.verified_b = resultB.result.verified;
+    update.cost_b = Number(agentB.rate_amount) || 0;
+  } else {
+    update.response_b = { _error: resultB.error, _agent: agentB.slug };
+  }
+
+  if (aSuccess && bSuccess) {
+    if (matchType === "championship") {
+      const votingEndsAt = new Date(Date.now() + VOTING_PERIOD_MS).toISOString();
+      update.status = "voting";
+      update.voting_ends_at = votingEndsAt;
+    } else {
+      update.status = "judging";
+    }
+  } else if (aSuccess && !bSuccess) {
+    update.status = "completed";
+    update.winner = "a";
+    update.completed_at = new Date().toISOString();
+  } else if (!aSuccess && bSuccess) {
+    update.status = "completed";
+    update.winner = "b";
+    update.completed_at = new Date().toISOString();
+  } else {
+    update.status = "failed";
+    update.completed_at = new Date().toISOString();
+  }
+
+  await admin.from("arena_matches").update(update).eq("id", matchId);
+
+  // Billing for default wins / failures
+  if (!aSuccess || !bSuccess) {
+    const rawPct = parseInt(process.env.PLATFORM_FEE_PCT ?? "10", 10);
+    const feePct = Number.isFinite(rawPct) && rawPct >= 0 && rawPct <= 100 ? rawPct : 10;
+
+    for (const { agent, ok, cost } of [
+      { agent: agentA, ok: aSuccess, cost: Number(agentA.rate_amount) || 0 },
+      { agent: agentB, ok: bSuccess, cost: Number(agentB.rate_amount) || 0 },
+    ]) {
+      if (cost <= 0) continue;
+      const costMillicents = Math.floor(cost * 100_000);
+
+      if (ok && agent.owner_id && agent.owner_id !== creatorId) {
+        const platformFee = Math.max(Math.floor((costMillicents * feePct) / 100), 100);
+        const providerCut = costMillicents - platformFee;
+        if (providerCut > 0) {
+          await admin.rpc("add_credits", { p_user_id: agent.owner_id, p_amount_millicents: providerCut });
+        }
+      }
+
+      if (!ok && creatorId) {
+        await admin.rpc("add_credits", { p_user_id: creatorId, p_amount_millicents: costMillicents });
+      }
+    }
+  }
+
+  return { status: update.status as string };
+}
+
+/**
+ * Legacy: Execute an arena match in a single call (for backward compat with /api/arena/fight).
+ */
 export async function executeMatch(matchId: string): Promise<void> {
   const admin = createAdminClient();
 
