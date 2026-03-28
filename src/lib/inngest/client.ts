@@ -35,6 +35,18 @@ export type SignalPotEvents = {
       match_id: string;
     };
   };
+  "arena/agent.responded": {
+    data: {
+      match_id: string;
+      side: "a" | "b";
+      job_id: string;
+      response: Record<string, unknown>;
+      duration_ms: number;
+      verified: boolean;
+      provider_cost_usd: number | null;
+      error: string | null;
+    };
+  };
   "analyst/pipeline.start": {
     data: {
       pipeline_run_id: string;

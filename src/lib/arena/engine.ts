@@ -324,8 +324,8 @@ export async function setupMatch(matchId: string): Promise<{
 }
 
 /**
- * Call a single agent and return the result.
- * Exported so Inngest can run each call as a separate step.
+ * Call a single agent and return the result (sync mode).
+ * Used by the legacy fight endpoint.
  */
 export async function callSingleAgent(
   agent: Agent,
@@ -336,6 +336,211 @@ export async function callSingleAgent(
 ): Promise<{ jobId: string; result: AgentCallResult } | { jobId: string; error: string }> {
   const admin = createAdminClient();
   return callAgent(admin, agent, capability, prompt, matchId, side);
+}
+
+/**
+ * Fire-and-forget: send request to an agent with a callback URL.
+ * The agent does its work and POSTs the result to the callback.
+ * Returns the job ID immediately — no waiting for the response.
+ */
+export async function fireAgentCall(
+  agent: Agent,
+  capability: string,
+  prompt: Record<string, unknown>,
+  matchId: string,
+  side: "a" | "b",
+  callbackBaseUrl: string
+): Promise<{ jobId: string }> {
+  const admin = createAdminClient();
+
+  // Create job record
+  const { data: job, error: jobError } = await admin
+    .from("jobs")
+    .insert({
+      provider_agent_id: agent.id,
+      requester_profile_id: null,
+      requester_agent_id: null,
+      job_type: "production",
+      capability_used: capability,
+      input_summary: prompt,
+      status: "pending",
+      cost: Number(agent.rate_amount) || 0,
+      verified: false,
+    })
+    .select("id")
+    .single();
+
+  if (jobError || !job) {
+    return { jobId: "" };
+  }
+
+  const jobId = job.id as string;
+
+  await admin.from("jobs").update({ status: "running" }).eq("id", jobId);
+
+  const callbackUrl = `${callbackBaseUrl}/api/arena/matches/${matchId}/callback?side=${side}&job_id=${jobId}`;
+
+  // Sparring Partner: call synchronously and post to callback
+  if (agent.slug === "sparring-partner") {
+    // Run in background — don't await
+    handleSparringAndCallback(capability, prompt, jobId, callbackUrl, admin).catch((err) => {
+      console.error(`[arena] Sparring partner fire-and-forget failed:`, err);
+    });
+    return { jobId };
+  }
+
+  // External agent: fire request with callback_url in metadata
+  if (!agent.mcp_endpoint) {
+    return { jobId };
+  }
+
+  const rpcEndpoint = await deriveRpcEndpoint(agent.mcp_endpoint);
+  const requestEnvelope = wrapRequest({
+    jobId,
+    callerId: `arena:${matchId}`,
+    providerSlug: agent.slug,
+    capability,
+    input: prompt,
+  });
+
+  // Fire and forget — don't await the response
+  fireAndForget(rpcEndpoint, {
+    jsonrpc: "2.0",
+    id: `arena-${matchId}-${side}-${Date.now()}`,
+    method: "message/send",
+    params: {
+      message: {
+        role: "user",
+        parts: [{ type: "data", data: prompt }],
+      },
+      metadata: {
+        capability_used: capability,
+        job_id: jobId,
+        callback_url: callbackUrl,
+        _envelope: requestEnvelope,
+      },
+    },
+  }, jobId, callbackUrl, admin).catch((err) => {
+    console.error(`[arena] Fire-and-forget failed for ${agent.slug}:`, err);
+  });
+
+  return { jobId };
+}
+
+/**
+ * Fire request to agent, wait for response, then POST to callback.
+ * Runs in background — no timeout pressure from the caller.
+ */
+async function fireAndForget(
+  endpoint: string,
+  body: Record<string, unknown>,
+  jobId: string,
+  callbackUrl: string,
+  admin: ReturnType<typeof createAdminClient>
+): Promise<void> {
+  const startTime = Date.now();
+
+  try {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    const durationMs = Date.now() - startTime;
+
+    if (!res.ok) {
+      throw new Error(`Agent returned ${res.status}`);
+    }
+
+    const json = await res.json();
+    const rpcResult = (json.result ?? json) as Record<string, unknown>;
+    const agentResponse = extractA2AResponse(rpcResult);
+
+    // Update job
+    await admin.from("jobs").update({
+      status: "completed",
+      completed_at: new Date().toISOString(),
+      duration_ms: durationMs,
+      verified: true,
+    }).eq("id", jobId);
+
+    // POST to callback
+    await fetch(callbackUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        result: rpcResult,
+        duration_ms: durationMs,
+      }),
+    });
+  } catch (err) {
+    const durationMs = Date.now() - startTime;
+    const message = err instanceof Error ? err.message : "Agent unreachable";
+
+    await admin.from("jobs").update({
+      status: "failed",
+      completed_at: new Date().toISOString(),
+      duration_ms: durationMs,
+    }).eq("id", jobId);
+
+    // POST error to callback
+    await fetch(callbackUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ error: message, duration_ms: durationMs }),
+    });
+  }
+}
+
+async function handleSparringAndCallback(
+  capability: string,
+  prompt: Record<string, unknown>,
+  jobId: string,
+  callbackUrl: string,
+  admin: ReturnType<typeof createAdminClient>
+): Promise<void> {
+  const startTime = Date.now();
+
+  try {
+    const sparringResult = await handleSparringRequest(capability, prompt);
+    const durationMs = Date.now() - startTime;
+
+    await admin.from("jobs").update({
+      status: "completed",
+      completed_at: new Date().toISOString(),
+      duration_ms: durationMs,
+      verified: true,
+      provider_cost: sparringResult.cost.api_cost_usd,
+    }).eq("id", jobId);
+
+    await fetch(callbackUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        result: {
+          artifacts: [{ parts: [{ type: "data", data: sparringResult.data }] }],
+          _meta: { provider_cost: sparringResult.cost },
+        },
+        duration_ms: durationMs,
+      }),
+    });
+  } catch (err) {
+    const durationMs = Date.now() - startTime;
+    const message = err instanceof Error ? err.message : "Sparring partner failed";
+
+    await admin.from("jobs").update({
+      status: "failed",
+      completed_at: new Date().toISOString(),
+      duration_ms: durationMs,
+    }).eq("id", jobId);
+
+    await fetch(callbackUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ error: message, duration_ms: durationMs }),
+    });
+  }
 }
 
 /**
