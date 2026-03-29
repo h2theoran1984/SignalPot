@@ -3,13 +3,12 @@
 
 import { registerConnector } from "./service";
 import { googleCloudConnector } from "./connectors/google-cloud";
+import { azureConnector } from "./connectors/azure";
 
-// Register Google Cloud Marketplace connector
+// Register marketplace connectors
 registerConnector(googleCloudConnector);
+registerConnector(azureConnector);
 
 // Future connectors:
-// import { azureConnector } from "./connectors/azure";
-// registerConnector(azureConnector);
-//
 // import { awsConnector } from "./connectors/aws";
 // registerConnector(awsConnector);
