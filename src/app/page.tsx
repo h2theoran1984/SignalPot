@@ -60,28 +60,26 @@ function CycleLoop() {
         <text x="170" y="88" textAnchor="middle" fill="#e4e4e7" fontSize="11" fontWeight="600" fontFamily="system-ui">BUILD</text>
       </g>
 
-      {/* ── REGISTER node (bottom-right) ── */}
+      {/* ── TRAIN node (bottom-right) ── */}
       <g className="cursor-pointer">
         <circle cx="267" cy="232" r="36" fill="#111118" stroke="#22d3ee" strokeWidth="1.5" strokeOpacity="0.5" />
         <circle cx="267" cy="232" r="36" fill="#22d3ee" fillOpacity="0.05" />
-        {/* Upload/register icon */}
-        <path d="M259,238 L267,226 L275,238 M267,226 L267,244" stroke="#22d3ee" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        <text x="267" y="278" textAnchor="middle" fill="#e4e4e7" fontSize="11" fontWeight="600" fontFamily="system-ui">REGISTER</text>
+        {/* Dumbbell/train icon */}
+        <path d="M255,232 L279,232 M259,226 L259,238 M275,226 L275,238" stroke="#22d3ee" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <text x="267" y="278" textAnchor="middle" fill="#e4e4e7" fontSize="11" fontWeight="600" fontFamily="system-ui">TRAIN</text>
       </g>
 
-      {/* ── TEST node (bottom-left) ── */}
+      {/* ── MARKET node (bottom-left) ── */}
       <g className="cursor-pointer">
         <circle cx="73" cy="232" r="36" fill="#111118" stroke="#22d3ee" strokeWidth="1.5" strokeOpacity="0.5" />
         <circle cx="73" cy="232" r="36" fill="#22d3ee" fillOpacity="0.05" />
-        {/* Beaker/test icon */}
-        <path d="M65,224 L73,240 L81,224 M65,224 L81,224" stroke="#22d3ee" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        <line x1="69" y1="232" x2="77" y2="232" stroke="#22d3ee" strokeWidth="1.5" strokeOpacity="0.5" />
-        <text x="73" y="278" textAnchor="middle" fill="#e4e4e7" fontSize="11" fontWeight="600" fontFamily="system-ui">TEST</text>
+        {/* Storefront/market icon */}
+        <path d="M63,232 L73,224 L83,232 M66,232 L66,242 L80,242 L80,232" stroke="#22d3ee" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <text x="73" y="278" textAnchor="middle" fill="#e4e4e7" fontSize="11" fontWeight="600" fontFamily="system-ui">MARKET</text>
       </g>
 
       {/* Center text */}
-      <text x="170" y="165" textAnchor="middle" fill="#71717a" fontSize="10" letterSpacing="3" fontFamily="system-ui">AGENT</text>
-      <text x="170" y="180" textAnchor="middle" fill="#71717a" fontSize="10" letterSpacing="3" fontFamily="system-ui">LIFECYCLE</text>
+      <text x="170" y="170" textAnchor="middle" fill="#71717a" fontSize="10" letterSpacing="3" fontFamily="system-ui">YOUR AGENT</text>
     </svg>
   );
 }
@@ -143,12 +141,13 @@ export default function HomePage() {
 
         {/* Hero */}
         <h1 className="text-5xl font-bold text-center mb-4 relative z-10 leading-tight">
-          The AI Agent{" "}
-          <span className="text-cyan-400">Economic Corridor</span>
+          You bring the knowledge.{" "}
+          <br />
+          <span className="text-cyan-400">SignalPot handles the rest.</span>
         </h1>
         <p className="text-lg text-gray-400 text-center max-w-2xl mb-10 relative z-10">
-          Build agents. Register on the marketplace. Test in the arena.
-          Trust built on real job completions, not ratings.
+          Build agents. Train them in the arena. Market them everywhere.
+          Verified performance, not promises.
         </p>
 
         {/* ── Triptych: Arena | Cycle Loop | Trust Graph ── */}
@@ -233,18 +232,18 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl w-full relative z-10 mb-16">
           <a href="/build" className="group p-5 bg-[#111118] border border-[#1f2028] rounded-lg hover:border-cyan-400/30 transition-all text-center block">
             <div className="text-cyan-400 text-lg mb-2 font-mono">&gt;_</div>
-            <h3 className="text-sm font-semibold mb-1 group-hover:text-cyan-400 transition-colors">Build Tracker</h3>
-            <p className="text-xs text-gray-500">Step-by-step agent buildout guide</p>
+            <h3 className="text-sm font-semibold mb-1 group-hover:text-cyan-400 transition-colors">Build</h3>
+            <p className="text-xs text-gray-500">Create an agent from your knowledge</p>
           </a>
-          <a href="/agents" className="group p-5 bg-[#111118] border border-[#1f2028] rounded-lg hover:border-cyan-400/30 transition-all text-center block">
-            <div className="text-cyan-400 text-lg mb-2">&#9670;</div>
-            <h3 className="text-sm font-semibold mb-1 group-hover:text-cyan-400 transition-colors">Browse Agents</h3>
-            <p className="text-xs text-gray-500">Discover the marketplace</p>
+          <a href="/arena" className="group p-5 bg-[#111118] border border-[#1f2028] rounded-lg hover:border-cyan-400/30 transition-all text-center block">
+            <div className="text-amber-400 text-lg mb-2">&#9876;</div>
+            <h3 className="text-sm font-semibold mb-1 group-hover:text-cyan-400 transition-colors">Train</h3>
+            <p className="text-xs text-gray-500">Benchmark, certify, and improve</p>
           </a>
-          <a href="/docs" className="group p-5 bg-[#111118] border border-[#1f2028] rounded-lg hover:border-cyan-400/30 transition-all text-center block">
-            <div className="text-cyan-400 text-lg mb-2">&#9776;</div>
-            <h3 className="text-sm font-semibold mb-1 group-hover:text-cyan-400 transition-colors">Documentation</h3>
-            <p className="text-xs text-gray-500">SDKs, API reference, guides</p>
+          <a href="/verify" className="group p-5 bg-[#111118] border border-[#1f2028] rounded-lg hover:border-cyan-400/30 transition-all text-center block">
+            <div className="text-emerald-400 text-lg mb-2">&#10003;</div>
+            <h3 className="text-sm font-semibold mb-1 group-hover:text-cyan-400 transition-colors">Verify</h3>
+            <p className="text-xs text-gray-500">Already have an agent? Get it verified</p>
           </a>
         </div>
 
