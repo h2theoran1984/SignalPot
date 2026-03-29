@@ -78,6 +78,16 @@ interface ExtractReport {
     margin: number;
     marginPercent: number;
   };
+  external: {
+    totalCalls: number;
+    successfulCalls: number;
+    successRate: number;
+    totalApiCost: number;
+    totalRevenue: number;
+    avgDurationMs: number | null;
+    byCapability: Record<string, { calls: number; successful: number; apiCost: number; avgMs: number | null }>;
+    byCaller: Record<string, number>;
+  };
   recommendations: {
     pricing: string;
     performance: string;
@@ -615,6 +625,78 @@ export default function ExtractReportPage() {
                 )}
               </div>
             </section>
+
+            {/* ═══ External Usage ═══ */}
+            {report.external.totalCalls > 0 && (
+              <section className="mb-8">
+                <h2 className="text-lg font-semibold mb-4">
+                  External Usage
+                  <span className="text-sm text-gray-500 font-normal ml-2">via telemetry beacon</span>
+                </h2>
+                <div className="bg-[#111118] border border-[#1f2028] rounded-lg p-5">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Total Calls</p>
+                      <p className="text-lg font-bold text-white">{report.external.totalCalls}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Success Rate</p>
+                      <p className={`text-lg font-bold ${report.external.successRate >= 0.95 ? "text-emerald-400" : report.external.successRate >= 0.8 ? "text-yellow-400" : "text-red-400"}`}>
+                        {(report.external.successRate * 100).toFixed(0)}%
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">API Cost</p>
+                      <p className="text-lg font-bold text-white">{formatCost(report.external.totalApiCost)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Revenue</p>
+                      <p className="text-lg font-bold text-cyan-400">{formatCost(report.external.totalRevenue)}</p>
+                    </div>
+                    {report.external.avgDurationMs != null && (
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Avg Latency</p>
+                        <p className="text-lg font-bold text-white">{formatDuration(report.external.avgDurationMs)}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* By capability */}
+                  {Object.keys(report.external.byCapability).length > 0 && (
+                    <>
+                      <p className="text-xs text-gray-500 font-medium mb-2">By Capability</p>
+                      <div className="space-y-1 mb-3">
+                        {Object.entries(report.external.byCapability).map(([cap, d]) => (
+                          <div key={cap} className="flex items-center gap-3 py-1 px-2 bg-[#0d0d14] rounded text-xs">
+                            <span className="text-gray-300 font-medium w-40 truncate">{cap}</span>
+                            <span className="text-gray-500">{d.calls} calls</span>
+                            <span className={`${d.successful / d.calls >= 0.95 ? "text-emerald-400" : "text-yellow-400"}`}>
+                              {((d.successful / d.calls) * 100).toFixed(0)}% success
+                            </span>
+                            <span className="text-gray-400">{formatCost(d.apiCost)}</span>
+                            {d.avgMs != null && <span className="text-gray-500">{formatDuration(d.avgMs)}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {/* By caller */}
+                  {Object.keys(report.external.byCaller).length > 1 && (
+                    <>
+                      <p className="text-xs text-gray-500 font-medium mb-2">By Caller</p>
+                      <div className="flex gap-2 flex-wrap">
+                        {Object.entries(report.external.byCaller).map(([caller, count]) => (
+                          <span key={caller} className="px-2 py-1 bg-[#0d0d14] rounded text-xs text-gray-400">
+                            {caller}: <span className="text-white">{count}</span>
+                          </span>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </section>
+            )}
 
             {/* ═══ Recommendations ═══ */}
             <section className="mb-8">

@@ -89,6 +89,18 @@ export interface ExtractReport {
     job: { matches: number; wins: number; winRate: number };
   };
 
+  // External telemetry (non-arena usage)
+  external: {
+    totalCalls: number;
+    successfulCalls: number;
+    successRate: number;
+    totalApiCost: number;
+    totalRevenue: number;
+    avgDurationMs: number | null;
+    byCapability: Record<string, { calls: number; successful: number; apiCost: number; avgMs: number | null }>;
+    byCaller: Record<string, number>;
+  };
+
   // Per-match detail
   matches: MatchDetail[];
 
@@ -411,7 +423,65 @@ export async function generateExtractReport(
   const catRate = (c: { matches: number; wins: number }) =>
     c.matches > 0 ? round3(c.wins / c.matches) : 0;
 
-  // ── 10. Generate LLM recommendations ──────────────────────────────
+  // ── 10. Fetch external telemetry ──────────────────────────────────
+  const { data: telemetryRows } = await admin
+    .from("agent_telemetry")
+    .select("event, capability, duration_ms, api_cost, cost, success, caller")
+    .eq("agent_id", agentId)
+    .in("event", ["call_completed", "call_failed"])
+    .order("created_at", { ascending: true })
+    .limit(1000);
+
+  let externalTotalCalls = 0;
+  let externalSuccessful = 0;
+  let externalApiCost = 0;
+  let externalRevenue = 0;
+  let externalDurationSum = 0;
+  let externalDurationCount = 0;
+  const externalByCap: Record<string, { calls: number; successful: number; apiCost: number; durationSum: number; durationCount: number }> = {};
+  const externalByCaller: Record<string, number> = {};
+
+  for (const row of telemetryRows ?? []) {
+    externalTotalCalls++;
+    if (row.success) externalSuccessful++;
+    externalApiCost += (row.api_cost as number) ?? 0;
+    externalRevenue += (row.cost as number) ?? 0;
+    if (row.duration_ms != null) {
+      externalDurationSum += row.duration_ms as number;
+      externalDurationCount++;
+    }
+    const cap = (row.capability as string) ?? "unknown";
+    if (!externalByCap[cap]) externalByCap[cap] = { calls: 0, successful: 0, apiCost: 0, durationSum: 0, durationCount: 0 };
+    externalByCap[cap].calls++;
+    if (row.success) externalByCap[cap].successful++;
+    externalByCap[cap].apiCost += (row.api_cost as number) ?? 0;
+    if (row.duration_ms != null) {
+      externalByCap[cap].durationSum += row.duration_ms as number;
+      externalByCap[cap].durationCount++;
+    }
+    const caller = (row.caller as string) ?? "external";
+    externalByCaller[caller] = (externalByCaller[caller] ?? 0) + 1;
+  }
+
+  const externalData: ExtractReport["external"] = {
+    totalCalls: externalTotalCalls,
+    successfulCalls: externalSuccessful,
+    successRate: externalTotalCalls > 0 ? round3(externalSuccessful / externalTotalCalls) : 0,
+    totalApiCost: round3(externalApiCost),
+    totalRevenue: round3(externalRevenue),
+    avgDurationMs: externalDurationCount > 0 ? Math.round(externalDurationSum / externalDurationCount) : null,
+    byCapability: Object.fromEntries(
+      Object.entries(externalByCap).map(([cap, d]) => [cap, {
+        calls: d.calls,
+        successful: d.successful,
+        apiCost: round3(d.apiCost),
+        avgMs: d.durationCount > 0 ? Math.round(d.durationSum / d.durationCount) : null,
+      }])
+    ),
+    byCaller: externalByCaller,
+  };
+
+  // ── 11. Generate LLM recommendations ──────────────────────────────
   const recommendations = await generateRecommendations({
     agentName: agent.name as string,
     totalMatches,
@@ -450,6 +520,7 @@ export async function generateExtractReport(
     strengths,
     weaknesses,
     costs,
+    external: externalData,
     recommendations,
   };
 }
