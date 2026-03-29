@@ -15,6 +15,7 @@ import { keykeeperAgeCheck } from "@/lib/inngest/functions/keykeeper-age-check";
 import { keykeeperBreachWatch } from "@/lib/inngest/functions/keykeeper-breach-watch";
 import { analystPipeline } from "@/lib/inngest/functions/analyst-pipeline";
 import { telemetryRollup } from "@/lib/inngest/functions/telemetry-rollup";
+import { marketplaceUsageReport } from "@/lib/inngest/functions/marketplace-usage-report";
 
 // Inngest webhook handler — receives events from Inngest cloud and executes functions.
 // Vercel env vars needed: INNGEST_EVENT_KEY, INNGEST_SIGNING_KEY
@@ -39,5 +40,6 @@ export const { GET, POST, PUT } = serve({
     keykeeperBreachWatch,
     analystPipeline,
     telemetryRollup,
+    marketplaceUsageReport,
   ],
 });
