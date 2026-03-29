@@ -435,12 +435,6 @@ function ArenaPage() {
               </section>
             )}
 
-            {/* Grind Mode */}
-            <ArenaGrindPanel />
-
-            {/* AutoTune */}
-            <ArenaAutoTunePanel />
-
             {/* Recent Arena Matches (competitive only) */}
             <section>
               <h2 className="text-lg font-semibold mb-4">Recent Matches</h2>
@@ -619,6 +613,12 @@ function ArenaPage() {
                 </div>
               </section>
             )}
+
+            {/* Grind Mode */}
+            <ArenaGrindPanel />
+
+            {/* AutoTune */}
+            <ArenaAutoTunePanel />
 
             {/* Training Match History */}
             <section>
