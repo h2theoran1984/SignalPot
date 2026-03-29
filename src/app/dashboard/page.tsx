@@ -238,19 +238,27 @@ export default function DashboardPage() {
             ) : (
               <div className="grid gap-3">
                 {agents.map((agent) => (
-                  <a
+                  <div
                     key={agent.id}
-                    href={`/agents/${agent.slug}`}
                     className="flex items-center justify-between p-4 bg-[#111118] border border-[#1f2028] rounded-lg hover:border-[#2d3044] transition-colors"
                   >
-                    <div>
+                    <a href={`/agents/${agent.slug}`} className="flex-1 min-w-0">
                       <span className="font-medium">{agent.name}</span>
                       <span className="text-gray-600 ml-2 text-sm font-mono">/{agent.slug}</span>
                       {agent.rate_amount > 0 && (
                         <span className="text-gray-600 ml-2 text-xs">${agent.rate_amount}/call</span>
                       )}
-                    </div>
+                    </a>
                     <div className="flex items-center gap-2">
+                      {agent.arena_eligible !== false && (
+                        <a
+                          href={`/arena/training/${agent.slug}/extract`}
+                          className="px-2 py-1 text-[10px] font-medium text-purple-400 border border-purple-800/40 rounded hover:bg-purple-950/30 transition-colors"
+                          title="Full Extract Report"
+                        >
+                          Extract
+                        </a>
+                      )}
                       {agent.arena_eligible === false && (
                         <Badge variant="tag" className="text-[10px] opacity-60">No Arena</Badge>
                       )}
@@ -258,7 +266,7 @@ export default function DashboardPage() {
                         {agent.status}
                       </Badge>
                     </div>
-                  </a>
+                  </div>
                 ))}
               </div>
             )}

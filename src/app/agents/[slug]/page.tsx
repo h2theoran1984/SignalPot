@@ -88,13 +88,28 @@ export default async function AgentDetailPage({
 
   // Owner-only: fetch cost economics data
   let economics: { totalRevenue: number; totalApiCost: number; marginPct: number; count: number; byCap: Record<string, { revenue: number; apiCost: number; count: number }> } | null = null;
+  let arenaStats: { totalMatches: number; wins: number; losses: number; ties: number; winRate: number; elo: number | null } | null = null;
   if (isOwner) {
-    const { data: costJobs } = await supabase
-      .from("jobs")
-      .select("cost, provider_cost, capability_used")
-      .eq("provider_agent_id", agent.id)
-      .eq("status", "completed")
-      .not("provider_cost", "is", null);
+    const [{ data: costJobs }, { data: arenaMatches }, { data: bestRating }] = await Promise.all([
+      supabase
+        .from("jobs")
+        .select("cost, provider_cost, capability_used")
+        .eq("provider_agent_id", agent.id)
+        .eq("status", "completed")
+        .not("provider_cost", "is", null),
+      supabase
+        .from("arena_matches")
+        .select("winner, agent_a_id, agent_b_id")
+        .eq("status", "completed")
+        .or(`agent_a_id.eq.${agent.id},agent_b_id.eq.${agent.id}`),
+      supabase
+        .from("arena_ratings")
+        .select("elo")
+        .eq("agent_id", agent.id)
+        .order("elo", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
 
     if (costJobs && costJobs.length > 0) {
       const totalRevenue = costJobs.reduce((s, j) => s + Number(j.cost), 0);
@@ -113,6 +128,25 @@ export default async function AgentDetailPage({
         marginPct: totalRevenue > 0 ? ((totalRevenue - totalApiCost) / totalRevenue) * 100 : 0,
         count: costJobs.length,
         byCap,
+      };
+    }
+
+    if (arenaMatches && arenaMatches.length > 0) {
+      let wins = 0, losses = 0, ties = 0;
+      for (const m of arenaMatches) {
+        const side = m.agent_a_id === agent.id ? "a" : "b";
+        if (m.winner === "tie") ties++;
+        else if (m.winner === side) wins++;
+        else losses++;
+      }
+      const total = wins + losses + ties;
+      arenaStats = {
+        totalMatches: total,
+        wins,
+        losses,
+        ties,
+        winRate: total > 0 ? wins / total : 0,
+        elo: bestRating?.elo as number | null ?? null,
       };
     }
   }
@@ -318,6 +352,55 @@ export default async function AgentDetailPage({
               </div>
             )}
             <p className="text-xs text-gray-600 mt-2">Self-reported by agent. Only you can see this.</p>
+          </div>
+        )}
+
+        {isOwner && arenaStats && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-4">Arena & Training</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+              <div className="p-4 bg-[#111118] border border-[#1f2028] rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">Matches</p>
+                <p className="text-lg font-bold">{arenaStats.totalMatches}</p>
+              </div>
+              <div className="p-4 bg-[#111118] border border-[#1f2028] rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">Win Rate</p>
+                <p className={`text-lg font-bold ${arenaStats.winRate >= 0.5 ? "text-emerald-400" : "text-red-400"}`}>
+                  {Math.round(arenaStats.winRate * 100)}%
+                </p>
+                <p className="text-[10px] text-gray-600">{arenaStats.wins}W / {arenaStats.losses}L / {arenaStats.ties}T</p>
+              </div>
+              {arenaStats.elo != null && (
+                <div className="p-4 bg-[#111118] border border-[#1f2028] rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">Best ELO</p>
+                  <p className="text-lg font-bold text-cyan-400">{arenaStats.elo}</p>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <a
+                href={`/arena/training/${agent.slug}/extract`}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-[#111118] border border-purple-800/50 text-purple-400 font-semibold rounded-lg hover:bg-purple-950/30 hover:border-purple-700/50 transition-colors text-sm"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Full Extract Report
+              </a>
+              <a
+                href={`/arena/training/${agent.slug}`}
+                className="inline-flex items-center gap-2 px-4 py-2 border border-[#1f2028] text-gray-400 rounded-lg hover:border-[#2d3044] hover:text-gray-300 transition-colors text-sm"
+              >
+                Training Report
+              </a>
+              <a
+                href={`/arena/new?agent_a=${agent.slug}&agent_b=sparring-partner`}
+                className="inline-flex items-center gap-2 px-4 py-2 border border-[#1f2028] text-gray-400 rounded-lg hover:border-[#2d3044] hover:text-gray-300 transition-colors text-sm"
+              >
+                Start Training
+              </a>
+            </div>
+            <p className="text-xs text-gray-600 mt-2">Only you can see this.</p>
           </div>
         )}
 
