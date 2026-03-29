@@ -94,6 +94,11 @@ interface ExtractReport {
     readiness: string;
     marketing: string;
   };
+  marketplaceReadiness: {
+    google_cloud: { ready: boolean; reasons: string[] };
+    azure: { ready: boolean; reasons: string[] };
+    databricks: { ready: boolean; reasons: string[] };
+  };
 }
 
 // ── Helpers ──
@@ -719,6 +724,61 @@ export default function ExtractReportPage() {
                 ))}
               </div>
             </section>
+
+            {/* ═══ Marketplace Readiness ═══ */}
+            {report.marketplaceReadiness && (
+              <section className="mb-8">
+                <h2 className="text-lg font-semibold mb-4">Marketplace Readiness</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {([
+                    { key: "google_cloud" as const, label: "Google Cloud", icon: "GCP" },
+                    { key: "azure" as const, label: "Azure", icon: "AZ" },
+                    { key: "databricks" as const, label: "Databricks", icon: "DB" },
+                  ]).map(({ key, label, icon }) => {
+                    const mp = report.marketplaceReadiness[key];
+                    return (
+                      <div
+                        key={key}
+                        className={`p-5 bg-[#111118] border rounded-lg ${
+                          mp.ready
+                            ? "border-emerald-800/50"
+                            : "border-[#1f2028]"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-gray-500 bg-[#0d0d14] px-2 py-1 rounded">{icon}</span>
+                            <span className="text-sm font-semibold text-gray-200">{label}</span>
+                          </div>
+                          <span
+                            className={`inline-flex px-2 py-0.5 text-xs font-bold uppercase rounded border ${
+                              mp.ready
+                                ? "bg-emerald-950/50 text-emerald-400 border-emerald-800/50"
+                                : "bg-red-950/50 text-red-400 border-red-800/50"
+                            }`}
+                          >
+                            {mp.ready ? "Ready" : "Not Ready"}
+                          </span>
+                        </div>
+                        {mp.reasons.length > 0 && (
+                          <ul className="space-y-1">
+                            {mp.reasons.map((reason, i) => (
+                              <li key={i} className="flex items-start gap-2 text-xs text-gray-400">
+                                <span className="text-red-400 shrink-0 mt-0.5">!</span>
+                                {reason}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {mp.ready && mp.reasons.length === 0 && (
+                          <p className="text-xs text-emerald-400/70">All requirements met.</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
 
             {/* ═══ Match-by-Match Detail ═══ */}
             <section className="mb-8">

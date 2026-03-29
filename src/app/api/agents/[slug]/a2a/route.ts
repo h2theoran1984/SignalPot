@@ -45,7 +45,7 @@ export async function GET(
   const admin = createAdminClient();
   const agentId = agent.id as string;
 
-  const [trustResult, eloResult, telemetryResult, arenaResult] = await Promise.all([
+  const [trustResult, eloResult, telemetryResult, arenaResult, listingsResult] = await Promise.all([
     // Best trust score (self-referential or highest incoming)
     admin
       .from("trust_edges")
@@ -74,6 +74,11 @@ export async function GET(
       .select("winner, agent_a_id")
       .eq("status", "completed")
       .or(`agent_a_id.eq.${agentId},agent_b_id.eq.${agentId}`),
+    // Marketplace listings
+    admin
+      .from("marketplace_listings")
+      .select("provider, external_url, status")
+      .eq("agent_id", agentId),
   ]);
 
   // Compute telemetry stats
@@ -110,6 +115,13 @@ export async function GET(
     lastActiveAt: (trustEdge?.last_job_at as string) ?? null,
     profileUrl: `${baseUrl}/agents/${agent.slug}`,
     extractUrl: `${baseUrl}/arena/training/${agent.slug}/extract`,
+    complianceScore: (agent.compliance_score as number) ?? null,
+    complianceTestedAt: (agent.compliance_tested_at as string) ?? null,
+    marketplaceListings: (listingsResult.data ?? []).map((l) => ({
+      provider: l.provider as string,
+      url: l.external_url as string,
+      status: l.status as string,
+    })),
   };
 
   card.extensions = { signalpot: extensions };

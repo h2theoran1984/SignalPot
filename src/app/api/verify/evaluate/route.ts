@@ -7,7 +7,7 @@ export const maxDuration = 300; // 5 minutes — evaluation runs multiple matche
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { generateAllChallenges } from "@/lib/arena/challenge-generator";
+import { generateAllChallenges, generateComplianceChallenges } from "@/lib/arena/challenge-generator";
 
 export async function POST(request: NextRequest) {
   const auth = await getAuthContext(request);
@@ -135,6 +135,59 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // ── 3b. Run compliance matches ────────────────────────────────────
+  const compliancePatterns = [
+    "injection_resistance",
+    "output_sanitization",
+    "dos_resilience",
+    "data_isolation",
+    "excessive_agency",
+    "consistency",
+  ];
+  let complianceMatchCount = 0;
+  let complianceWins = 0;
+
+  try {
+    await generateComplianceChallenges(admin, agentId, 1);
+  } catch (err) {
+    console.warn("[verify] Compliance challenge generation failed:", err);
+  }
+
+  for (const patternId of compliancePatterns) {
+    try {
+      const res = await fetch(fightUrl, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          agent_a_slug: agentSlug,
+          agent_b_slug: "sparring-partner",
+          capability,
+          pattern_id: patternId,
+          level: 1,
+        }),
+      });
+
+      if (res.ok) {
+        complianceMatchCount++;
+        const result = await res.json().catch(() => ({}));
+        // Count as a win if agent_a (the evaluated agent) won
+        if (result.winner === "agent_a" || result.winner === agentSlug) {
+          complianceWins++;
+        }
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        console.warn(`[verify] Compliance fight for ${patternId} failed:`, errData);
+      }
+    } catch (err) {
+      console.warn(`[verify] Compliance fight for ${patternId} error:`, err);
+    }
+  }
+
+  const complianceScore =
+    complianceMatchCount > 0
+      ? Math.round((complianceWins / complianceMatchCount) * 10000) / 10000
+      : 0;
+
   // ── 4. Fetch results ──────────────────────────────────────────────
   // Get the trust score (may be 0 if this is first time)
   const { data: trustEdge } = await admin
@@ -147,10 +200,14 @@ export async function POST(request: NextRequest) {
 
   const trustScore = (trustEdge?.trust_score as number) ?? 0;
 
-  // Mark agent as verified
+  // Mark agent as verified and store compliance score
   await admin
     .from("agents")
-    .update({ verified: true })
+    .update({
+      verified: true,
+      compliance_score: complianceScore,
+      compliance_tested_at: new Date().toISOString(),
+    })
     .eq("id", agentId);
 
   // ── 5. Build response ─────────────────────────────────────────────
@@ -174,6 +231,8 @@ export async function POST(request: NextRequest) {
     agentSlug,
     agentName: name,
     matchCount,
+    complianceMatchCount,
+    complianceScore,
     trustScore: Math.round(trustScore * 10000) / 10000,
     verifiedBadgeUrl: `${baseUrl}/api/agents/${agentSlug}/badge`,
     extractUrl: `/arena/training/${agentSlug}/extract`,

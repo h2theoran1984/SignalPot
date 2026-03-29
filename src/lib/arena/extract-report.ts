@@ -119,6 +119,13 @@ export interface ExtractReport {
     readiness: string;
     marketing: string;
   };
+
+  // Marketplace readiness checks
+  marketplaceReadiness: {
+    google_cloud: { ready: boolean; reasons: string[] };
+    azure: { ready: boolean; reasons: string[] };
+    databricks: { ready: boolean; reasons: string[] };
+  };
 }
 
 // ============================================================
@@ -178,7 +185,7 @@ export async function generateExtractReport(
   // ── 1. Fetch the agent ────────────────────────────────────────────
   const { data: agent, error: agentErr } = await admin
     .from("agents")
-    .select("id, name, slug, capability_schema")
+    .select("id, name, slug, capability_schema, compliance_score, trust_score")
     .eq("id", agentId)
     .single();
 
@@ -495,6 +502,40 @@ export async function generateExtractReport(
     eloByCapability,
   });
 
+  // ── 12. Compute marketplace readiness ──────────────────────────────
+  const trustScore = (agent.trust_score as number) ?? 0;
+  const complianceScore = (agent.compliance_score as number | null) ?? null;
+  const verifiedCalls = externalTotalCalls;
+  const successRate = externalData.successRate;
+
+  function checkMarketplace(thresholds: {
+    trustScore: number;
+    verifiedCalls: number;
+    successRate?: number;
+    needsCompliance?: boolean;
+  }): { ready: boolean; reasons: string[] } {
+    const reasons: string[] = [];
+    if (trustScore < thresholds.trustScore) {
+      reasons.push(`Need trust score >= ${thresholds.trustScore} (currently ${round3(trustScore)})`);
+    }
+    if (verifiedCalls < thresholds.verifiedCalls) {
+      reasons.push(`Need ${thresholds.verifiedCalls}+ verified calls (currently ${verifiedCalls})`);
+    }
+    if (thresholds.successRate != null && successRate < thresholds.successRate) {
+      reasons.push(`Need success rate >= ${(thresholds.successRate * 100).toFixed(0)}% (currently ${(successRate * 100).toFixed(0)}%)`);
+    }
+    if (thresholds.needsCompliance && complianceScore == null) {
+      reasons.push("Compliance score required but not yet evaluated");
+    }
+    return { ready: reasons.length === 0, reasons };
+  }
+
+  const marketplaceReadiness: ExtractReport["marketplaceReadiness"] = {
+    google_cloud: checkMarketplace({ trustScore: 0.5, verifiedCalls: 50, successRate: 0.9 }),
+    azure: checkMarketplace({ trustScore: 0.5, verifiedCalls: 100, successRate: 0.9, needsCompliance: true }),
+    databricks: checkMarketplace({ trustScore: 0.3, verifiedCalls: 10 }),
+  };
+
   return {
     agentId,
     agentName: agent.name as string,
@@ -522,6 +563,7 @@ export async function generateExtractReport(
     costs,
     external: externalData,
     recommendations,
+    marketplaceReadiness,
   };
 }
 

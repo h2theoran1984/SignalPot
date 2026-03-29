@@ -169,6 +169,9 @@ export interface SignalPotExtensions {
   lastActiveAt: string | null;      // most recent tracked activity
   profileUrl: string;               // link to full agent profile
   extractUrl: string;               // link to full extract report (owner only)
+  complianceScore: number | null;   // OWASP compliance score 0-1
+  complianceTestedAt: string | null;
+  marketplaceListings: Array<{ provider: string; url: string; status: string }>;
 }
 
 export interface AgentCard {
