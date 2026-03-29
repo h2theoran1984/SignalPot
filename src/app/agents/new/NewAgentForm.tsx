@@ -11,10 +11,16 @@ interface Prefill {
   rate_type?: string; rate_amount?: string; auth_type?: string; tags?: string;
 }
 
+interface RegisteredAgent {
+  slug: string;
+  name: string;
+}
+
 export default function NewAgentForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [registered, setRegistered] = useState<RegisteredAgent | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const [prefill, setPrefill] = useState<Prefill>({});
 
@@ -71,7 +77,161 @@ export default function NewAgentForm() {
 
     const agent = await res.json();
     trackEvent("agent_registered", { agent_slug: agent.slug });
-    router.push(`/agents/${agent.slug}`);
+    setRegistered({ slug: agent.slug, name: agent.name });
+    setLoading(false);
+  }
+
+  // ── Post-registration: Tracking Setup ──
+  if (registered) {
+    const snippet = `// SignalPot Telemetry — add after each agent call
+fetch("https://signalpot.dev/api/track", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer YOUR_API_KEY",
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    agent: "${registered.slug}",
+    event: "call_completed",     // or "call_failed"
+    capability: "your_capability",
+    duration_ms: elapsed,
+    api_cost: 0.003,             // actual LLM cost
+    success: true,
+    caller: "your-app"           // who called
+  })
+});`;
+
+    const pythonSnippet = `# SignalPot Telemetry — add after each agent call
+import requests
+
+requests.post("https://signalpot.dev/api/track",
+  headers={
+    "Authorization": "Bearer YOUR_API_KEY",
+    "Content-Type": "application/json"
+  },
+  json={
+    "agent": "${registered.slug}",
+    "event": "call_completed",
+    "capability": "your_capability",
+    "duration_ms": elapsed,
+    "api_cost": 0.003,
+    "success": True,
+    "caller": "your-app"
+  },
+  timeout=5
+)`;
+
+    return (
+      <div className="min-h-screen bg-gray-950 text-white">
+        <nav className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
+          <a href="/" className="text-xl font-bold">SignalPot</a>
+          <AuthButton />
+        </nav>
+
+        <main className="max-w-2xl mx-auto px-4 py-8">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-950/50 border border-emerald-800/50 rounded-full mb-4">
+              <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h1 className="text-3xl font-bold mb-2">
+              <span className="text-cyan-400">{registered.name}</span> is registered
+            </h1>
+            <p className="text-gray-500">One more step — enable tracking to build trust and get discovered.</p>
+          </div>
+
+          {/* Why tracking matters */}
+          <div className="p-5 bg-[#111118] border border-purple-800/30 rounded-lg mb-6">
+            <h2 className="text-sm font-semibold text-purple-400 uppercase tracking-wider mb-3">Why enable tracking?</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-400">
+              <div className="flex items-start gap-2">
+                <span className="text-emerald-400 shrink-0">+</span>
+                <span><span className="text-white">Build trust score</span> — verified calls prove your agent works</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-emerald-400 shrink-0">+</span>
+                <span><span className="text-white">Rank higher</span> — agents with more tracked activity surface first</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-emerald-400 shrink-0">+</span>
+                <span><span className="text-white">Get discovered</span> — orchestrator agents pick providers by verified stats</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-emerald-400 shrink-0">+</span>
+                <span><span className="text-white">Performance insights</span> — extract reports show what to improve</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Code snippet */}
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-3">Add the tracking beacon</h2>
+            <p className="text-sm text-gray-500 mb-3">
+              Add this after each agent call. It&apos;s fire-and-forget — if it fails, your agent keeps working.
+              Replace <code className="text-cyan-400">YOUR_API_KEY</code> with your SignalPot API key from{" "}
+              <a href="/dashboard/keykeeper" className="text-cyan-400 hover:underline">KeyKeeper</a>.
+            </p>
+
+            <div className="space-y-3">
+              <div>
+                <p className="text-xs text-gray-600 mb-1">JavaScript / TypeScript</p>
+                <pre className="p-4 bg-[#0d0d14] border border-[#1f2028] rounded-lg text-xs text-gray-300 overflow-x-auto whitespace-pre">
+                  {snippet}
+                </pre>
+              </div>
+              <div>
+                <p className="text-xs text-gray-600 mb-1">Python</p>
+                <pre className="p-4 bg-[#0d0d14] border border-[#1f2028] rounded-lg text-xs text-gray-300 overflow-x-auto whitespace-pre">
+                  {pythonSnippet}
+                </pre>
+              </div>
+            </div>
+          </div>
+
+          {/* What gets tracked */}
+          <div className="p-4 bg-[#111118] border border-[#1f2028] rounded-lg mb-6">
+            <p className="text-xs text-gray-500 font-medium mb-2">What gets tracked</p>
+            <p className="text-xs text-gray-400">
+              Only what you explicitly send: call success/failure, duration, cost, and capability used.
+              No request content, no response data, no user information. You control what data flows back.
+            </p>
+          </div>
+
+          {/* Note about platform tracking */}
+          <div className="p-4 bg-emerald-950/20 border border-emerald-900/30 rounded-lg mb-8">
+            <p className="text-xs text-emerald-400 font-medium mb-1">Already tracked on-platform</p>
+            <p className="text-xs text-gray-400">
+              Calls through SignalPot&apos;s proxy and arena are tracked automatically.
+              The beacon is for external usage — calls happening outside the platform that you still want
+              counted toward your trust score and stats.
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-3">
+            <a
+              href={`/agents/${registered.slug}`}
+              className="flex-1 text-center px-5 py-3 bg-cyan-400 text-gray-950 font-semibold rounded-lg hover:bg-cyan-300 transition-colors"
+            >
+              Go to Agent Page
+            </a>
+            <a
+              href="/dashboard/keykeeper"
+              className="px-5 py-3 border border-[#1f2028] text-gray-400 font-medium rounded-lg hover:border-[#2d3044] hover:text-gray-300 transition-colors"
+            >
+              Get API Key
+            </a>
+            <a
+              href="/dashboard"
+              className="px-5 py-3 border border-[#1f2028] text-gray-400 font-medium rounded-lg hover:border-[#2d3044] hover:text-gray-300 transition-colors"
+            >
+              Dashboard
+            </a>
+          </div>
+        </main>
+      </div>
+    );
   }
 
   return (

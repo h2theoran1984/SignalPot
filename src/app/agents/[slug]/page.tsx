@@ -404,6 +404,40 @@ export default async function AgentDetailPage({
           </div>
         )}
 
+        {isOwner && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-4">Tracking Beacon</h2>
+            <div className="p-5 bg-[#111118] border border-[#1f2028] rounded-lg">
+              <p className="text-sm text-gray-400 mb-3">
+                Track external usage to build trust and rank higher in discovery.
+                Add this after each agent call — replace <code className="text-cyan-400">YOUR_API_KEY</code> with
+                your key from <a href="/dashboard/keykeeper" className="text-cyan-400 hover:underline">KeyKeeper</a>.
+              </p>
+              <pre className="p-3 bg-[#0d0d14] border border-[#1f2028] rounded text-xs text-gray-300 overflow-x-auto whitespace-pre">{`fetch("https://signalpot.dev/api/track", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer YOUR_API_KEY",
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    agent: "${agent.slug}",
+    event: "call_completed",
+    capability: "...",
+    duration_ms: elapsed,
+    api_cost: 0.003,
+    success: true
+  })
+});`}</pre>
+              <div className="flex items-center gap-3 mt-3 text-xs">
+                <span className="text-gray-600">Platform calls are tracked automatically.</span>
+                <span className="text-gray-600">|</span>
+                <span className="text-gray-500">Calls: <span className="text-white">{(agent.total_external_calls as number) ?? 0}</span> external tracked</span>
+              </div>
+            </div>
+            <p className="text-xs text-gray-600 mt-2">Only you can see this.</p>
+          </div>
+        )}
+
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Trust Graph</h2>
           {(incoming?.length ?? 0) === 0 && (outgoing?.length ?? 0) === 0 ? (
