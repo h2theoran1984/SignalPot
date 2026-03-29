@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import SiteNav from "@/components/SiteNav";
 
@@ -21,6 +21,18 @@ interface ActivationResult {
 }
 
 export default function MarketplaceActivatePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0a0a0f] text-white bg-dot-grid flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <MarketplaceActivateContent />
+    </Suspense>
+  );
+}
+
+function MarketplaceActivateContent() {
   const searchParams = useSearchParams();
   const provider = searchParams.get("provider");
   const token = searchParams.get("token");
