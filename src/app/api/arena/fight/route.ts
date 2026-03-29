@@ -34,6 +34,10 @@ interface AgentResult {
  */
 async function deriveRpcEndpoint(mcpEndpoint: string): Promise<string> {
   await assertSafeUrl(mcpEndpoint);
+  // Custom/architect agents expose the endpoint directly — no /a2a/rpc derivation needed
+  if (mcpEndpoint.includes("/api/arena/custom/") || mcpEndpoint.includes("/api/arena/architect")) {
+    return mcpEndpoint;
+  }
   const url = new URL(mcpEndpoint);
   url.pathname = "/a2a/rpc";
   return url.toString();
