@@ -4,6 +4,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { ARCHITECT_MODEL, ARCHITECT_SYSTEM } from "./constants";
+import { computeStepCost, type StepUsage } from "./usage";
 import type { AgentIntent } from "./intent";
 import type { CapabilitySchema } from "./schema";
 
@@ -14,7 +15,7 @@ const anthropic = new Anthropic({
 export async function generateSystemPrompt(
   intent: AgentIntent,
   schema: CapabilitySchema
-): Promise<string> {
+): Promise<{ prompt: string; usage: StepUsage }> {
   const message = await anthropic.messages.create({
     model: ARCHITECT_MODEL,
     max_tokens: 4096,
@@ -69,5 +70,7 @@ Return ONLY the system prompt text. No JSON wrapping, no markdown code blocks. J
     text = text.replace(/^```(?:\w*)?\s*/, "").replace(/\s*```$/, "");
   }
 
-  return text;
+  const usage = computeStepCost("prompt_engineering", ARCHITECT_MODEL, message.usage.input_tokens, message.usage.output_tokens);
+
+  return { prompt: text, usage };
 }

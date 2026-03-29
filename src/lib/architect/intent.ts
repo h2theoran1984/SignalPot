@@ -5,6 +5,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { ARCHITECT_MODEL, ARCHITECT_SYSTEM } from "./constants";
 import { parseJsonResponse } from "./parse-json";
+import { computeStepCost, type StepUsage } from "./usage";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -23,7 +24,7 @@ export interface AgentIntent {
   description_summary: string;
 }
 
-export async function parseIntent(description: string): Promise<AgentIntent> {
+export async function parseIntent(description: string): Promise<{ intent: AgentIntent; usage: StepUsage }> {
   const message = await anthropic.messages.create({
     model: ARCHITECT_MODEL,
     max_tokens: 2048,
@@ -60,5 +61,8 @@ No markdown, no explanation. Just the JSON.`,
     throw new Error("Unexpected response type from intent parsing");
   }
 
-  return parseJsonResponse(content.text) as AgentIntent;
+  const intent = parseJsonResponse(content.text) as AgentIntent;
+  const usage = computeStepCost("intent_parsing", ARCHITECT_MODEL, message.usage.input_tokens, message.usage.output_tokens);
+
+  return { intent, usage };
 }

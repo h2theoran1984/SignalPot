@@ -3,6 +3,8 @@
  *
  * Orchestrates the full create_agent pipeline:
  *   Intent → Schema → Prompt → Register → Smoke Test
+ *
+ * Tracks token usage and cost across all pipeline steps.
  */
 
 export { parseIntent, type AgentIntent } from "./intent";
@@ -11,12 +13,14 @@ export { generateSystemPrompt } from "./prompt";
 export { registerAgent, type RegisteredAgent } from "./register";
 export { runSmokeTest, type SmokeTestResult } from "./smoke-test";
 export { refineAgent, type RefineInput, type RefineResult } from "./refine";
+export { type PipelineUsage, type StepUsage } from "./usage";
 
 import { parseIntent } from "./intent";
 import { generateSchema } from "./schema";
 import { generateSystemPrompt } from "./prompt";
 import { registerAgent } from "./register";
 import { runSmokeTest } from "./smoke-test";
+import { aggregateUsage, type PipelineUsage, type StepUsage } from "./usage";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export interface CreateAgentInput {
@@ -42,6 +46,7 @@ export interface CreateAgentResult {
     error: string | null;
     duration_ms: number;
   };
+  usage: PipelineUsage;
   steps: {
     intent: Record<string, unknown>;
     schema: Record<string, unknown>;
@@ -50,14 +55,19 @@ export interface CreateAgentResult {
 }
 
 export async function createAgent(input: CreateAgentInput): Promise<CreateAgentResult> {
+  const stepUsages: StepUsage[] = [];
+
   // Step 1: Parse intent
-  const intent = await parseIntent(input.description);
+  const { intent, usage: intentUsage } = await parseIntent(input.description);
+  stepUsages.push(intentUsage);
 
   // Step 2: Generate capability schema
-  const schema = await generateSchema(intent);
+  const { schema, usage: schemaUsage } = await generateSchema(intent);
+  stepUsages.push(schemaUsage);
 
   // Step 3: Generate system prompt
-  const systemPrompt = await generateSystemPrompt(intent, schema);
+  const { prompt: systemPrompt, usage: promptUsage } = await generateSystemPrompt(intent, schema);
+  stepUsages.push(promptUsage);
 
   // Step 4: Safety check — basic screening of generated prompt
   const unsafePatterns = [
@@ -92,6 +102,8 @@ export async function createAgent(input: CreateAgentInput): Promise<CreateAgentR
       .eq("id", agent.id);
   }
 
+  const usage = aggregateUsage(stepUsages);
+
   return {
     agent: {
       slug: agent.slug,
@@ -107,6 +119,7 @@ export async function createAgent(input: CreateAgentInput): Promise<CreateAgentR
       error: smokeResult.error,
       duration_ms: smokeResult.durationMs,
     },
+    usage,
     steps: {
       intent: intent as unknown as Record<string, unknown>,
       schema: schema as unknown as Record<string, unknown>,

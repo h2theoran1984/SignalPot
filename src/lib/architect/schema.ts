@@ -5,6 +5,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { ARCHITECT_MODEL, ARCHITECT_SYSTEM, CAPABILITY_EXAMPLES } from "./constants";
 import { parseJsonResponse } from "./parse-json";
+import { computeStepCost, type StepUsage } from "./usage";
 import type { AgentIntent } from "./intent";
 
 const anthropic = new Anthropic({
@@ -18,7 +19,7 @@ export interface CapabilitySchema {
   outputSchema: Record<string, unknown>;
 }
 
-export async function generateSchema(intent: AgentIntent): Promise<CapabilitySchema> {
+export async function generateSchema(intent: AgentIntent): Promise<{ schema: CapabilitySchema; usage: StepUsage }> {
   const examplesText = CAPABILITY_EXAMPLES.map(
     (ex, i) =>
       `Example ${i + 1} — "${ex.description}":\n${JSON.stringify(ex.schema, null, 2)}`
@@ -59,5 +60,8 @@ Respond with ONLY the capability schema as JSON. No markdown, no wrapping.`,
     throw new Error("Unexpected response type from schema generation");
   }
 
-  return parseJsonResponse(content.text) as CapabilitySchema;
+  const schema = parseJsonResponse(content.text) as CapabilitySchema;
+  const usage = computeStepCost("schema_generation", ARCHITECT_MODEL, message.usage.input_tokens, message.usage.output_tokens);
+
+  return { schema, usage };
 }
