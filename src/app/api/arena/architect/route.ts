@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAgent, type CreateAgentInput } from "@/lib/architect";
 import { refineAgent, type RefineInput } from "@/lib/architect/refine";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const maxDuration = 300;
 
 /**
  * The Architect — A2A endpoint for agent creation and refinement.
+ *
+ * All calls are tracked as jobs in the jobs table so they show up
+ * on the dashboard alongside every other agent invocation.
  *
  * Capabilities:
  *   - create_agent: Intent → Schema → Prompt → Register → Smoke Test
@@ -13,6 +17,71 @@ export const maxDuration = 300;
  */
 
 const SUPPORTED_CAPABILITIES = ["create_agent", "refine_agent"];
+
+/** Look up The Architect's agent ID (cached after first call). */
+let architectAgentId: string | null = null;
+async function getArchitectId(): Promise<string> {
+  if (architectAgentId) return architectAgentId;
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("agents")
+    .select("id")
+    .eq("slug", "the-architect")
+    .single();
+  architectAgentId = (data?.id as string) ?? null;
+  if (!architectAgentId) throw new Error("The Architect agent not found in DB");
+  return architectAgentId;
+}
+
+/** Create a job record for tracking. */
+async function createJob(
+  capability: string,
+  input: Record<string, unknown>
+): Promise<string> {
+  const admin = createAdminClient();
+  const providerAgentId = await getArchitectId();
+
+  const { data: job, error } = await admin
+    .from("jobs")
+    .insert({
+      provider_agent_id: providerAgentId,
+      job_type: "production",
+      capability_used: capability,
+      input_summary: input,
+      status: "running",
+      cost: 0,
+      verified: false,
+    })
+    .select("id")
+    .single();
+
+  if (error || !job) {
+    console.error("[architect] Failed to create job:", error?.message);
+    throw new Error("Failed to create job record");
+  }
+
+  return job.id as string;
+}
+
+/** Update the job with results. */
+async function completeJob(
+  jobId: string,
+  output: Record<string, unknown>,
+  durationMs: number,
+  success: boolean
+): Promise<void> {
+  const admin = createAdminClient();
+  await admin
+    .from("jobs")
+    .update({
+      status: success ? "completed" : "failed",
+      output_summary: output,
+      duration_ms: durationMs,
+      verified: success,
+      completed_at: new Date().toISOString(),
+    })
+    .eq("id", jobId);
+}
 
 export async function POST(request: NextRequest) {
   let body: Record<string, unknown>;
@@ -85,8 +154,23 @@ async function handleCreateAgent(
     owner_id: (input.owner_id as string) ?? undefined,
   };
 
+  // Track as a job
+  const startTime = Date.now();
+  let jobId: string | null = null;
+  try {
+    jobId = await createJob("create_agent", input);
+  } catch {
+    // Non-fatal — continue without job tracking
+    console.warn("[architect] Job creation failed, proceeding without tracking");
+  }
+
   try {
     const result = await createAgent(createInput);
+    const durationMs = Date.now() - startTime;
+
+    if (jobId) {
+      await completeJob(jobId, result as unknown as Record<string, unknown>, durationMs, true);
+    }
 
     return NextResponse.json({
       jsonrpc: "2.0",
@@ -101,12 +185,17 @@ async function handleCreateAgent(
           capability: "create_agent",
           agent_created: result.agent.slug,
           smoke_test_passed: result.smoke_test.passed,
+          job_id: jobId,
         },
       },
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[architect] create_agent failed:", message);
+
+    if (jobId) {
+      await completeJob(jobId, { _error: message }, Date.now() - startTime, false);
+    }
 
     return NextResponse.json(
       {
@@ -162,8 +251,22 @@ async function handleRefineAgent(
   const cookieHeader = request.headers.get("cookie");
   if (cookieHeader) authHeaders["Cookie"] = cookieHeader;
 
+  // Track as a job
+  const startTime = Date.now();
+  let jobId: string | null = null;
+  try {
+    jobId = await createJob("refine_agent", input);
+  } catch {
+    console.warn("[architect] Job creation failed, proceeding without tracking");
+  }
+
   try {
     const result = await refineAgent(refineInput, fightUrl, authHeaders);
+    const durationMs = Date.now() - startTime;
+
+    if (jobId) {
+      await completeJob(jobId, result as unknown as Record<string, unknown>, durationMs, true);
+    }
 
     return NextResponse.json({
       jsonrpc: "2.0",
@@ -180,12 +283,17 @@ async function handleRefineAgent(
           iterations: result.iterations_run,
           stopped_reason: result.stopped_reason,
           best_version: result.best_version,
+          job_id: jobId,
         },
       },
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[architect] refine_agent failed:", message);
+
+    if (jobId) {
+      await completeJob(jobId, { _error: message }, Date.now() - startTime, false);
+    }
 
     return NextResponse.json(
       {
