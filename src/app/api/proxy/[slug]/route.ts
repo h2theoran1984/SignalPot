@@ -6,6 +6,7 @@ import { proxyCallSchema } from "@/lib/validations";
 import { wrapRequest, wrapResponse } from "@/lib/envelope";
 import { validateOutput } from "@/lib/schema-validator";
 import { assertSafeUrl } from "@/lib/ssrf";
+import { trackAgentCall } from "@/lib/telemetry";
 
 // Allowed origins for CORS — proxy is a public API so agents call it cross-origin,
 // but we restrict to known domains rather than wildcard to prevent CSRF.
@@ -420,6 +421,18 @@ export async function POST(
       .update({ status: "failed", completed_at: new Date().toISOString() })
       .eq("id", job.id);
 
+    trackAgentCall({
+      agentId: agent.id as string,
+      profileId: agent.owner_id as string,
+      event: "call_failed",
+      capability,
+      durationMs: Date.now() - startTime,
+      apiCost: 0,
+      cost: 0,
+      success: false,
+      caller: isAuthenticated ? "api" : "anonymous",
+    });
+
     const message = err instanceof Error ? err.message : "Agent unreachable";
     return corsJson(
       { error: `Agent call failed: ${message}`, job_id: job.id },
@@ -462,6 +475,19 @@ export async function POST(
       provider_cost: providerCostUsd,
     })
     .eq("id", job.id);
+
+  // 11b. Telemetry beacon (fire-and-forget)
+  trackAgentCall({
+    agentId: agent.id as string,
+    profileId: agent.owner_id as string,
+    event: "call_completed",
+    capability,
+    durationMs,
+    apiCost: providerCostUsd ?? 0,
+    cost: rateAmount,
+    success: true,
+    caller: isAuthenticated ? "api" : "anonymous",
+  });
 
   // 12. Credit provider for paid calls
   if (rateAmount > 0) {

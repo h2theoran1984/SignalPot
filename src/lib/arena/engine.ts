@@ -8,6 +8,7 @@ import { inngest } from "@/lib/inngest/client";
 import { resolveTemplate } from "@/lib/arena/rubric";
 import { handleSparringRequest } from "@/lib/arena/sparring-partner";
 import { dispatchPushNotifications } from "@/lib/a2a/handler";
+import { trackAgentCall } from "@/lib/telemetry";
 import { assertSafeUrl } from "@/lib/ssrf";
 import type { Agent } from "@/lib/types";
 
@@ -213,6 +214,18 @@ async function callAgent(
       })
       .eq("id", jobId);
 
+    trackAgentCall({
+      agentId: agent.id,
+      profileId: agent.owner_id,
+      event: "call_completed",
+      capability,
+      durationMs,
+      apiCost: providerCostUsd ?? 0,
+      cost: Number(agent.rate_amount) || 0,
+      success: true,
+      caller: "arena",
+    });
+
     return {
       jobId,
       result: {
@@ -237,6 +250,18 @@ async function callAgent(
         output_summary: { _error: message },
       })
       .eq("id", jobId);
+
+    trackAgentCall({
+      agentId: agent.id,
+      profileId: agent.owner_id,
+      event: "call_failed",
+      capability,
+      durationMs,
+      apiCost: 0,
+      cost: 0,
+      success: false,
+      caller: "arena",
+    });
 
     return { jobId, error: message };
   }
