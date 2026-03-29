@@ -2,12 +2,12 @@
  * Constants, model configs, and few-shot examples for The Architect.
  */
 
-export const ARCHITECT_MODEL = "claude-sonnet-4-5-20250514";
+export const ARCHITECT_MODEL = "claude-sonnet-4-6";
 
 export const AVAILABLE_MODELS: Record<string, { id: string; costPerCall: number }> = {
   haiku: { id: "claude-haiku-4-5-20251001", costPerCall: 0.001 },
-  sonnet: { id: "claude-sonnet-4-5-20250514", costPerCall: 0.01 },
-  opus: { id: "claude-opus-4-6-20250619", costPerCall: 0.05 },
+  sonnet: { id: "claude-sonnet-4-6", costPerCall: 0.01 },
+  opus: { id: "claude-opus-4-6", costPerCall: 0.05 },
 };
 
 export const DEFAULT_MODEL = "haiku";
