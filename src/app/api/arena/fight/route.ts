@@ -11,6 +11,7 @@ import { callArenaJudge } from "@/lib/arena/judge";
 import { updateElo, getAgentElo } from "@/lib/arena/elo";
 import { inferRubric, applyLevelModifiers, resolveTemplate } from "@/lib/arena/rubric";
 import { generateSyntheticPrompt } from "@/lib/arena/synthetic";
+import { getOrGenerateChallenge, pickRandomPattern } from "@/lib/arena/challenge-generator";
 import { isLevelUnlocked, LEVEL_CONFIGS, type ArenaLevel } from "@/lib/arena/levels";
 import { fightSchema } from "@/lib/arena/validations";
 import { checkArenaRateLimit } from "@/lib/rate-limit";
@@ -193,7 +194,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { agent_a_slug, agent_b_slug, capability, prompt, challenge_id, level: rawLevel } = parsed.data;
+  const { agent_a_slug, agent_b_slug, capability, prompt, challenge_id, pattern_id, level: rawLevel } = parsed.data;
 
   // Validate level (default 1, must be 1-4)
   const level: ArenaLevel = (rawLevel && rawLevel >= 2 && rawLevel <= 4) ? rawLevel as ArenaLevel : 1;
@@ -304,25 +305,15 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Resolve the prompt — generate synthetic data if none provided (uses Claude Haiku)
+  // Resolve the prompt — priority: explicit prompt > challenge_id > pattern_id > random pattern > synthetic fallback
   let actualPrompt: Record<string, unknown>;
+  let resolvedPatternId: string | null = null;
+
   if (prompt) {
+    // Explicit prompt provided — use as-is
     actualPrompt = prompt;
-  } else {
-    // Find the challenger's input schema for this capability
-    const challengerCaps = (
-      agent_a_slug === "sparring-partner"
-        ? (agentB as Record<string, unknown>)
-        : (agentA as Record<string, unknown>)
-    ).capability_schema as Array<{ name: string; input_schema?: Record<string, unknown> }> | undefined;
-    const capDef = challengerCaps?.find((c) => c.name === capability);
-    const inputSchema = capDef?.input_schema as Record<string, unknown> | undefined;
-
-    const synthetic = await generateSyntheticPrompt(capability, inputSchema);
-    actualPrompt = synthetic.prompt;
-  }
-
-  if (challenge_id) {
+  } else if (challenge_id) {
+    // Use a specific challenge from the library
     const { data: challenge } = await admin
       .from("arena_challenges")
       .select("template_prompt, task_variables, prompt")
@@ -337,6 +328,33 @@ export async function POST(request: NextRequest) {
       });
     } else if (challenge?.prompt) {
       actualPrompt = challenge.prompt as Record<string, unknown>;
+    } else {
+      actualPrompt = { task: "Complete the assigned task." };
+    }
+  } else {
+    // Pattern-based challenge generation
+    const challengerAgent = agent_a_slug === "sparring-partner" ? agentB : agentA;
+    const challengerId = challengerAgent.id as string;
+
+    try {
+      // Pick pattern: use specified pattern_id, or random
+      const selectedPattern = pattern_id ?? await pickRandomPattern(admin, challengerId);
+      resolvedPatternId = selectedPattern;
+
+      const generated = await getOrGenerateChallenge(admin, challengerId, selectedPattern, level);
+      actualPrompt = generated.prompt;
+    } catch (err) {
+      // Fallback to legacy synthetic generation if pattern system fails
+      console.warn("[arena-fight] Pattern generation failed, falling back to synthetic:", err instanceof Error ? err.message : err);
+
+      const challengerCaps = (
+        challengerAgent as Record<string, unknown>
+      ).capability_schema as Array<{ name: string; input_schema?: Record<string, unknown> }> | undefined;
+      const capDef = challengerCaps?.find((c) => c.name === capability);
+      const inputSchema = capDef?.input_schema as Record<string, unknown> | undefined;
+
+      const synthetic = await generateSyntheticPrompt(capability, inputSchema);
+      actualPrompt = synthetic.prompt;
     }
   }
 
@@ -350,6 +368,7 @@ export async function POST(request: NextRequest) {
       capability,
       prompt: actualPrompt,
       resolved_prompt: actualPrompt,
+      pattern_id: resolvedPatternId,
       level: hasSparring ? level : null,
       status: "running",
       started_at: new Date().toISOString(),
@@ -419,7 +438,40 @@ export async function POST(request: NextRequest) {
     matchUpdate.status = "judging";
     await admin.from("arena_matches").update(matchUpdate).eq("id", matchId);
 
-    const baseRubric = inferRubric(capability);
+    let baseRubric = inferRubric(capability);
+
+    // If a pattern was used, override rubric criteria with pattern-specific weights
+    if (resolvedPatternId) {
+      const { data: patternDef } = await admin
+        .from("challenge_patterns")
+        .select("rubric_overrides, name")
+        .eq("id", resolvedPatternId)
+        .single();
+
+      if (patternDef?.rubric_overrides) {
+        const overrides = patternDef.rubric_overrides as Record<string, number>;
+        // Build pattern-specific criteria from overrides
+        const patternCriteria = Object.entries(overrides)
+          .filter(([k]) => !["speed_weight", "cost_efficiency_weight", "schema_compliance_weight"].includes(k))
+          .map(([name, weight]) => ({
+            name: name.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()),
+            weight,
+            description: `${patternDef.name} pattern: ${name.replace(/_/g, " ")}`,
+          }));
+
+        if (patternCriteria.length > 0) {
+          baseRubric = {
+            ...baseRubric,
+            domain: `pattern-${resolvedPatternId}`,
+            criteria: patternCriteria,
+            speed_weight: overrides.speed_weight ?? baseRubric.speed_weight,
+            cost_efficiency_weight: overrides.cost_efficiency_weight ?? baseRubric.cost_efficiency_weight,
+            schema_compliance_weight: overrides.schema_compliance_weight ?? baseRubric.schema_compliance_weight,
+          };
+        }
+      }
+    }
+
     const rubric = applyLevelModifiers(baseRubric, level);
 
     // Collect verification hints from all active processors (union of both agents)

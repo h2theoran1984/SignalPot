@@ -33,7 +33,8 @@ export const fightSchema = z
       })
       .optional(),
     challenge_id: z.string().uuid().optional(),
-    level: z.number().int().min(1).max(3).optional(),
+    pattern_id: z.string().max(50).optional(),
+    level: z.number().int().min(1).max(4).optional(),
   })
   .refine((data) => data.agent_a_slug !== data.agent_b_slug, {
     message: "Agents must be different",
