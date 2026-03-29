@@ -90,6 +90,72 @@ async function main() {
               },
             },
           },
+          {
+            name: "refine_agent",
+            description:
+              "Iteratively improve an existing agent by running competitive matches, analyzing judge feedback, and rewriting its system prompt. Stops on plateau, regression, target score, or max iterations.",
+            inputSchema: {
+              type: "object",
+              properties: {
+                agent_slug: {
+                  type: "string",
+                  description: "Slug of the agent to refine.",
+                },
+                max_iterations: {
+                  type: "number",
+                  description: "Maximum refinement iterations (default 10, max 50).",
+                },
+                target_score: {
+                  type: "number",
+                  description: "Stop when agent reaches this score (0-1, default 0.9).",
+                },
+                opponent_slug: {
+                  type: "string",
+                  description: "Opponent to test against (default: sparring-partner).",
+                },
+                opponent_level: {
+                  type: "number",
+                  description: "Sparring Partner difficulty level 1-4 (default 1).",
+                },
+                capability: {
+                  type: "string",
+                  description: "Which capability to refine (defaults to first capability).",
+                },
+              },
+              required: ["agent_slug"],
+            },
+            outputSchema: {
+              type: "object",
+              properties: {
+                agent_slug: { type: "string" },
+                iterations_run: { type: "number" },
+                score_progression: {
+                  type: "array",
+                  items: { type: "number" },
+                  description: "Score after each iteration.",
+                },
+                best_version: { type: "number" },
+                current_version: { type: "number" },
+                stopped_reason: {
+                  type: "string",
+                  enum: ["target_reached", "plateau", "regression", "max_iterations", "match_error"],
+                },
+                history: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      version: { type: "number" },
+                      match_id: { type: "string" },
+                      score: { type: "number" },
+                      winner: { type: "string" },
+                      reasoning: { type: "string" },
+                    },
+                  },
+                },
+              },
+            },
+          },
         ],
         rate_type: "per_call",
         rate_amount: 0.01,

@@ -10,6 +10,7 @@ export { generateSchema, type CapabilitySchema } from "./schema";
 export { generateSystemPrompt } from "./prompt";
 export { registerAgent, type RegisteredAgent } from "./register";
 export { runSmokeTest, type SmokeTestResult } from "./smoke-test";
+export { refineAgent, type RefineInput, type RefineResult } from "./refine";
 
 import { parseIntent } from "./intent";
 import { generateSchema } from "./schema";
