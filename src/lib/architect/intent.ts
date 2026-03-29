@@ -4,6 +4,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { ARCHITECT_MODEL, ARCHITECT_SYSTEM } from "./constants";
+import { parseJsonResponse } from "./parse-json";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -59,10 +60,5 @@ No markdown, no explanation. Just the JSON.`,
     throw new Error("Unexpected response type from intent parsing");
   }
 
-  let text = content.text.trim();
-  if (text.startsWith("```")) {
-    text = text.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
-  }
-
-  return JSON.parse(text) as AgentIntent;
+  return parseJsonResponse(content.text) as AgentIntent;
 }

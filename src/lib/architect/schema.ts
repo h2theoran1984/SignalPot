@@ -4,6 +4,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { ARCHITECT_MODEL, ARCHITECT_SYSTEM, CAPABILITY_EXAMPLES } from "./constants";
+import { parseJsonResponse } from "./parse-json";
 import type { AgentIntent } from "./intent";
 
 const anthropic = new Anthropic({
@@ -58,10 +59,5 @@ Respond with ONLY the capability schema as JSON. No markdown, no wrapping.`,
     throw new Error("Unexpected response type from schema generation");
   }
 
-  let text = content.text.trim();
-  if (text.startsWith("```")) {
-    text = text.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
-  }
-
-  return JSON.parse(text) as CapabilitySchema;
+  return parseJsonResponse(content.text) as CapabilitySchema;
 }
