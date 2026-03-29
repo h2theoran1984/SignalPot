@@ -2,6 +2,7 @@
 // GET: List all marketplace listings for the authenticated user's agents.
 // POST: Create a new marketplace listing draft.
 
+import "@/lib/marketplace/init"; // Register connectors
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";

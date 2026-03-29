@@ -2,6 +2,7 @@
 // Each marketplace adapter handles validation and routing internally.
 // Query param ?provider=azure|google_cloud|aws determines which adapter processes the event.
 
+import "@/lib/marketplace/init"; // Register connectors
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {

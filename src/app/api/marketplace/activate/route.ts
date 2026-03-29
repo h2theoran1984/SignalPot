@@ -1,6 +1,7 @@
 // POST /api/marketplace/activate — Resolve a marketplace purchase token
 // and activate the subscription. Called by the landing page after redirect.
 
+import "@/lib/marketplace/init"; // Register connectors
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
