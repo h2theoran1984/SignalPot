@@ -1,7 +1,7 @@
 // Marketplace Connector Types — shared interfaces for all marketplace integrations.
 // Each marketplace adapter implements MarketplaceConnector.
 
-export type MarketplaceProvider = "google_cloud" | "azure" | "aws";
+export type MarketplaceProvider = "google_cloud" | "azure" | "aws" | "databricks";
 export type ListingStatus = "draft" | "pending_review" | "active" | "suspended" | "delisted";
 export type SubscriptionStatus = "pending" | "active" | "suspended" | "canceled" | "expired";
 

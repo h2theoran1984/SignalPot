@@ -4,10 +4,12 @@
 import { registerConnector } from "./service";
 import { googleCloudConnector } from "./connectors/google-cloud";
 import { azureConnector } from "./connectors/azure";
+import { databricksConnector } from "./connectors/databricks";
 
 // Register marketplace connectors
 registerConnector(googleCloudConnector);
 registerConnector(azureConnector);
+registerConnector(databricksConnector);
 
 // Future connectors:
 // import { awsConnector } from "./connectors/aws";

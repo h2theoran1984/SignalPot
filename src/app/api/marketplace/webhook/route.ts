@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const provider = searchParams.get("provider") as MarketplaceProvider | null;
 
-  if (!provider || !["google_cloud", "azure", "aws"].includes(provider)) {
+  if (!provider || !["google_cloud", "azure", "aws", "databricks"].includes(provider)) {
     return NextResponse.json({ error: "Missing or invalid provider" }, { status: 400 });
   }
 

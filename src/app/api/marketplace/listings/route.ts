@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const validProviders = ["google_cloud", "azure", "aws"];
+  const validProviders = ["google_cloud", "azure", "aws", "databricks"];
   if (!validProviders.includes(provider)) {
     return NextResponse.json(
       { error: `Invalid provider. Must be one of: ${validProviders.join(", ")}` },
