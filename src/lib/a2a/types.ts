@@ -154,6 +154,23 @@ export interface SecurityScheme {
   openIdConnectUrl?: string;
 }
 
+// SignalPot verified performance extensions for agent cards.
+// These fields are populated from telemetry data and trust graph,
+// giving orchestrator agents machine-readable signal for provider selection.
+export interface SignalPotExtensions {
+  trustScore: number;               // 0-1, from trust graph
+  verifiedCalls: number;            // total tracked calls (platform + external)
+  successRate: number;              // 0-1, from telemetry
+  avgLatencyMs: number | null;      // average response time
+  eloRating: number | null;         // best arena ELO (null if no arena matches)
+  arenaRecord: { wins: number; losses: number; ties: number } | null;
+  costPerCall: number;              // agent rate_amount
+  uptimePct: number;                // from agent stats
+  lastActiveAt: string | null;      // most recent tracked activity
+  profileUrl: string;               // link to full agent profile
+  extractUrl: string;               // link to full extract report (owner only)
+}
+
 export interface AgentCard {
   protocolVersion: string;
   name: string;
@@ -170,6 +187,9 @@ export interface AgentCard {
   defaultInputModes?: string[];
   defaultOutputModes?: string[];
   provider?: AgentProvider;
+  extensions?: {
+    signalpot?: SignalPotExtensions;
+  };
 }
 
 // ---------------------------------------------------------------------------
