@@ -67,9 +67,21 @@ export async function registerAgent(
 
   const mcpEndpoint = `${siteUrl}/api/arena/custom/${slug}`;
 
+  // Resolve owner — use provided owner_id, or fall back to platform owner
+  let ownerId = options.owner_id ?? null;
+  if (!ownerId) {
+    const { data: sysProfile } = await admin
+      .from("profiles")
+      .select("id")
+      .limit(1)
+      .single();
+    ownerId = (sysProfile?.id as string) ?? null;
+  }
+
   const { data: agent, error } = await admin
     .from("agents")
     .insert({
+      owner_id: ownerId,
       name: intent.agent_name,
       slug,
       description: intent.description_summary,
@@ -95,7 +107,6 @@ export async function registerAgent(
       agent_type: "reactive",
       status: "active",
       tags: options.tags ?? [intent.domain],
-      ...(options.owner_id ? { owner_id: options.owner_id } : {}),
     })
     .select("id, slug, name, model_id, mcp_endpoint")
     .single();
