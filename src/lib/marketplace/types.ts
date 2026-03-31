@@ -109,6 +109,13 @@ export interface MarketplaceConnector {
   provider: MarketplaceProvider;
 
   /**
+   * Verify the webhook signature/authenticity for this marketplace.
+   * Returns true if the request is verified, false otherwise.
+   * Receives the raw request body and headers for signature verification.
+   */
+  verifyWebhook(rawBody: string, headers: Record<string, string>): Promise<boolean>;
+
+  /**
    * Validate that the listing has all required fields for this marketplace.
    * Returns validation errors or empty array if valid.
    */

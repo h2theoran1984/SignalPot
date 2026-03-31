@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const maxDuration = 300;
@@ -10,16 +11,29 @@ export const maxDuration = 300;
  * Loads system_prompt + model_id from the agents table and executes
  * any Architect-generated (or manually configured) agent. No code
  * duplication — one route serves all custom agents.
+ *
+ * Supports both Anthropic (claude-*) and Google (gemini-*) models.
  */
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
+const google = process.env.GOOGLE_AI_API_KEY
+  ? new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY)
+  : null;
+
+function isGoogleModel(modelId: string): boolean {
+  return modelId.startsWith("gemini-");
+}
+
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   "claude-haiku-4-5-20251001": { input: 1.0 / 1_000_000, output: 5.0 / 1_000_000 },
   "claude-sonnet-4-5-20250514": { input: 3.0 / 1_000_000, output: 15.0 / 1_000_000 },
   "claude-opus-4-6-20250619": { input: 15.0 / 1_000_000, output: 75.0 / 1_000_000 },
+  "gemini-2.0-flash": { input: 0.10 / 1_000_000, output: 0.40 / 1_000_000 },
+  "gemini-2.5-flash-preview-05-20": { input: 0.15 / 1_000_000, output: 0.60 / 1_000_000 },
+  "gemini-3-flash-preview": { input: 0.15 / 1_000_000, output: 0.60 / 1_000_000 },
 };
 
 interface CapabilityDef {
@@ -92,26 +106,52 @@ ${JSON.stringify(outputSchema, null, 2)}
 
 Respond with ONLY valid JSON matching the output schema. No markdown, no explanation, no code blocks. Just the JSON object.` : `Respond with ONLY valid JSON. No markdown, no explanation, no code blocks.`}`;
 
-  // 5. Call Claude with the agent's system prompt
-  const message = await anthropic.messages.create({
-    model: modelId,
-    max_tokens: 4096,
-    system: agent.system_prompt as string,
-    messages: [{ role: "user", content: userPrompt }],
-  });
+  // 5. Call the model with the agent's system prompt
+  let responseText: string;
+  let inputTokens: number;
+  let outputTokens: number;
 
-  const pricing = MODEL_PRICING[modelId] ?? MODEL_PRICING["claude-haiku-4-5-20251001"];
-  const apiCost =
-    message.usage.input_tokens * pricing.input +
-    message.usage.output_tokens * pricing.output;
+  if (isGoogleModel(modelId)) {
+    if (!google) {
+      return NextResponse.json({ error: "Google AI not configured" }, { status: 500 });
+    }
 
-  const content = message.content[0];
-  if (content.type !== "text") {
-    return NextResponse.json({ error: "Unexpected response type" }, { status: 500 });
+    const model = google.getGenerativeModel({
+      model: modelId,
+      systemInstruction: agent.system_prompt as string,
+    });
+
+    const response = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+      generationConfig: { maxOutputTokens: 4096 },
+    });
+
+    responseText = response.response.text() ?? "";
+    inputTokens = response.response.usageMetadata?.promptTokenCount ?? 0;
+    outputTokens = response.response.usageMetadata?.candidatesTokenCount ?? 0;
+  } else {
+    const message = await anthropic.messages.create({
+      model: modelId,
+      max_tokens: 4096,
+      system: agent.system_prompt as string,
+      messages: [{ role: "user", content: userPrompt }],
+    });
+
+    const content = message.content[0];
+    if (content.type !== "text") {
+      return NextResponse.json({ error: "Unexpected response type" }, { status: 500 });
+    }
+
+    responseText = content.text;
+    inputTokens = message.usage.input_tokens;
+    outputTokens = message.usage.output_tokens;
   }
 
+  const pricing = MODEL_PRICING[modelId] ?? MODEL_PRICING["claude-haiku-4-5-20251001"];
+  const apiCost = inputTokens * pricing.input + outputTokens * pricing.output;
+
   // 6. Parse JSON response (with truncation repair from Underdog pattern)
-  let text = content.text.trim();
+  let text = responseText.trim();
   if (text.startsWith("```")) {
     text = text.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
   }
@@ -159,8 +199,8 @@ Respond with ONLY valid JSON matching the output schema. No markdown, no explana
       _meta: {
         provider_cost: {
           api_cost_usd: Math.round(apiCost * 1_000_000) / 1_000_000,
-          input_tokens: message.usage.input_tokens,
-          output_tokens: message.usage.output_tokens,
+          input_tokens: inputTokens,
+          output_tokens: outputTokens,
           model: modelId,
         },
       },

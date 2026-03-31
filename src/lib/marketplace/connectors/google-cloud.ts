@@ -7,6 +7,7 @@
 //   GCP_SERVICE_ACCOUNT_KEY — JSON key for the service account (base64 encoded)
 //   GCP_MARKETPLACE_SERVICE_NAME — from Producer Portal billing integration
 
+import { jwtVerify, importX509 } from "jose";
 import type {
   MarketplaceConnector,
   MarketplaceAgentProfile,
@@ -19,6 +20,39 @@ import type {
 // Google's public key URL for JWT verification
 const GOOGLE_CERTS_URL = "https://www.googleapis.com/robot/v1/metadata/x509/cloud-commerce-partner@system.gserviceaccount.com";
 const PROCUREMENT_API_BASE = "https://cloudcommerceprocurement.googleapis.com/v1";
+const EXPECTED_ISSUER = "cloud-commerce-partner@system.gserviceaccount.com";
+
+// ─────────────────────────────────────────────────────────────────
+// Google Public Key Cache
+// ─────────────────────────────────────────────────────────────────
+
+let cachedCerts: { keys: Map<string, CryptoKey>; expiresAt: number } | null = null;
+
+async function getGooglePublicKeys(): Promise<Map<string, CryptoKey>> {
+  if (cachedCerts && cachedCerts.expiresAt > Date.now()) {
+    return cachedCerts.keys;
+  }
+
+  const res = await fetch(GOOGLE_CERTS_URL);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch Google certs: ${res.status}`);
+  }
+
+  // Parse Cache-Control max-age for cache duration
+  const cacheControl = res.headers.get("cache-control") ?? "";
+  const maxAgeMatch = cacheControl.match(/max-age=(\d+)/);
+  const maxAge = maxAgeMatch ? parseInt(maxAgeMatch[1]) * 1000 : 3600_000;
+
+  const certs: Record<string, string> = await res.json();
+  const keys = new Map<string, CryptoKey>();
+
+  for (const [kid, pem] of Object.entries(certs)) {
+    keys.set(kid, await importX509(pem, "RS256"));
+  }
+
+  cachedCerts = { keys, expiresAt: Date.now() + maxAge };
+  return keys;
+}
 
 // ─────────────────────────────────────────────────────────────────
 // JWT Verification
@@ -36,31 +70,39 @@ interface GCPSignupJWT {
 
 async function verifyGCPToken(token: string): Promise<GCPSignupJWT | null> {
   try {
-    // Decode without verification first to get header
     const parts = token.split(".");
     if (parts.length !== 3) return null;
 
+    // Decode header to get kid
     const header = JSON.parse(Buffer.from(parts[0], "base64url").toString());
-    const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString()) as GCPSignupJWT;
+    const kid = header.kid as string | undefined;
 
-    // Check expiration
-    if (payload.exp && payload.exp < Date.now() / 1000) {
-      console.warn("[gcp-connector] JWT expired");
+    if (!kid) {
+      console.warn("[gcp-connector] JWT missing kid in header");
       return null;
     }
 
-    // In production, verify signature against Google's public keys
-    // For now, we verify the structure and issuer
+    // Fetch Google's public keys and find the matching one
+    const keys = await getGooglePublicKeys();
+    const key = keys.get(kid);
+
+    if (!key) {
+      console.warn(`[gcp-connector] No matching public key for kid: ${kid}`);
+      return null;
+    }
+
+    // Full RS256 signature verification + expiration check
+    const { payload } = await jwtVerify(token, key, {
+      issuer: EXPECTED_ISSUER,
+      algorithms: ["RS256"],
+    });
+
     if (!payload.sub) {
       console.warn("[gcp-connector] JWT missing sub claim");
       return null;
     }
 
-    // TODO: Full RS256 signature verification against GOOGLE_CERTS_URL
-    // using the kid from the header. For now we trust the payload structure
-    // since this endpoint is only called during the marketplace activation flow.
-
-    return payload;
+    return payload as unknown as GCPSignupJWT;
   } catch (err) {
     console.error("[gcp-connector] JWT verification failed:", err);
     return null;
@@ -95,6 +137,26 @@ async function getAccessToken(): Promise<string | null> {
 
 export const googleCloudConnector: MarketplaceConnector = {
   provider: "google_cloud",
+
+  async verifyWebhook(rawBody: string, headers: Record<string, string>): Promise<boolean> {
+    // GCP Pub/Sub webhooks include a Bearer token in the Authorization header.
+    // Verify the JWT was issued by Google's push service account.
+    const authHeader = headers["authorization"] ?? headers["Authorization"] ?? "";
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+
+    if (!token) {
+      console.warn("[gcp-connector] Webhook missing Authorization header");
+      return false;
+    }
+
+    const payload = await verifyGCPToken(token);
+    if (!payload) {
+      console.warn("[gcp-connector] Webhook JWT verification failed");
+      return false;
+    }
+
+    return true;
+  },
 
   async validateListing(input: ListingInput): Promise<string[]> {
     const errors: string[] = [];

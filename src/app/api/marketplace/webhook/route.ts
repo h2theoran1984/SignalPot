@@ -21,9 +21,28 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Missing or invalid provider" }, { status: 400 });
   }
 
+  // Read raw body for signature verification before parsing
+  const rawBody = await request.text();
+
+  // Verify webhook authenticity via the provider's connector
+  const connector = getConnector(provider);
+  if (connector) {
+    const headers: Record<string, string> = {};
+    request.headers.forEach((value, key) => { headers[key] = value; });
+
+    const verified = await connector.verifyWebhook(rawBody, headers);
+    if (!verified) {
+      console.warn(`[marketplace-webhook] Signature verification failed for ${provider}`);
+      return NextResponse.json({ error: "Webhook verification failed" }, { status: 401 });
+    }
+  } else {
+    // No connector registered for this provider — reject
+    return NextResponse.json({ error: "Provider not configured" }, { status: 400 });
+  }
+
   let body: Record<string, unknown>;
   try {
-    body = await request.json();
+    body = JSON.parse(rawBody);
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }

@@ -138,6 +138,50 @@ async function activateAzureSubscription(
 export const azureConnector: MarketplaceConnector = {
   provider: "azure",
 
+  async verifyWebhook(rawBody: string, headers: Record<string, string>): Promise<boolean> {
+    // Azure SaaS webhooks are verified by calling the Marketplace API to resolve
+    // the operation, which implicitly proves the webhook is legitimate.
+    // The webhook payload contains an operation ID that we validate against the
+    // SaaS Fulfillment API. If the operation doesn't exist, the webhook is forged.
+    const token = await getAzureToken();
+    if (!token) {
+      console.error("[azure-connector] Cannot verify webhook: no Azure token");
+      return false;
+    }
+
+    try {
+      const body = JSON.parse(rawBody);
+      const subscriptionId = body.subscriptionId ?? body.subscription_id;
+      const operationId = body.operationId ?? body.id;
+
+      if (!subscriptionId || !operationId) {
+        console.warn("[azure-connector] Webhook missing subscriptionId or operationId");
+        return false;
+      }
+
+      // Verify by fetching the operation from Azure — if it exists, the webhook is real
+      const res = await fetch(
+        `${SAAS_API_BASE}/subscriptions/${subscriptionId}/operations/${operationId}?api-version=${API_VERSION}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!res.ok) {
+        console.warn(`[azure-connector] Webhook verification failed: operation lookup returned ${res.status}`);
+        return false;
+      }
+
+      return true;
+    } catch (err) {
+      console.error("[azure-connector] Webhook verification error:", err);
+      return false;
+    }
+  },
+
   async validateListing(input: ListingInput): Promise<string[]> {
     const errors: string[] = [];
 

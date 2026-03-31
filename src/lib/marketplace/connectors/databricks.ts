@@ -65,6 +65,36 @@ interface DatabricksMCPListing {
 export const databricksConnector: MarketplaceConnector = {
   provider: "databricks",
 
+  async verifyWebhook(rawBody: string, headers: Record<string, string>): Promise<boolean> {
+    // Databricks webhook verification via HMAC-SHA256 signature.
+    // The signature is sent in the X-Databricks-Signature header.
+    const signature = headers["x-databricks-signature"] ?? headers["X-Databricks-Signature"];
+    const secret = process.env.DATABRICKS_WEBHOOK_SECRET;
+
+    if (!secret) {
+      console.warn("[databricks-connector] DATABRICKS_WEBHOOK_SECRET not configured — rejecting webhook");
+      return false;
+    }
+
+    if (!signature) {
+      console.warn("[databricks-connector] Webhook missing X-Databricks-Signature header");
+      return false;
+    }
+
+    try {
+      const { createHmac, timingSafeEqual } = await import("node:crypto");
+      const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
+      const sigBuffer = Buffer.from(signature, "hex");
+      const expectedBuffer = Buffer.from(expected, "hex");
+
+      if (sigBuffer.length !== expectedBuffer.length) return false;
+      return timingSafeEqual(sigBuffer, expectedBuffer);
+    } catch (err) {
+      console.error("[databricks-connector] Webhook signature verification error:", err);
+      return false;
+    }
+  },
+
   async validateListing(input: ListingInput): Promise<string[]> {
     const errors: string[] = [];
     if (!input.agentId) errors.push("Agent ID is required");

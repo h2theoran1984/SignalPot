@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import AuthButton from "@/components/AuthButton";
@@ -47,6 +48,7 @@ export default async function AgentDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+  const nonce = (await headers()).get("x-nonce") ?? "";
   const supabase = await createClient();
 
   const {
@@ -155,6 +157,7 @@ export default async function AgentDetailPage({
     <div className="min-h-screen bg-[#0a0a0f] text-white">
       <script
         type="application/ld+json"
+        nonce={nonce}
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             "@context": "https://schema.org",
