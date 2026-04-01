@@ -172,6 +172,7 @@ export const proxyCallSchema = z.object({
 
 export const anonTopupSchema = z.object({
   amount_usd: z.number().min(1).max(5),
+  return_path: z.string().startsWith("/").max(100).optional(),
 });
 
 // === Enterprise: Org schemas ===

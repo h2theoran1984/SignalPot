@@ -21,6 +21,11 @@ interface OpenArenaResponse {
   completed: number;
   fastest: string | null;
   cheapest: string | null;
+  credits?: {
+    free_run: boolean;
+    balance_millicents: number | null;
+    cost_per_run_millicents: number;
+  };
 }
 
 const EXAMPLE_PROMPTS = [
@@ -192,7 +197,17 @@ export default function OpenArenaPage() {
   const [response, setResponse] = useState<OpenArenaResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  const [sessionToken, setSessionToken] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("sp_open_arena_session") ?? null;
+    }
+    return null;
+  });
+  const [creditBalance, setCreditBalance] = useState<number | null>(null);
+  const [freeRunUsed, setFreeRunUsed] = useState(false);
+  const [buyingCredits, setBuyingCredits] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   async function runArena() {
@@ -203,6 +218,7 @@ export default function OpenArenaPage() {
 
     setLoading(true);
     setError(null);
+    setErrorCode(null);
     setResponse(null);
     setElapsed(0);
 
@@ -212,18 +228,34 @@ export default function OpenArenaPage() {
     }, 100);
 
     try {
+      const payload: Record<string, unknown> = { prompt: prompt.trim() };
+      if (sessionToken) payload.session_token = sessionToken;
+
       const res = await fetch("/api/arena/open", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: prompt.trim() }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
         setError(data.error ?? `Error ${res.status}`);
+        setErrorCode(data.code ?? null);
+        if (data.code === "FREE_RUN_USED") {
+          setFreeRunUsed(true);
+        }
+        if (data.code === "INSUFFICIENT_CREDITS") {
+          setCreditBalance(data.balance_millicents ?? 0);
+        }
       } else {
         setResponse(data);
+        if (data.credits?.free_run) {
+          setFreeRunUsed(true);
+        }
+        if (data.credits?.balance_millicents != null) {
+          setCreditBalance(data.credits.balance_millicents);
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Network error");
@@ -232,6 +264,59 @@ export default function OpenArenaPage() {
       if (timerRef.current) clearInterval(timerRef.current);
     }
   }
+
+  async function buyCredits() {
+    setBuyingCredits(true);
+    try {
+      const res = await fetch("/api/proxy/credits", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount_usd: 1, return_path: "/arena/open" }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        localStorage.setItem("sp_open_arena_prompt", prompt);
+        window.location.href = data.url;
+      } else {
+        setError("Failed to start checkout");
+      }
+    } catch {
+      setError("Failed to start checkout");
+    } finally {
+      setBuyingCredits(false);
+    }
+  }
+
+  // Check for returning from Stripe checkout
+  useState(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const checkoutSessionId = params.get("checkout_session_id") ?? params.get("session_id");
+    if (checkoutSessionId) {
+      // Exchange for session token
+      fetch(`/api/proxy/credits/${checkoutSessionId}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.session_token) {
+            setSessionToken(data.session_token);
+            localStorage.setItem("sp_open_arena_session", data.session_token);
+            setCreditBalance(data.credit_balance_millicents ?? 0);
+            setFreeRunUsed(true);
+            setError(null);
+            setErrorCode(null);
+            // Restore prompt
+            const savedPrompt = localStorage.getItem("sp_open_arena_prompt");
+            if (savedPrompt) {
+              setPrompt(savedPrompt);
+              localStorage.removeItem("sp_open_arena_prompt");
+            }
+          }
+        })
+        .catch(() => {});
+      // Clean URL
+      window.history.replaceState({}, "", "/arena/open");
+    }
+  });
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
@@ -285,7 +370,7 @@ export default function OpenArenaPage() {
                   Running... {elapsed}s
                 </span>
               ) : (
-                "Run All Agents"
+                freeRunUsed && !sessionToken ? "Credits Required" : freeRunUsed ? "Run All Agents ($0.015)" : "Run All Agents — Free"
               )}
             </button>
           </div>
@@ -309,8 +394,69 @@ export default function OpenArenaPage() {
           </div>
         )}
 
-        {/* Error */}
-        {error && (
+        {/* Credit status bar */}
+        {(freeRunUsed || sessionToken) && (
+          <div className="flex items-center justify-between p-3 bg-[#111118] border border-[#1f2028] rounded-lg mb-4 text-sm">
+            <div className="flex items-center gap-3">
+              {!sessionToken && freeRunUsed && (
+                <span className="text-yellow-400">Free run used</span>
+              )}
+              {sessionToken && creditBalance != null && (
+                <span className="text-gray-400">
+                  Credits: <span className="text-cyan-400 font-mono">${(creditBalance / 100_000).toFixed(2)}</span>
+                  <span className="text-gray-600 ml-2">($0.015/run)</span>
+                </span>
+              )}
+            </div>
+            <button
+              onClick={buyCredits}
+              disabled={buyingCredits}
+              className="px-3 py-1 text-xs bg-cyan-400 text-gray-950 rounded font-semibold hover:bg-cyan-300 transition-colors disabled:opacity-50"
+            >
+              {buyingCredits ? "..." : sessionToken ? "Add Credits" : "Buy Credits — $1"}
+            </button>
+          </div>
+        )}
+
+        {/* Paywall */}
+        {errorCode === "FREE_RUN_USED" && (
+          <div className="p-6 bg-gradient-to-r from-cyan-950/30 via-[#111118] to-purple-950/30 border border-cyan-800/30 rounded-xl mb-6 text-center">
+            <p className="text-xl font-bold text-white mb-2">
+              You liked that, didn{"'"}t you?
+            </p>
+            <p className="text-gray-400 mb-4">
+              Your free run showed you what these agents can do.
+              $1 gets you ~65 more runs. That{"'"}s less than a penny each.
+            </p>
+            <button
+              onClick={buyCredits}
+              disabled={buyingCredits}
+              className="px-8 py-3 bg-cyan-400 text-gray-950 rounded-lg font-bold hover:bg-cyan-300 hover:shadow-[0_0_30px_-5px_rgba(34,211,238,0.4)] transition-all disabled:opacity-50"
+            >
+              {buyingCredits ? "Opening checkout..." : "Add Credits — $1"}
+            </button>
+            <p className="text-xs text-gray-600 mt-3">
+              Powered by Stripe. No account required.
+            </p>
+          </div>
+        )}
+
+        {errorCode === "INSUFFICIENT_CREDITS" && (
+          <div className="p-6 bg-[#111118] border border-orange-800/30 rounded-xl mb-6 text-center">
+            <p className="text-lg font-semibold text-orange-400 mb-2">Credits depleted</p>
+            <p className="text-gray-400 mb-4">Top up to keep running agents.</p>
+            <button
+              onClick={buyCredits}
+              disabled={buyingCredits}
+              className="px-8 py-3 bg-cyan-400 text-gray-950 rounded-lg font-bold hover:bg-cyan-300 transition-all disabled:opacity-50"
+            >
+              {buyingCredits ? "Opening checkout..." : "Add $1 Credits"}
+            </button>
+          </div>
+        )}
+
+        {/* Error (non-credit errors) */}
+        {error && !errorCode && (
           <div className="p-4 bg-red-950/30 border border-red-800/50 rounded-lg mb-6 text-red-400 text-sm">
             {error}
           </div>
@@ -385,7 +531,7 @@ export default function OpenArenaPage() {
             <div className="inline-flex items-center gap-6 text-sm text-gray-600">
               <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                No login required
+                First run free
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-cyan-500" />

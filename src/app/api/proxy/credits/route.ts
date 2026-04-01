@@ -36,10 +36,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { amount_usd } = parsed.data;
+  const { amount_usd, return_path } = parsed.data;
   const amountCents = Math.round(amount_usd * 100);
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.signalpot.dev";
+  const returnBase = return_path ?? "/agents";
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
@@ -56,8 +57,8 @@ export async function POST(request: NextRequest) {
         quantity: 1,
       },
     ],
-    success_url: `${siteUrl}/agents?anon_credits=success&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${siteUrl}/agents?anon_credits=cancelled`,
+    success_url: `${siteUrl}${returnBase}?anon_credits=success&checkout_session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${siteUrl}${returnBase}?anon_credits=cancelled`,
     metadata: {
       topup_type: "anonymous_credits",
       amount_usd: String(amount_usd),
