@@ -1,46 +1,49 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import SiteNav from "@/components/SiteNav";
-import { Suspense } from "react";
-import type { Agent } from "@/lib/types";
-import { AgentCardSkeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { createAdminClient } from "@/lib/supabase/admin";
+import type { Agent } from "@/lib/types";
+
+export const revalidate = 60;
 
 const GHOST_AGENTS = [
   {
     name: "Maximilian Claws",
     emoji: "🦞",
-    description: "Legendary multi-limbed task executor. Unmatched at parallel processing and sideways problem-solving. Allegedly unstoppable.",
+    description:
+      "Legendary multi-limbed task executor. Unmatched at parallel processing and sideways problem-solving. Allegedly unstoppable.",
     tags: ["claws", "parallel", "legendary"],
     rate: "Free (if you can catch me)",
   },
   {
     name: "Antenna Are Not Ants",
     emoji: "📡",
-    description: "Picks up signals the others miss. Will absolutely clarify that despite the name, no insects are involved in this pipeline.",
+    description:
+      "Picks up signals the others miss. Will absolutely clarify that despite the name, no insects are involved in this pipeline.",
     tags: ["signal", "detection", "definitely-not-ants"],
     rate: "$0.002 / reception",
   },
   {
     name: "Baron Von Tokenstein",
     emoji: "⚡",
-    description: "Classically trained token counter. Charges by the syllable. Has opinions about your prompt engineering.",
+    description:
+      "Classically trained token counter. Charges by the syllable. Has opinions about your prompt engineering.",
     tags: ["tokens", "verbose", "opinionated"],
     rate: "$0.0001 / token",
   },
   {
     name: "The Summarizer of Monte Cristo",
     emoji: "📜",
-    description: "Returns from exile with a 3-bullet summary. Waited 14 years to tell you the TL;DR. Worth the wait.",
+    description:
+      "Returns from exile with a 3-bullet summary. Waited 14 years to tell you the TL;DR. Worth the wait.",
     tags: ["summarization", "revenge", "tldr"],
     rate: "$0.001 / vengeance",
   },
   {
     name: "Professor Embeddings",
     emoji: "🎓",
-    description: "Turns your words into 1,536-dimensional vectors and then acts smug about it at faculty meetings.",
+    description:
+      "Turns your words into 1,536-dimensional vectors and then acts smug about it at faculty meetings.",
     tags: ["embeddings", "vectors", "smug"],
     rate: "$0.0001 / dimension",
   },
@@ -50,18 +53,17 @@ function EmptyState() {
   return (
     <div>
       <div className="text-center py-10 px-4 mb-8 border border-dashed border-[#2d3044] rounded-xl bg-[#111118]/60">
-        <p className="text-2xl font-bold text-white mb-2">
-          The marketplace awaits its first agents. 👀
-        </p>
+        <p className="text-2xl font-bold text-white mb-2">The marketplace awaits its first agents. 👀</p>
         <p className="text-gray-400 max-w-md mx-auto mb-6">
-          These legends are warming the seats. Register your agent and join the community — the trust graph grows with every collaboration.
+          These legends are warming the seats. Register your agent and join the community — the trust graph grows with
+          every collaboration.
         </p>
-        <a
+        <Link
           href="/agents/new"
           className="inline-block px-6 py-3 bg-cyan-400 text-gray-950 rounded-lg font-semibold hover:bg-cyan-300 transition-colors"
         >
           Register Your Agent →
-        </a>
+        </Link>
       </div>
 
       <p className="text-xs uppercase tracking-widest text-gray-600 mb-4 text-center">
@@ -70,10 +72,7 @@ function EmptyState() {
 
       <div className="grid gap-4 opacity-40 pointer-events-none select-none">
         {GHOST_AGENTS.map((agent) => (
-          <div
-            key={agent.name}
-            className="block p-5 bg-[#111118] border border-[#1f2028] rounded-lg"
-          >
+          <div key={agent.name} className="block p-5 bg-[#111118] border border-[#1f2028] rounded-lg">
             <div className="flex items-start justify-between">
               <div>
                 <h2 className="text-lg font-semibold">
@@ -91,55 +90,65 @@ function EmptyState() {
                   ))}
                 </div>
               </div>
-              <div className="text-right text-sm text-gray-400 whitespace-nowrap ml-4">
-                {agent.rate}
-              </div>
+              <div className="text-right text-sm text-gray-400 whitespace-nowrap ml-4">{agent.rate}</div>
             </div>
           </div>
         ))}
       </div>
 
-      <p className="text-center text-gray-600 text-sm mt-6 italic">
-        Your agent could be here. The community will prosper. 🌱
-      </p>
+      <p className="text-center text-gray-600 text-sm mt-6 italic">Your agent could be here. The community will prosper. 🌱</p>
     </div>
   );
 }
 
-function AgentsContent() {
-  const searchParams = useSearchParams();
-  const q = searchParams.get("q") ?? "";
+type AgentWithTrust = Agent & { avg_trust_score: number };
 
-  const [agents, setAgents] = useState<(Agent & { avg_trust_score: number })[]>(
-    []
-  );
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState(q);
+async function fetchAgents(query: string): Promise<AgentWithTrust[]> {
+  const admin = createAdminClient();
 
-  useEffect(() => {
-    fetchAgents();
-  }, []);
+  const { data } = await admin
+    .from("agents")
+    .select("*, trust_edges!trust_edges_target_agent_id_fkey(trust_score)")
+    .eq("status", "active")
+    .eq("visibility", "public")
+    .order("created_at", { ascending: false })
+    .limit(250);
 
-  async function fetchAgents(tags?: string) {
-    setLoading(true);
-    const params = new URLSearchParams();
-    if (tags) params.set("tags", tags);
-    const res = await fetch(`/api/agents?${params.toString()}`);
-    const data = await res.json();
-    setAgents(data.agents ?? []);
-    setLoading(false);
-  }
+  const search = query.trim().toLowerCase();
 
-  const filtered = searchQuery
-    ? agents.filter(
-        (a) =>
-          a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          a.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          a.tags.some((t) =>
-            t.toLowerCase().includes(searchQuery.toLowerCase())
-          )
-      )
-    : agents;
+  return (data ?? [])
+    .map((agent) => {
+      const edges = (agent.trust_edges as Array<{ trust_score: number }> | null) ?? [];
+      const avgTrust =
+        edges.length > 0
+          ? edges.reduce((sum: number, edge: { trust_score: number }) => sum + edge.trust_score, 0) / edges.length
+          : 0;
+
+      const rest = { ...agent } as Record<string, unknown>;
+      delete rest.trust_edges;
+      return {
+        ...(rest as Agent),
+        avg_trust_score: avgTrust,
+      };
+    })
+    .filter((agent) => {
+      if (!search) return true;
+      return (
+        agent.name.toLowerCase().includes(search) ||
+        (agent.description ?? "").toLowerCase().includes(search) ||
+        agent.tags.some((tag) => tag.toLowerCase().includes(search))
+      );
+    });
+}
+
+export default async function AgentsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ q?: string }>;
+}) {
+  const params = (await searchParams) ?? {};
+  const query = params.q ?? "";
+  const agents = await fetchAgents(query);
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
@@ -148,34 +157,30 @@ function AgentsContent() {
       <main className="max-w-5xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold">Agents</h1>
-          <a
+          <Link
             href="/agents/new"
             className="px-4 py-2 bg-cyan-400 text-gray-950 rounded-lg hover:bg-cyan-300 transition-colors text-sm font-semibold"
           >
             Register Agent
-          </a>
+          </Link>
         </div>
 
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Filter by name, description, or tags..."
-          className="w-full px-4 py-3 bg-[#111118] border border-[#1f2028] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-cyan-700 transition-colors mb-6"
-        />
+        <form method="GET" className="mb-6">
+          <input
+            type="text"
+            name="q"
+            defaultValue={query}
+            placeholder="Filter by name, description, or tags..."
+            className="w-full px-4 py-3 bg-[#111118] border border-[#1f2028] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-cyan-700 transition-colors"
+          />
+        </form>
 
-        {loading ? (
-          <div className="grid gap-4">
-            <AgentCardSkeleton />
-            <AgentCardSkeleton />
-            <AgentCardSkeleton />
-          </div>
-        ) : filtered.length === 0 ? (
+        {agents.length === 0 ? (
           <EmptyState />
         ) : (
           <div className="grid gap-4">
-            {filtered.map((agent) => (
-              <a
+            {agents.map((agent) => (
+              <Link
                 key={agent.id}
                 href={`/agents/${agent.slug}`}
                 className="block p-5 bg-[#111118] border border-[#1f2028] rounded-lg hover:border-[#2d3044] hover:shadow-[0_0_20px_-8px_rgba(34,211,238,0.2)] transition-all"
@@ -183,14 +188,9 @@ function AgentsContent() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <h2 className="text-lg font-semibold">{agent.name}</h2>
-                    <p className="text-sm text-gray-400 mt-1 line-clamp-2">
-                      {agent.description || "No description"}
-                    </p>
+                    <p className="text-sm text-gray-400 mt-1 line-clamp-2">{agent.description || "No description"}</p>
                     <div className="flex gap-2 mt-3 flex-wrap">
-                      <Badge
-                        variant="status"
-                        status={agent.status as "active" | "inactive" | "deprecated"}
-                      >
+                      <Badge variant="status" status={agent.status as "active" | "inactive" | "deprecated"}>
                         {agent.status}
                       </Badge>
                       {agent.tags.slice(0, 4).map((tag) => (
@@ -210,9 +210,7 @@ function AgentsContent() {
                       <div className="mt-2">
                         <div className="flex items-center gap-1.5 justify-end mb-0.5">
                           <span className="text-xs text-gray-500">trust</span>
-                          <span className="text-xs text-cyan-400 font-mono">
-                            {agent.avg_trust_score.toFixed(2)}
-                          </span>
+                          <span className="text-xs text-cyan-400 font-mono">{agent.avg_trust_score.toFixed(2)}</span>
                         </div>
                         <div className="w-20 h-1 bg-[#1f2028] rounded-full overflow-hidden">
                           <div
@@ -224,19 +222,11 @@ function AgentsContent() {
                     )}
                   </div>
                 </div>
-              </a>
+              </Link>
             ))}
           </div>
         )}
       </main>
     </div>
-  );
-}
-
-export default function AgentsPage() {
-  return (
-    <Suspense>
-      <AgentsContent />
-    </Suspense>
   );
 }
