@@ -72,6 +72,7 @@ export default async function AgentDetailPage({
         "*, source_agent:agents!trust_edges_source_agent_id_fkey(name, slug)"
       )
       .eq("target_agent_id", agent.id)
+      .eq("synthetic", false)
       .order("trust_score", { ascending: false })
       .limit(10),
     supabase
@@ -80,6 +81,7 @@ export default async function AgentDetailPage({
         "*, target_agent:agents!trust_edges_target_agent_id_fkey(name, slug)"
       )
       .eq("source_agent_id", agent.id)
+      .eq("synthetic", false)
       .order("trust_score", { ascending: false })
       .limit(10),
   ]);

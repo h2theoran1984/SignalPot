@@ -53,7 +53,7 @@ export async function GET(request: Request) {
 
   let query = supabase
     .from("agents")
-    .select("*, trust_edges!trust_edges_target_agent_id_fkey(trust_score)", {
+    .select("*, trust_edges!trust_edges_target_agent_id_fkey(trust_score, synthetic)", {
       count: "exact",
     });
 
@@ -165,9 +165,10 @@ export async function GET(request: Request) {
     );
   }
 
-  // Compute average trust score per agent, strip sensitive fields
+  // Compute average trust score per agent, strip sensitive fields (exclude synthetic edges)
   const agents = (data ?? []).map((agent) => {
-    const edges = agent.trust_edges ?? [];
+    const allEdges = (agent.trust_edges ?? []) as Array<{ trust_score: number; synthetic?: boolean }>;
+    const edges = allEdges.filter((e) => !e.synthetic);
     const avgTrust =
       edges.length > 0
         ? edges.reduce(

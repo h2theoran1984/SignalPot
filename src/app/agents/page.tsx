@@ -12,7 +12,7 @@ async function fetchAgents() {
 
   const { data, error, count } = await admin
     .from("agents")
-    .select("*, trust_edges!trust_edges_target_agent_id_fkey(trust_score)", {
+    .select("*, trust_edges!trust_edges_target_agent_id_fkey(trust_score, synthetic)", {
       count: "exact",
     })
     .eq("status", "active")
@@ -23,7 +23,8 @@ async function fetchAgents() {
   if (error || !data) return [];
 
   return data.map((agent) => {
-    const edges = (agent.trust_edges ?? []) as Array<{ trust_score: number }>;
+    const allEdges = (agent.trust_edges ?? []) as Array<{ trust_score: number; synthetic: boolean }>;
+    const edges = allEdges.filter((e) => !e.synthetic);
     const avgTrust =
       edges.length > 0
         ? edges.reduce((sum, e) => sum + e.trust_score, 0) / edges.length
