@@ -5,6 +5,7 @@ import { updateJobSchema } from "@/lib/validations";
 import { inngest } from "@/lib/inngest/client";
 import { wrapResponse } from "@/lib/envelope";
 import { validateOutput } from "@/lib/schema-validator";
+import { scoreSuccessfulResult } from "@/lib/risk";
 
 // GET /api/jobs/[id] — Get a job by ID
 export async function GET(
@@ -164,6 +165,10 @@ export async function PATCH(
 
     const validationResult = validateOutput(outputSchema, updates.output_summary ?? null);
     updatePayload.verified = validationResult.valid;
+    const risk = scoreSuccessfulResult({
+      validated: validationResult.valid,
+      durationMs: (updates.duration_ms ?? job.duration_ms ?? 0) as number,
+    });
 
     if (!validationResult.valid) {
       console.warn(
@@ -189,6 +194,7 @@ export async function PATCH(
     updatePayload.output_summary = {
       ...(updates.output_summary ?? {}),
       _envelope: responseEnvelope,
+      _risk: risk,
     };
   }
 
