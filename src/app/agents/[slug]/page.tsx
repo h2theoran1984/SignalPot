@@ -88,6 +88,30 @@ export default async function AgentDetailPage({
     ? agent.capability_schema
     : [];
 
+  // Fetch health data (public)
+  const [healthEventsResult, coachingTipsResult] = await Promise.all([
+    supabase
+      .from("agent_health_events")
+      .select("id, event_type, severity, message, detected_at, resolved_at")
+      .eq("agent_id", agent.id)
+      .order("detected_at", { ascending: false })
+      .limit(5),
+    supabase
+      .from("agent_coaching_tips")
+      .select("id, category, tip, metric_name, current_value, baseline_value, created_at")
+      .eq("agent_id", agent.id)
+      .order("created_at", { ascending: false })
+      .limit(5),
+  ]);
+
+  const healthEvents = healthEventsResult.data ?? [];
+  const coachingTips = coachingTipsResult.data ?? [];
+  const activeDrifts = healthEvents.filter(
+    (e) => e.event_type === "drift_detected" && !e.resolved_at
+  );
+  const healthStatus = (agent.health_status as string) ?? "unknown";
+  const healthScore = agent.health_score as number | null;
+
   // Owner-only: fetch cost economics data
   let economics: { totalRevenue: number; totalApiCost: number; marginPct: number; count: number; byCap: Record<string, { revenue: number; apiCost: number; count: number }> } | null = null;
   let arenaStats: { totalMatches: number; wins: number; losses: number; ties: number; winRate: number; elo: number | null } | null = null;
@@ -197,7 +221,33 @@ export default async function AgentDetailPage({
       <main className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex items-start justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold">{agent.name}</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold">{agent.name}</h1>
+              {healthStatus !== "unknown" && (
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                  healthStatus === "healthy" ? "bg-emerald-950/50 text-emerald-400 border border-emerald-800/50" :
+                  healthStatus === "warning" ? "bg-yellow-950/50 text-yellow-400 border border-yellow-800/50" :
+                  healthStatus === "degrading" ? "bg-red-950/50 text-red-400 border border-red-800/50" :
+                  "bg-gray-900/50 text-gray-500 border border-gray-800/50"
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${
+                    healthStatus === "healthy" ? "bg-emerald-400" :
+                    healthStatus === "warning" ? "bg-yellow-400" :
+                    healthStatus === "degrading" ? "bg-red-400" :
+                    "bg-gray-500"
+                  }`} />
+                  {healthStatus === "healthy" ? "Healthy" :
+                   healthStatus === "warning" ? "Warning" :
+                   healthStatus === "degrading" ? "Degrading" : "Unknown"}
+                  {healthScore != null && ` ${Math.round(healthScore * 100)}%`}
+                </span>
+              )}
+              {activeDrifts.length > 0 && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-950/50 text-red-400 border border-red-800/50">
+                  {activeDrifts.length} drift alert{activeDrifts.length > 1 ? "s" : ""}
+                </span>
+              )}
+            </div>
             <p className="text-sm font-mono text-gray-500 mt-0.5">/{agent.slug}</p>
             <p className="text-gray-400 mt-2">{agent.description}</p>
             <div className="flex gap-2 mt-3 flex-wrap">
@@ -438,6 +488,112 @@ export default async function AgentDetailPage({
               </div>
             </div>
             <p className="text-xs text-gray-600 mt-2">Only you can see this.</p>
+          </div>
+        )}
+
+        {coachingTips.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-4">Performance Coach</h2>
+            <div className="space-y-3">
+              {coachingTips.map((tip: {
+                id: string;
+                category: string;
+                tip: string;
+                metric_name: string | null;
+                current_value: number | null;
+                baseline_value: number | null;
+                created_at: string;
+              }) => (
+                <div
+                  key={tip.id}
+                  className={`p-4 bg-[#111118] border rounded-lg border-l-2 ${
+                    tip.category === "accuracy" ? "border-[#1f2028] border-l-orange-500" :
+                    tip.category === "speed" ? "border-[#1f2028] border-l-yellow-500" :
+                    tip.category === "cost" ? "border-[#1f2028] border-l-cyan-500" :
+                    tip.category === "schema" ? "border-[#1f2028] border-l-red-500" :
+                    tip.category === "coherence" ? "border-[#1f2028] border-l-purple-500" :
+                    "border-[#1f2028] border-l-gray-500"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`text-xs font-mono uppercase tracking-widest ${
+                      tip.category === "accuracy" ? "text-orange-400" :
+                      tip.category === "speed" ? "text-yellow-400" :
+                      tip.category === "cost" ? "text-cyan-400" :
+                      tip.category === "schema" ? "text-red-400" :
+                      tip.category === "coherence" ? "text-purple-400" :
+                      "text-gray-400"
+                    }`}>
+                      {tip.category}
+                    </span>
+                    <span className="text-[10px] text-gray-600">
+                      {new Date(tip.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-300">{tip.tip}</p>
+                  {tip.current_value != null && tip.baseline_value != null && tip.metric_name !== "schema_compliance" && (
+                    <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
+                      <span>Current: <span className="text-white font-mono">{typeof tip.current_value === "number" && tip.current_value < 10 ? `${(tip.current_value * 100).toFixed(0)}%` : tip.current_value.toLocaleString()}</span></span>
+                      <span>Baseline: <span className="text-gray-400 font-mono">{typeof tip.baseline_value === "number" && tip.baseline_value < 10 ? `${(tip.baseline_value * 100).toFixed(0)}%` : tip.baseline_value.toLocaleString()}</span></span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {healthEvents.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-4">Health Timeline</h2>
+            <div className="relative">
+              <div className="absolute left-3 top-0 bottom-0 w-px bg-[#1f2028]" />
+              <div className="space-y-4">
+                {healthEvents.map((event: {
+                  id: string;
+                  event_type: string;
+                  severity: string;
+                  message: string | null;
+                  detected_at: string;
+                  resolved_at: string | null;
+                }) => (
+                  <div key={event.id} className="relative pl-8">
+                    <div className={`absolute left-1.5 top-1.5 w-3 h-3 rounded-full border-2 ${
+                      event.event_type === "drift_detected" && !event.resolved_at
+                        ? event.severity === "critical" ? "bg-red-500 border-red-400" : "bg-yellow-500 border-yellow-400"
+                        : event.event_type === "recovery" ? "bg-emerald-500 border-emerald-400"
+                        : event.event_type === "drift_detected" && event.resolved_at ? "bg-gray-600 border-gray-500"
+                        : "bg-gray-600 border-gray-500"
+                    }`} />
+                    <div className="p-3 bg-[#111118] border border-[#1f2028] rounded-lg">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-xs font-medium ${
+                          event.event_type === "drift_detected" && !event.resolved_at
+                            ? event.severity === "critical" ? "text-red-400" : "text-yellow-400"
+                            : event.event_type === "recovery" ? "text-emerald-400"
+                            : "text-gray-500"
+                        }`}>
+                          {event.event_type === "drift_detected" ? `Drift Detected (${event.severity})` :
+                           event.event_type === "recovery" ? "Recovered" :
+                           event.event_type === "degradation" ? "Degradation" :
+                           event.event_type === "model_change" ? "Model Changed" :
+                           event.event_type}
+                          {event.resolved_at && event.event_type === "drift_detected" && (
+                            <span className="text-gray-600 ml-2">(resolved)</span>
+                          )}
+                        </span>
+                        <span className="text-[10px] text-gray-600">
+                          {new Date(event.detected_at).toLocaleDateString()} {new Date(event.detected_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                      {event.message && (
+                        <p className="text-sm text-gray-400">{event.message}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
