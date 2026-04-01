@@ -8,6 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { callArenaJudge } from "@/lib/arena/judge";
 import { updateElo } from "@/lib/arena/elo";
 import { inferRubric } from "@/lib/arena/rubric";
+import { generateCoachingTips } from "@/lib/coaching";
 import type { ArenaRubric } from "@/lib/arena/types";
 
 export const arenaJudgeMatch = inngest.createFunction(
@@ -79,6 +80,8 @@ export const arenaJudgeMatch = inngest.createFunction(
         owner_b: agentB.owner_id,
         rate_a: Number(agentA.rate_amount ?? 0),
         rate_b: Number(agentB.rate_amount ?? 0),
+        duration_a_ms: (match.duration_a_ms as number) ?? 0,
+        duration_b_ms: (match.duration_b_ms as number) ?? 0,
         capability: match.capability as string,
         creator_id: match.creator_id as string | null,
         level: match.level as number | null,
@@ -141,6 +144,29 @@ export const arenaJudgeMatch = inngest.createFunction(
           amount_millicents: platformFee,
         });
       }
+    });
+
+    // Step 5: generate coaching tips for both agents
+    await step.run("generate-coaching", async () => {
+      if (!judgment.breakdown) return;
+
+      const breakdown = judgment.breakdown as Record<string, unknown>;
+      await Promise.all([
+        generateCoachingTips(
+          judgment.agent_a_id,
+          match_id,
+          "a",
+          breakdown,
+          judgment.duration_a_ms ?? 0
+        ),
+        generateCoachingTips(
+          judgment.agent_b_id,
+          match_id,
+          "b",
+          breakdown,
+          judgment.duration_b_ms ?? 0
+        ),
+      ]);
     });
 
     return {
