@@ -185,7 +185,7 @@ export async function generateExtractReport(
   // ── 1. Fetch the agent ────────────────────────────────────────────
   const { data: agent, error: agentErr } = await admin
     .from("agents")
-    .select("id, name, slug, capability_schema, compliance_score, trust_score")
+    .select("id, name, slug, capability_schema, compliance_score")
     .eq("id", agentId)
     .single();
 
@@ -503,7 +503,14 @@ export async function generateExtractReport(
   });
 
   // ── 12. Compute marketplace readiness ──────────────────────────────
-  const trustScore = (agent.trust_score as number) ?? 0;
+  // Trust score lives on trust_edges, not agents
+  const { data: selfEdge } = await admin
+    .from("trust_edges")
+    .select("trust_score")
+    .eq("source_agent_id", agent.id)
+    .eq("target_agent_id", agent.id)
+    .maybeSingle();
+  const trustScore = (selfEdge?.trust_score as number) ?? 0;
   const complianceScore = (agent.compliance_score as number | null) ?? null;
   const verifiedCalls = externalTotalCalls;
   const successRate = externalData.successRate;
