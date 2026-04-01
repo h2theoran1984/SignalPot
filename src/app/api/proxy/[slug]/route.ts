@@ -148,6 +148,10 @@ export async function POST(
   }
 
   const { capability, input, session_token, idempotency_key } = parsed.data;
+  const callerScope = isAuthenticated
+    ? `user:${auth.profileId}`
+    : `anon:${session_token ?? ip}`;
+  const scopedIdempotencyKey = `${callerScope}:${slug}:${capability}:${idempotency_key}`;
 
   // 3. Idempotency check — atomically claim the key to prevent double-processing.
   //    We INSERT first (with ON CONFLICT DO NOTHING), then check if it already existed.
@@ -155,7 +159,7 @@ export async function POST(
   const { data: existingKey } = await admin
     .from("idempotency_keys")
     .select("response_body")
-    .eq("idempotency_key", idempotency_key)
+    .eq("idempotency_key", scopedIdempotencyKey)
     .maybeSingle();
 
   if (existingKey?.response_body) {
@@ -168,7 +172,7 @@ export async function POST(
   if (!existingKey) {
     const { error: claimError } = await admin
       .from("idempotency_keys")
-      .insert({ idempotency_key, job_id: null, response_body: null });
+      .insert({ idempotency_key: scopedIdempotencyKey, job_id: null, response_body: null });
 
     if (claimError) {
       // Unique constraint violation = concurrent duplicate request
@@ -537,7 +541,7 @@ export async function POST(
   await admin
     .from("idempotency_keys")
     .update({ job_id: job.id, response_body: idempotencyBody })
-    .eq("idempotency_key", idempotency_key);
+    .eq("idempotency_key", scopedIdempotencyKey);
 
   const response = corsJson(responseBody);
 
