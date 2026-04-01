@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthContext } from "@/lib/auth";
+import { getAuthContext, hasScope } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { updateDisputeSchema } from "@/lib/validations";
 
@@ -10,6 +10,9 @@ export async function GET(
   const auth = await getAuthContext(req);
   if (!auth?.profileId)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!hasScope(auth, "jobs:read")) {
+    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+  }
 
   const { id } = await params;
   const admin = createAdminClient();
@@ -35,6 +38,9 @@ export async function PATCH(
   const auth = await getAuthContext(req);
   if (!auth?.profileId)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!hasScope(auth, "jobs:write")) {
+    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+  }
 
   const { id } = await params;
 
