@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import AuthButton from "./AuthButton";
 import OrgSwitcher from "./OrgSwitcher";
@@ -25,16 +26,16 @@ export default function SiteNav() {
     return pathname === href || pathname.startsWith(href + "/");
   }
 
-  return (
+    return (
     <nav className="flex items-center justify-between px-6 py-4 border-b border-[#1f2028] bg-[#0a0a0f]/80 backdrop-blur-sm sticky top-0 z-30">
-      <a href="/" className="text-xl font-bold tracking-tight">
+      <Link href="/" className="text-xl font-bold tracking-tight">
         Signal<span className="text-cyan-400">Pot</span>
-      </a>
+      </Link>
       <div className="flex items-center gap-6">
         {NAV_LINKS.map(({ href, label }) => {
           const active = isActive(href);
           return (
-            <a
+            <Link
               key={href}
               href={href}
               className={
@@ -44,7 +45,7 @@ export default function SiteNav() {
               }
             >
               {label}
-            </a>
+            </Link>
           );
         })}
         <OrgSwitcher />

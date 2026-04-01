@@ -324,26 +324,3 @@ export async function POST(
 
   return NextResponse.json({ ok: true });
 }
-    if (ok && operator.profileId) {
-      await logAuditEvent({
-        orgId: null,
-        actorId: operator.profileId,
-        action: "rollback.acknowledge",
-        targetType: "rollback_incident",
-        targetId: parsed.data.incident_id,
-        metadata: { slug, note: parsed.data.note ?? null },
-        ipAddress: getClientIp(request),
-      });
-    }
-
-    if (ok && operator.profileId) {
-      await logAuditEvent({
-        orgId: null,
-        actorId: operator.profileId,
-        action: "rollback.resolve",
-        targetType: "rollback_incident",
-        targetId: parsed.data.incident_id,
-        metadata: { slug, note: parsed.data.note ?? null },
-        ipAddress: getClientIp(request),
-      });
-    }

@@ -1,6 +1,7 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
@@ -28,23 +29,23 @@ export default function AuthButton() {
 
   if (!user) {
     return (
-      <a
+      <Link
         href="/login"
         className="px-4 py-2 text-sm bg-white text-gray-900 rounded-lg hover:bg-gray-200 transition-colors"
       >
         Sign In
-      </a>
+      </Link>
     );
   }
 
   return (
     <div className="flex items-center gap-3">
-      <a
+      <Link
         href="/dashboard"
         className="text-sm text-gray-300 hover:text-white transition-colors"
       >
         Dashboard
-      </a>
+      </Link>
       <button
         onClick={signOut}
         className="px-4 py-2 text-sm bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 border border-gray-700 transition-colors cursor-pointer"

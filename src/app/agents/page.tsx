@@ -127,7 +127,7 @@ async function fetchAgents(query: string): Promise<AgentWithTrust[]> {
       const rest = { ...agent } as Record<string, unknown>;
       delete rest.trust_edges;
       return {
-        ...(rest as Agent),
+        ...(rest as unknown as Agent),
         avg_trust_score: avgTrust,
       };
     })
