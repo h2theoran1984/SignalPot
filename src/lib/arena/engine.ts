@@ -10,6 +10,7 @@ import { handleSparringRequest } from "@/lib/arena/sparring-partner";
 import { dispatchPushNotifications } from "@/lib/a2a/handler";
 import { trackAgentCall } from "@/lib/telemetry";
 import { assertSafeUrl } from "@/lib/ssrf";
+import { signCallbackToken } from "@/lib/arena/callback-auth";
 import type { Agent } from "@/lib/types";
 
 /** Championship voting window. */
@@ -398,7 +399,8 @@ export async function fireAgentCall(
 
   await admin.from("jobs").update({ status: "running" }).eq("id", jobId);
 
-  const callbackUrl = `${callbackBaseUrl}/api/arena/matches/${matchId}/callback?side=${side}&job_id=${jobId}`;
+  const callbackToken = signCallbackToken(matchId, side, jobId);
+  const callbackUrl = `${callbackBaseUrl}/api/arena/matches/${matchId}/callback?side=${side}&job_id=${jobId}&cb_sig=${encodeURIComponent(callbackToken)}`;
 
   // Sparring Partner: call synchronously and post to callback
   if (agent.slug === "sparring-partner") {

@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { inviteMemberSchema } from "@/lib/validations";
-import { canManageMembers } from "@/lib/rbac";
 import { logAuditEvent, getClientIp } from "@/lib/audit";
 
 /** Resolve org by slug and verify caller is a member. */
@@ -81,10 +80,6 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (!canManageMembers(auth)) {
-    return NextResponse.json({ error: "Requires admin+ role" }, { status: 403 });
-  }
-
   let body: unknown;
   try {
     body = await request.json();
@@ -103,6 +98,9 @@ export async function POST(
   const orgCtx = await resolveOrg(slug, auth.profileId);
   if (!orgCtx) {
     return NextResponse.json({ error: "Organization not found or not a member" }, { status: 404 });
+  }
+  if (!["owner", "admin"].includes(orgCtx.role)) {
+    return NextResponse.json({ error: "Requires admin+ role in this organization" }, { status: 403 });
   }
 
   const admin = createAdminClient();

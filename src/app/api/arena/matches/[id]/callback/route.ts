@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { inngest } from "@/lib/inngest/client";
+import { verifyCallbackToken } from "@/lib/arena/callback-auth";
 
 /**
  * POST /api/arena/matches/[id]/callback?side=a|b&job_id=xxx
@@ -15,10 +16,15 @@ export async function POST(
 ) {
   const { id: matchId } = await params;
   const side = request.nextUrl.searchParams.get("side") as "a" | "b" | null;
-  const jobId = request.nextUrl.searchParams.get("job_id") ?? "";
+  const jobId = request.nextUrl.searchParams.get("job_id");
+  const callbackSig = request.nextUrl.searchParams.get("cb_sig");
 
-  if (!side || (side !== "a" && side !== "b")) {
-    return NextResponse.json({ error: "Missing or invalid side param (a|b)" }, { status: 400 });
+  if (!side || (side !== "a" && side !== "b") || !jobId) {
+    return NextResponse.json({ error: "Missing or invalid side/job_id params" }, { status: 400 });
+  }
+
+  if (!verifyCallbackToken(matchId, side, jobId, callbackSig)) {
+    return NextResponse.json({ error: "Invalid callback signature" }, { status: 403 });
   }
 
   let body: Record<string, unknown>;
@@ -32,12 +38,24 @@ export async function POST(
   const admin = createAdminClient();
   const { data: match } = await admin
     .from("arena_matches")
-    .select("id, status")
+    .select("id, status, agent_a_id, agent_b_id")
     .eq("id", matchId)
     .single();
 
   if (!match || match.status !== "running") {
     return NextResponse.json({ error: "Match not found or not running" }, { status: 404 });
+  }
+
+  // Verify the callback job belongs to the expected side's agent.
+  const expectedAgentId = side === "a" ? match.agent_a_id : match.agent_b_id;
+  const { data: job } = await admin
+    .from("jobs")
+    .select("id, provider_agent_id")
+    .eq("id", jobId)
+    .single();
+
+  if (!job || job.provider_agent_id !== expectedAgentId) {
+    return NextResponse.json({ error: "job_id does not belong to this match side" }, { status: 403 });
   }
 
   // Extract result from A2A response format

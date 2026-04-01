@@ -68,6 +68,24 @@ interface GCPSignupJWT {
   "google.roles"?: string[];
 }
 
+function getExpectedAudiences(): string[] {
+  const configured = process.env.GCP_MARKETPLACE_WEBHOOK_AUDIENCE
+    ?.split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+
+  if (configured && configured.length > 0) {
+    return configured;
+  }
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (siteUrl) {
+    return [siteUrl.replace(/\/$/, "")];
+  }
+
+  return [];
+}
+
 async function verifyGCPToken(token: string): Promise<GCPSignupJWT | null> {
   try {
     const parts = token.split(".");
@@ -91,10 +109,17 @@ async function verifyGCPToken(token: string): Promise<GCPSignupJWT | null> {
       return null;
     }
 
+    const audiences = getExpectedAudiences();
+    if (audiences.length === 0) {
+      console.warn("[gcp-connector] Missing expected webhook audience");
+      return null;
+    }
+
     // Full RS256 signature verification + expiration check
     const { payload } = await jwtVerify(token, key, {
       issuer: EXPECTED_ISSUER,
       algorithms: ["RS256"],
+      audience: audiences.length === 1 ? audiences[0] : audiences,
     });
 
     if (!payload.sub) {
@@ -250,6 +275,7 @@ export const googleCloudConnector: MarketplaceConnector = {
   async activateSubscription(input: SubscriptionActivateInput, listingId: string): Promise<string> {
     // Called after JWT verification resolves the subscription details.
     // In production, this would also call the Procurement API to approve the account.
+    void listingId; // Reserved for per-listing entitlement flows.
     const token = await getAccessToken();
     if (token) {
       try {
