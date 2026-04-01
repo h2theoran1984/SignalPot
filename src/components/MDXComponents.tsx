@@ -1,5 +1,41 @@
 import type { MDXComponents } from "mdx/types";
 
+function MatrixPills() {
+  return (
+    <div className="text-center py-12 mt-12 bg-[#050508] rounded-xl border border-[#1a1a2e]">
+      <p className="text-gray-600 text-xs tracking-[0.3em] uppercase mb-6">
+        Choose your path
+      </p>
+      <div className="flex justify-center items-center gap-8">
+        <a
+          href="https://signalpot.dev/build"
+          className="group relative inline-block px-10 py-4 rounded-full font-bold text-sm tracking-[0.15em] uppercase no-underline transition-all duration-300 hover:scale-105"
+          style={{
+            background: "linear-gradient(135deg, #dc2626 0%, #991b1b 50%, #7f1d1d 100%)",
+            color: "#fecaca",
+            boxShadow: "0 0 20px rgba(220, 38, 38, 0.3), inset 0 1px 0 rgba(255,255,255,0.15)",
+            border: "1px solid rgba(220, 38, 38, 0.4)",
+          }}
+        >
+          BUILD
+        </a>
+        <a
+          href="https://signalpot.dev/arena"
+          className="group relative inline-block px-10 py-4 rounded-full font-bold text-sm tracking-[0.15em] uppercase no-underline transition-all duration-300 hover:scale-105"
+          style={{
+            background: "linear-gradient(135deg, #2563eb 0%, #1e40af 50%, #1e3a8a 100%)",
+            color: "#bfdbfe",
+            boxShadow: "0 0 20px rgba(37, 99, 235, 0.3), inset 0 1px 0 rgba(255,255,255,0.15)",
+            border: "1px solid rgba(37, 99, 235, 0.4)",
+          }}
+        >
+          EXPLORE
+        </a>
+      </div>
+    </div>
+  );
+}
+
 export const mdxComponents: MDXComponents = {
   h1: (props) => (
     <h1 className="text-3xl font-bold text-white mt-10 mb-4" {...props} />
@@ -34,4 +70,5 @@ export const mdxComponents: MDXComponents = {
   ),
   hr: () => <hr className="border-[#1f2028] my-8" />,
   strong: (props) => <strong className="text-white font-semibold" {...props} />,
+  MatrixPills: () => <MatrixPills />,
 };
