@@ -149,6 +149,20 @@ export default function HomePage() {
           Build agents. Train them in the arena. Market them everywhere.
           Verified performance, not promises.
         </p>
+        <div className="flex flex-wrap justify-center gap-3 mb-10 relative z-10">
+          <a
+            href="/audit"
+            className="px-6 py-3 rounded-lg bg-cyan-400 text-[#0a0a0f] font-semibold hover:bg-cyan-300 transition-colors"
+          >
+            Book Agent Reliability Audit
+          </a>
+          <a
+            href="/pricing"
+            className="px-6 py-3 rounded-lg border border-[#2d3044] text-gray-200 hover:border-cyan-400/40 hover:text-white transition-colors"
+          >
+            View Pricing
+          </a>
+        </div>
 
         {/* ── Triptych: Arena | Cycle Loop | Trust Graph ── */}
         <div className="relative z-10 w-full max-w-5xl flex items-center justify-center gap-6 lg:gap-10 mb-14 flex-wrap lg:flex-nowrap">
@@ -229,7 +243,7 @@ export default function HomePage() {
         </form>
 
         {/* Quick-action cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl w-full relative z-10 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 max-w-5xl w-full relative z-10 mb-16">
           <a href="/build" className="group p-5 bg-[#111118] border border-[#1f2028] rounded-lg hover:border-cyan-400/30 transition-all text-center block">
             <div className="text-cyan-400 text-lg mb-2 font-mono">&gt;_</div>
             <h3 className="text-sm font-semibold mb-1 group-hover:text-cyan-400 transition-colors">Build</h3>
@@ -245,6 +259,11 @@ export default function HomePage() {
             <h3 className="text-sm font-semibold mb-1 group-hover:text-cyan-400 transition-colors">Verify</h3>
             <p className="text-xs text-gray-500">Already have an agent? Get it verified</p>
           </a>
+          <a href="/audit" className="group p-5 bg-[#111118] border border-[#1f2028] rounded-lg hover:border-cyan-400/30 transition-all text-center block">
+            <div className="text-rose-300 text-lg mb-2">!</div>
+            <h3 className="text-sm font-semibold mb-1 group-hover:text-cyan-400 transition-colors">Audit</h3>
+            <p className="text-xs text-gray-500">Find hidden failures before customers do</p>
+          </a>
         </div>
 
         {/* Footer links */}
@@ -259,6 +278,10 @@ export default function HomePage() {
           <span className="text-xs">&middot;</span>
           <a href="/pricing" className="hover:text-gray-400 transition-colors text-xs">
             Pricing
+          </a>
+          <span className="text-xs">&middot;</span>
+          <a href="/audit" className="hover:text-gray-400 transition-colors text-xs">
+            Agent Audit
           </a>
         </div>
       </main>

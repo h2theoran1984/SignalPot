@@ -243,6 +243,43 @@ export default function PricingPage() {
             {topupLoading ? "Redirecting..." : `Add $${topupAmount} Credits`}
           </button>
         </div>
+
+        {/* Services section */}
+        <div className="mt-10 border border-[#1f2028] rounded-xl p-8 bg-[#111118]">
+          <h2 className="text-2xl font-bold mb-2">Need revenue confidence before scaling?</h2>
+          <p className="text-gray-400 mb-6">
+            If your team is already shipping agents, run an Agent Reliability Audit to uncover
+            breakpoints in money flow, auth boundaries, and production trust signals.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="rounded-lg border border-[#1f2028] p-5 bg-[#0a0a0f]">
+              <p className="text-xs text-gray-500 uppercase tracking-widest mb-1">Starter</p>
+              <p className="text-2xl font-bold mb-2">$2,000</p>
+              <p className="text-sm text-gray-400 mb-3">1-week pass over one production flow.</p>
+              <p className="text-sm text-gray-300">Includes ranked risks, replay steps, and 48-hour follow-up.</p>
+            </div>
+            <div className="rounded-lg border border-cyan-400/30 p-5 bg-cyan-400/5">
+              <p className="text-xs text-cyan-300 uppercase tracking-widest mb-1">Full Audit</p>
+              <p className="text-2xl font-bold mb-2">$6,000</p>
+              <p className="text-sm text-gray-300 mb-3">3-week deep audit across auth, jobs, and monetization.</p>
+              <p className="text-sm text-gray-300">Includes prioritized backlog + rollout support.</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <a
+              href="/audit"
+              className="px-5 py-2.5 rounded-lg bg-cyan-400 text-[#0a0a0f] font-semibold hover:bg-cyan-300 transition-colors"
+            >
+              See Audit Scope
+            </a>
+            <a
+              href="/contact?intent=audit"
+              className="px-5 py-2.5 rounded-lg border border-[#2d3044] text-gray-200 hover:border-cyan-400/40 hover:text-white transition-colors"
+            >
+              Talk to Sales
+            </a>
+          </div>
+        </div>
       </main>
     </div>
   );
