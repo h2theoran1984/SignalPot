@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthContext } from "@/lib/auth";
+import { getAuthContext, hasScope } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { settleDispute } from "@/lib/escrow";
 import { logAuditEvent, getClientIp } from "@/lib/audit";
@@ -11,6 +11,9 @@ export async function POST(
   const auth = await getAuthContext(req);
   if (!auth?.profileId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!hasScope(auth, "jobs:write")) {
+    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
   }
 
   const admin = createAdminClient();

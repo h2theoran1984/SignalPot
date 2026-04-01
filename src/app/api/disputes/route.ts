@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthContext } from "@/lib/auth";
+import { getAuthContext, hasScope } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
 import { inngest } from "@/lib/inngest/client";
@@ -16,6 +16,9 @@ export async function POST(req: NextRequest) {
   const auth = await getAuthContext(req);
   if (!auth?.profileId)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!hasScope(auth, "jobs:write")) {
+    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+  }
 
   let body: unknown;
   try {
@@ -150,6 +153,9 @@ export async function GET(req: NextRequest) {
   const auth = await getAuthContext(req);
   if (!auth?.profileId)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!hasScope(auth, "jobs:read")) {
+    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+  }
 
   const admin = createAdminClient();
   const { data: disputes, error } = await admin

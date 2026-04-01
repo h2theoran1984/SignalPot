@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getAuthContext, checkPublicRateLimit } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthContext, hasScope } from "@/lib/auth";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { updateJobSchema } from "@/lib/validations";
 import { inngest } from "@/lib/inngest/client";
 import { wrapResponse } from "@/lib/envelope";
@@ -19,14 +19,19 @@ export async function GET(
     return NextResponse.json({ error: "Invalid job ID format" }, { status: 400 });
   }
 
-  const rateLimited = await checkPublicRateLimit(request);
-  if (rateLimited) return rateLimited;
+  const auth = await getAuthContext(request);
+  if (!auth) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!hasScope(auth, "jobs:read")) {
+    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+  }
 
-  const supabase = await createClient();
+  const admin = createAdminClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from("jobs")
-    .select("*")
+    .select("*, provider_agent:agents!jobs_provider_agent_id_fkey(owner_id, org_id)")
     .eq("id", id)
     .single();
 
@@ -34,8 +39,29 @@ export async function GET(
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
 
-  // Strip anonymous_session_id to prevent session token exposure
-  const { anonymous_session_id: _, ...safeData } = data;
+  const providerOwnerId = data.provider_agent?.owner_id as string | null;
+  const providerOrgId = data.provider_agent?.org_id as string | null;
+  const isRequester = data.requester_profile_id === auth.profileId;
+  const isProviderOwner = providerOwnerId === auth.profileId;
+  let isProviderOrgMember = false;
+
+  if (providerOrgId && !isRequester && !isProviderOwner) {
+    const { data: membership } = await admin
+      .from("org_members")
+      .select("profile_id")
+      .eq("org_id", providerOrgId)
+      .eq("profile_id", auth.profileId)
+      .single();
+    isProviderOrgMember = !!membership;
+  }
+
+  if (!isRequester && !isProviderOwner && !isProviderOrgMember) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const safeData = { ...data } as Record<string, unknown>;
+  delete safeData.anonymous_session_id;
+  delete safeData.provider_agent;
   return NextResponse.json(safeData);
 }
 
@@ -54,6 +80,9 @@ export async function PATCH(
   const auth = await getAuthContext(request);
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!hasScope(auth, "jobs:write")) {
+    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
   }
 
   let body: unknown;

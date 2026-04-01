@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { generateApiKey } from "@/lib/api-keys";
 import { createApiKeySchema } from "@/lib/validations";
 import { getRpmForPlan, type Plan } from "@/lib/plans";
-import { getAuthContext, checkPublicRateLimit } from "@/lib/auth";
+import { getAuthContext, checkPublicRateLimit, hasScope } from "@/lib/auth";
 import { canCreateOrgKey } from "@/lib/rbac";
 import { logAuditEvent, getClientIp } from "@/lib/audit";
 
@@ -11,6 +11,9 @@ export async function GET(request: Request) {
   const auth = await getAuthContext(request);
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!hasScope(auth, "agents:read")) {
+    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
   }
 
   let query = auth.supabase
@@ -46,6 +49,9 @@ export async function POST(request: Request) {
   const auth = await getAuthContext(request);
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!hasScope(auth, "agents:write")) {
+    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
   }
 
   // Org key creation requires developer+ role
