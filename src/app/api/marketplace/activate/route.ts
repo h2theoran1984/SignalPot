@@ -4,6 +4,7 @@
 import "@/lib/marketplace/init"; // Register connectors
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getAuthContext } from "@/lib/auth";
 import {
   getConnector,
   activateSubscription,
@@ -11,6 +12,11 @@ import {
 import type { MarketplaceProvider } from "@/lib/marketplace/types";
 
 export async function POST(request: NextRequest) {
+  const auth = await getAuthContext(request);
+  if (!auth) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   let body: Record<string, unknown>;
   try {
     body = await request.json();
