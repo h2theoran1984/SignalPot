@@ -124,6 +124,20 @@ export async function GET(
     })),
   };
 
+  // Add E2E public key if enabled
+  if (agent.e2e_enabled) {
+    const { getAgentPublicKey } = await import("@/lib/e2e");
+    const e2eKey = await getAgentPublicKey(agent.id as string);
+    if (e2eKey) {
+      extensions.e2ePublicKey = {
+        jwk: e2eKey.jwk,
+        kid: e2eKey.kid,
+        version: e2eKey.version,
+        activatedAt: e2eKey.activatedAt,
+      };
+    }
+  }
+
   card.extensions = { signalpot: extensions };
 
   return NextResponse.json(card, { headers: CORS });

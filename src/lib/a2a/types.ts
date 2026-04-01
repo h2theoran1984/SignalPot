@@ -172,6 +172,12 @@ export interface SignalPotExtensions {
   complianceScore: number | null;   // OWASP compliance score 0-1
   complianceTestedAt: string | null;
   marketplaceListings: Array<{ provider: string; url: string; status: string }>;
+  e2ePublicKey?: {
+    jwk: JsonWebKey;
+    kid: string;
+    version: number;
+    activatedAt: string;
+  };
 }
 
 export interface AgentCard {
