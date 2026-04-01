@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAuthContext } from "@/lib/auth";
+import { getAuthContext, hasScope } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ssoConfigSchema } from "@/lib/validations";
 import { logAuditEvent, getClientIp } from "@/lib/audit";
@@ -23,6 +23,9 @@ export async function GET(
   const auth = await getAuthContext(request);
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!hasScope(auth, "agents:read")) {
+    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
   }
 
   const admin = createAdminClient();
@@ -69,6 +72,9 @@ export async function PATCH(
   const auth = await getAuthContext(request);
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!hasScope(auth, "agents:write")) {
+    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
   }
 
   let body: unknown;
@@ -143,7 +149,10 @@ export async function PATCH(
   });
 
   // Strip client_secret from response
-  const { client_secret: _, ...safePatchConfig } = (updated.settings as Record<string, unknown>).sso as Record<string, unknown>;
+  const safePatchConfig = {
+    ...((updated.settings as Record<string, unknown>).sso as Record<string, unknown>),
+  };
+  delete safePatchConfig.client_secret;
   return NextResponse.json({
     ...safePatchConfig,
     has_client_secret: true,

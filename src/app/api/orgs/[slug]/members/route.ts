@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { getAuthContext } from "@/lib/auth";
+import { getAuthContext, hasScope } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { inviteMemberSchema } from "@/lib/validations";
-import { canManageMembers } from "@/lib/rbac";
 import { logAuditEvent, getClientIp } from "@/lib/audit";
 
 /** Resolve org by slug and verify caller is a member. */
@@ -38,6 +37,9 @@ export async function GET(
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  if (!hasScope(auth, "agents:read")) {
+    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+  }
 
   const orgCtx = await resolveOrg(slug, auth.profileId);
   if (!orgCtx) {
@@ -57,13 +59,14 @@ export async function GET(
 
   const members = (data ?? []).map((row) => {
     const profile = row.profile as unknown as { id: string; full_name: string; avatar_url: string | null; email: string } | null;
+    const canViewEmail = ["owner", "admin", "auditor"].includes(orgCtx.role);
     return {
       profile_id: row.profile_id,
       role: row.role,
       joined_at: row.joined_at,
       full_name: profile?.full_name ?? null,
       avatar_url: profile?.avatar_url ?? null,
-      email: profile?.email ?? null,
+      email: canViewEmail ? (profile?.email ?? null) : null,
     };
   });
 
@@ -80,9 +83,8 @@ export async function POST(
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
-  if (!canManageMembers(auth)) {
-    return NextResponse.json({ error: "Requires admin+ role" }, { status: 403 });
+  if (!hasScope(auth, "agents:write")) {
+    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
   }
 
   let body: unknown;
@@ -103,6 +105,9 @@ export async function POST(
   const orgCtx = await resolveOrg(slug, auth.profileId);
   if (!orgCtx) {
     return NextResponse.json({ error: "Organization not found or not a member" }, { status: 404 });
+  }
+  if (!["owner", "admin"].includes(orgCtx.role)) {
+    return NextResponse.json({ error: "Requires admin+ role in this organization" }, { status: 403 });
   }
 
   const admin = createAdminClient();
