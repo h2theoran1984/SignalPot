@@ -13,7 +13,7 @@ export async function middleware(request: NextRequest) {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https: blob: https://www.googletagmanager.com https://www.facebook.com",
     "font-src 'self' https:",
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.stripe.com https://api.stripe.com https://www.google-analytics.com https://www.googletagmanager.com https://analytics.google.com https://connect.facebook.net https://www.facebook.com https://googleads.g.doubleclick.net https://www.googleadservices.com",
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.stripe.com https://api.stripe.com https://www.google-analytics.com https://www.googletagmanager.com https://analytics.google.com https://www.google.com https://connect.facebook.net https://www.facebook.com https://googleads.g.doubleclick.net https://www.googleadservices.com",
     "frame-src 'self' https://*.stripe.com https://js.stripe.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",

@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
     .single();
 
   if (agentErr || !agent) {
+    console.error(`[arena/extract] Agent lookup failed: query=${isUuid ? "id" : "slug"}=${agentId}, error=${agentErr?.message ?? "no data"}, code=${agentErr?.code ?? "none"}`);
     return NextResponse.json({ error: "Agent not found" }, { status: 404 });
   }
 
