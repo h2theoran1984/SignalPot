@@ -439,6 +439,7 @@ export async function fireAgentCall(
         capability_used: capability,
         job_id: jobId,
         callback_url: callbackUrl,
+        source: "arena",
         _envelope: requestEnvelope,
       },
     },

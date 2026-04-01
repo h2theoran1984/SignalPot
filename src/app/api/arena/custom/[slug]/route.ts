@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { decryptRequest, encryptResponse } from "@/lib/e2e/middleware";
 
 export const maxDuration = 300;
 
@@ -85,8 +86,22 @@ export async function POST(
   const parts = rpcMessage?.parts as Array<Record<string, unknown>> | undefined;
   const metadata = rpcParams?.metadata as Record<string, unknown> | undefined;
 
-  const input = (parts?.[0]?.data ?? rpcParams?.input ?? body.input ?? {}) as Record<string, unknown>;
+  const rawInput = (parts?.[0]?.data ?? rpcParams?.input ?? body.input ?? {}) as Record<string, unknown>;
   const capability = (metadata?.capability_used ?? rpcParams?.capability ?? body.capability ?? "analyze") as string;
+
+  // 2b. Decrypt E2E-encrypted input if present
+  let input: Record<string, unknown>;
+  let e2eSenderKid: string | null = null;
+  let e2eSenderJwk: JsonWebKey | null = null;
+  try {
+    const decrypted = await decryptRequest(rawInput, slug);
+    input = decrypted.plaintext;
+    e2eSenderKid = decrypted.senderKid;
+    e2eSenderJwk = decrypted.senderJwk;
+  } catch {
+    // If decryption fails, use raw input (may be cleartext)
+    input = rawInput;
+  }
 
   // 3. Find the output schema for this capability
   const capabilities = (agent.capability_schema as CapabilityDef[]) ?? [];
@@ -186,14 +201,25 @@ Respond with ONLY valid JSON matching the output schema. No markdown, no explana
     }
   }
 
-  // 7. Return A2A JSON-RPC response
+  // 7. Encrypt response if caller provided a key (skip for Arena)
+  let responseData: Record<string, unknown> = data;
+  if (e2eSenderKid || e2eSenderJwk) {
+    try {
+      responseData = await encryptResponse(data, e2eSenderKid, e2eSenderJwk, metadata);
+    } catch (err) {
+      console.warn(`[custom/${slug}] E2E response encryption failed:`, err);
+      // Fall back to cleartext
+    }
+  }
+
+  // 8. Return A2A JSON-RPC response
   return NextResponse.json({
     jsonrpc: "2.0",
     id: (body.id as string) ?? null,
     result: {
       artifacts: [
         {
-          parts: [{ type: "data", data }],
+          parts: [{ type: "data", data: responseData }],
         },
       ],
       _meta: {

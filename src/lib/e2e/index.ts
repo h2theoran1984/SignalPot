@@ -2,4 +2,5 @@ export { generateAgentKeyPair, enableE2E, disableE2E, getAgentPublicKey } from "
 export { encryptPayload } from "./encrypt";
 export { decryptPayload } from "./decrypt";
 export { isE2EEncrypted, extractE2EEnvelope, wrapE2EResponse, e2eEnvelopeSchema } from "./envelope";
+export { decryptRequest, encryptResponse } from "./middleware";
 export type { E2EEnvelope } from "./envelope";
