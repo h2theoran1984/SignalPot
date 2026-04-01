@@ -1,7 +1,21 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import { warnOnce } from "@/lib/env";
 
 let redis: Redis | null = null;
+type RateLimitResult = { success: boolean; remaining: number; reset: number };
+
+function allowWithoutRedis(reason: string): RateLimitResult {
+  warnOnce(
+    `ratelimit-fail-open:${reason}`,
+    `[infra] Rate limiting fail-open: ${reason}. Configure Upstash Redis to enforce limits.`
+  );
+  return {
+    success: true,
+    remaining: Number.MAX_SAFE_INTEGER,
+    reset: Date.now() + 60_000,
+  };
+}
 
 function getRedis(): Redis | null {
   if (redis) return redis;
@@ -16,9 +30,9 @@ function getRedis(): Redis | null {
 export async function checkApiKeyRateLimit(
   keyPrefix: string,
   limitRpm: number
-): Promise<{ success: boolean; remaining: number; reset: number }> {
+): Promise<RateLimitResult> {
   const r = getRedis();
-  if (!r) return { success: false, remaining: 0, reset: Date.now() + 60_000 };
+  if (!r) return allowWithoutRedis("UPSTASH_REDIS_REST_URL/TOKEN missing");
 
   const limiter = new Ratelimit({
     redis: r,
@@ -26,20 +40,24 @@ export async function checkApiKeyRateLimit(
     prefix: "sp:apikey",
   });
 
-  const result = await limiter.limit(keyPrefix);
-  return {
-    success: result.success,
-    remaining: result.remaining,
-    reset: result.reset,
-  };
+  try {
+    const result = await limiter.limit(keyPrefix);
+    return {
+      success: result.success,
+      remaining: result.remaining,
+      reset: result.reset,
+    };
+  } catch {
+    return allowWithoutRedis("Upstash request failed for API key rate limit");
+  }
 }
 
 // Anonymous proxy rate limiter: 10 rpm per IP (stricter than general IP limit)
 export async function checkAnonRateLimit(
   ip: string
-): Promise<{ success: boolean; remaining: number; reset: number }> {
+): Promise<RateLimitResult> {
   const r = getRedis();
-  if (!r) return { success: false, remaining: 0, reset: Date.now() + 60_000 };
+  if (!r) return allowWithoutRedis("UPSTASH_REDIS_REST_URL/TOKEN missing");
 
   const limiter = new Ratelimit({
     redis: r,
@@ -47,21 +65,25 @@ export async function checkAnonRateLimit(
     prefix: "sp:anon",
   });
 
-  const result = await limiter.limit(ip);
-  return {
-    success: result.success,
-    remaining: result.remaining,
-    reset: result.reset,
-  };
+  try {
+    const result = await limiter.limit(ip);
+    return {
+      success: result.success,
+      remaining: result.remaining,
+      reset: result.reset,
+    };
+  } catch {
+    return allowWithoutRedis("Upstash request failed for anonymous rate limit");
+  }
 }
 
 // Per-agent global cap for anonymous calls: 100/hour regardless of IP count
 // Prevents VPN swarm attacks on free agents
 export async function checkAnonAgentRateLimit(
   agentSlug: string
-): Promise<{ success: boolean; remaining: number; reset: number }> {
+): Promise<RateLimitResult> {
   const r = getRedis();
-  if (!r) return { success: false, remaining: 0, reset: Date.now() + 60_000 };
+  if (!r) return allowWithoutRedis("UPSTASH_REDIS_REST_URL/TOKEN missing");
 
   const limiter = new Ratelimit({
     redis: r,
@@ -69,21 +91,27 @@ export async function checkAnonAgentRateLimit(
     prefix: "sp:anon-agent",
   });
 
-  const result = await limiter.limit(agentSlug);
-  return {
-    success: result.success,
-    remaining: result.remaining,
-    reset: result.reset,
-  };
+  try {
+    const result = await limiter.limit(agentSlug);
+    return {
+      success: result.success,
+      remaining: result.remaining,
+      reset: result.reset,
+    };
+  } catch {
+    return allowWithoutRedis(
+      "Upstash request failed for anonymous per-agent rate limit"
+    );
+  }
 }
 
 // Arena match creation: plan-tiered rate limit per user
 export async function checkArenaRateLimit(
   profileId: string,
   limitPerHour: number = 5
-): Promise<{ success: boolean; remaining: number; reset: number }> {
+): Promise<RateLimitResult> {
   const r = getRedis();
-  if (!r) return { success: false, remaining: 0, reset: Date.now() + 60_000 };
+  if (!r) return allowWithoutRedis("UPSTASH_REDIS_REST_URL/TOKEN missing");
 
   const limiter = new Ratelimit({
     redis: r,
@@ -91,21 +119,25 @@ export async function checkArenaRateLimit(
     prefix: "sp:arena",
   });
 
-  const result = await limiter.limit(profileId);
-  return {
-    success: result.success,
-    remaining: result.remaining,
-    reset: result.reset,
-  };
+  try {
+    const result = await limiter.limit(profileId);
+    return {
+      success: result.success,
+      remaining: result.remaining,
+      reset: result.reset,
+    };
+  } catch {
+    return allowWithoutRedis("Upstash request failed for arena rate limit");
+  }
 }
 
 // Org-level monthly quota: tracks total API calls per org per calendar month
 export async function checkOrgMonthlyQuota(
   orgId: string,
   monthlyLimit: number
-): Promise<{ success: boolean; remaining: number; reset: number }> {
+): Promise<RateLimitResult> {
   const r = getRedis();
-  if (!r) return { success: false, remaining: 0, reset: Date.now() + 60_000 };
+  if (!r) return allowWithoutRedis("UPSTASH_REDIS_REST_URL/TOKEN missing");
 
   // Use a monthly key that resets each calendar month
   const now = new Date();
@@ -113,11 +145,20 @@ export async function checkOrgMonthlyQuota(
   const key = `sp:org-quota:${orgId}:${monthKey}`;
 
   // Increment and check
-  const current = await r.incr(key);
+  let current: number;
+  try {
+    current = await r.incr(key);
+  } catch {
+    return allowWithoutRedis("Upstash request failed for org monthly quota");
+  }
 
   // Set TTL on first use (expire after 35 days to cover month boundary)
   if (current === 1) {
-    await r.expire(key, 35 * 24 * 60 * 60);
+    try {
+      await r.expire(key, 35 * 24 * 60 * 60);
+    } catch {
+      return allowWithoutRedis("Upstash TTL set failed for org monthly quota");
+    }
   }
 
   // Calculate reset time (start of next month)
@@ -126,7 +167,12 @@ export async function checkOrgMonthlyQuota(
 
   if (current > monthlyLimit) {
     // Over quota - decrement back since we pre-incremented
-    await r.decr(key);
+    try {
+      await r.decr(key);
+    } catch {
+      // No-op: fail-open and avoid blocking paid traffic on cleanup failure.
+      return allowWithoutRedis("Upstash decrement failed for org monthly quota");
+    }
     return { success: false, remaining: 0, reset };
   }
 
@@ -136,9 +182,9 @@ export async function checkOrgMonthlyQuota(
 // Admin auth rate limiter: 10 attempts per minute per IP
 export async function checkAdminAuthRateLimit(
   ip: string
-): Promise<{ success: boolean; remaining: number; reset: number }> {
+): Promise<RateLimitResult> {
   const r = getRedis();
-  if (!r) return { success: false, remaining: 0, reset: Date.now() + 60_000 };
+  if (!r) return allowWithoutRedis("UPSTASH_REDIS_REST_URL/TOKEN missing");
 
   const limiter = new Ratelimit({
     redis: r,
@@ -146,21 +192,25 @@ export async function checkAdminAuthRateLimit(
     prefix: "sp:admin-auth",
   });
 
-  const result = await limiter.limit(ip);
-  return {
-    success: result.success,
-    remaining: result.remaining,
-    reset: result.reset,
-  };
+  try {
+    const result = await limiter.limit(ip);
+    return {
+      success: result.success,
+      remaining: result.remaining,
+      reset: result.reset,
+    };
+  } catch {
+    return allowWithoutRedis("Upstash request failed for admin auth rate limit");
+  }
 }
 
 // KeyKeeper dispatch: 30 requests/min per IP — tight enough to block brute-force,
 // loose enough for legitimate agent bursts
 export async function checkDispatchRateLimit(
   ip: string
-): Promise<{ success: boolean; remaining: number; reset: number }> {
+): Promise<RateLimitResult> {
   const r = getRedis();
-  if (!r) return { success: false, remaining: 0, reset: Date.now() + 60_000 };
+  if (!r) return allowWithoutRedis("UPSTASH_REDIS_REST_URL/TOKEN missing");
 
   const limiter = new Ratelimit({
     redis: r,
@@ -168,20 +218,24 @@ export async function checkDispatchRateLimit(
     prefix: "sp:kk-dispatch",
   });
 
-  const result = await limiter.limit(ip);
-  return {
-    success: result.success,
-    remaining: result.remaining,
-    reset: result.reset,
-  };
+  try {
+    const result = await limiter.limit(ip);
+    return {
+      success: result.success,
+      remaining: result.remaining,
+      reset: result.reset,
+    };
+  } catch {
+    return allowWithoutRedis("Upstash request failed for dispatch rate limit");
+  }
 }
 
 // Global IP-based rate limiter for unauthenticated endpoints
 export async function checkIpRateLimit(
   ip: string
-): Promise<{ success: boolean; remaining: number; reset: number }> {
+): Promise<RateLimitResult> {
   const r = getRedis();
-  if (!r) return { success: false, remaining: 0, reset: Date.now() + 60_000 };
+  if (!r) return allowWithoutRedis("UPSTASH_REDIS_REST_URL/TOKEN missing");
 
   const limiter = new Ratelimit({
     redis: r,
@@ -189,10 +243,14 @@ export async function checkIpRateLimit(
     prefix: "sp:ip",
   });
 
-  const result = await limiter.limit(ip);
-  return {
-    success: result.success,
-    remaining: result.remaining,
-    reset: result.reset,
-  };
+  try {
+    const result = await limiter.limit(ip);
+    return {
+      success: result.success,
+      remaining: result.remaining,
+      reset: result.reset,
+    };
+  } catch {
+    return allowWithoutRedis("Upstash request failed for IP rate limit");
+  }
 }
