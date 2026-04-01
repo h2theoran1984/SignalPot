@@ -15,6 +15,27 @@ const deliverables = [
   "30-day stabilization checklist",
 ];
 
+const fitSignals = [
+  "You are already running agents in production",
+  "A reliability bug can impact paid users or revenue",
+  "Your team needs actionable fixes, not a giant PDF",
+];
+
+const faq = [
+  {
+    q: "Will this slow down the platform?",
+    a: "No. We focus on mitigation patterns that preserve throughput and avoid heavy runtime overhead.",
+  },
+  {
+    q: "Do we need to share source code?",
+    a: "Not always. We can start from runtime behavior and API-level attack surfaces, then expand if needed.",
+  },
+  {
+    q: "How fast can we start?",
+    a: "Typically within 3-5 business days after kickoff details are confirmed.",
+  },
+];
+
 export default function AuditPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
@@ -26,26 +47,52 @@ export default function AuditPage() {
             Agent Reliability Audit
           </p>
           <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-4">
-            Turn fragile agent behavior into a revenue-safe production system.
+            Catch the failures that kill trust before they hit your customers.
           </h1>
           <p className="text-lg text-gray-300 max-w-3xl">
             We run a focused offensive + reliability pass against your deployed agent stack,
             then hand your team a prioritized fix plan that can ship fast without tanking performance.
           </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6 max-w-4xl">
+            <div className="rounded-lg border border-[#1f2028] bg-[#111118] px-4 py-3">
+              <p className="text-xs text-gray-500 mb-1">Time to first signal</p>
+              <p className="font-semibold">Within 72 hours</p>
+            </div>
+            <div className="rounded-lg border border-[#1f2028] bg-[#111118] px-4 py-3">
+              <p className="text-xs text-gray-500 mb-1">Primary outcome</p>
+              <p className="font-semibold">Prioritized fix backlog</p>
+            </div>
+            <div className="rounded-lg border border-[#1f2028] bg-[#111118] px-4 py-3">
+              <p className="text-xs text-gray-500 mb-1">Delivery style</p>
+              <p className="font-semibold">Builder-friendly, no fluff</p>
+            </div>
+          </div>
           <div className="flex flex-wrap gap-3 mt-8">
             <a
-              href="/contact?intent=audit"
+              href="/contact?intent=audit-full"
               className="px-6 py-3 rounded-lg bg-cyan-400 text-[#0a0a0f] font-semibold hover:bg-cyan-300 transition-colors"
             >
-              Request Audit
+              Book Full Audit
             </a>
             <a
-              href="mailto:support@signalpot.dev?subject=Agent%20Reliability%20Audit"
+              href="/contact?intent=audit-starter"
               className="px-6 py-3 rounded-lg border border-[#2d3044] text-gray-200 hover:border-cyan-400/40 hover:text-white transition-colors"
             >
-              Email Sales
+              Start with Starter
             </a>
           </div>
+        </section>
+
+        <section className="rounded-xl border border-[#1f2028] bg-[#111118] p-8 mb-10">
+          <h2 className="text-2xl font-bold mb-4">Best fit if...</h2>
+          <ul className="space-y-2">
+            {fitSignals.map((signal) => (
+              <li key={signal} className="text-sm text-gray-300 flex items-start gap-2">
+                <span className="text-cyan-400 mt-0.5">•</span>
+                {signal}
+              </li>
+            ))}
+          </ul>
         </section>
 
         <section className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10">
@@ -84,7 +131,7 @@ export default function AuditPage() {
               href="/contact?intent=audit-starter"
               className="inline-block px-5 py-2.5 rounded-lg bg-cyan-400 text-[#0a0a0f] font-semibold hover:bg-cyan-300 transition-colors"
             >
-              Start Starter Audit
+              Book Starter Audit
             </a>
           </article>
 
@@ -103,9 +150,35 @@ export default function AuditPage() {
               href="/contact?intent=audit-full"
               className="inline-block px-5 py-2.5 rounded-lg bg-cyan-400 text-[#0a0a0f] font-semibold hover:bg-cyan-300 transition-colors"
             >
-              Start Full Audit
+              Book Full Audit
             </a>
           </article>
+        </section>
+
+        <section className="rounded-xl border border-[#1f2028] bg-[#111118] p-8 mb-10">
+          <h2 className="text-2xl font-bold mb-4">Risk reversal</h2>
+          <p className="text-gray-300 mb-5">
+            If we do not find at least one high-impact reliability or security risk, we convert your engagement
+            into implementation advisory time at the same value.
+          </p>
+          <a
+            href="/contact?intent=audit-full"
+            className="inline-block px-6 py-3 rounded-lg bg-cyan-400 text-[#0a0a0f] font-semibold hover:bg-cyan-300 transition-colors"
+          >
+            Claim an Audit Slot
+          </a>
+        </section>
+
+        <section className="rounded-xl border border-[#1f2028] bg-[#111118] p-8 mb-10">
+          <h2 className="text-2xl font-bold mb-4">FAQ</h2>
+          <div className="space-y-4">
+            {faq.map((item) => (
+              <div key={item.q} className="rounded-lg border border-[#1f2028] bg-[#0a0a0f] p-4">
+                <h3 className="font-semibold mb-1">{item.q}</h3>
+                <p className="text-sm text-gray-300">{item.a}</p>
+              </div>
+            ))}
+          </div>
         </section>
 
         <section className="rounded-xl border border-[#1f2028] bg-[#111118] p-8 text-center">
@@ -122,6 +195,15 @@ export default function AuditPage() {
           </a>
         </section>
       </main>
+
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#1f2028] bg-[#0a0a0f]/95 backdrop-blur-sm p-3 md:hidden">
+        <a
+          href="/contact?intent=audit-full"
+          className="block w-full text-center px-4 py-3 rounded-lg bg-cyan-400 text-[#0a0a0f] font-semibold"
+        >
+          Book Full Audit
+        </a>
+      </div>
     </div>
   );
 }
