@@ -163,8 +163,13 @@ export const createApiKeySchema = z.object({
 export const proxyCallSchema = z.object({
   capability: z.string().min(1).max(200),
   input: z.record(z.string(), z.unknown()).refine(
-    (val) => JSON.stringify(val).length <= 10_240,
-    { message: "Input payload must be 10KB or less" }
+    (val) => {
+      const size = JSON.stringify(val).length;
+      // E2E encrypted payloads get extra headroom for base64 overhead
+      const limit = val._e2e ? 14_336 : 10_240;
+      return size <= limit;
+    },
+    { message: "Input payload too large" }
   ),
   session_token: z.string().uuid().optional(),
   idempotency_key: z.string().min(8).max(128),

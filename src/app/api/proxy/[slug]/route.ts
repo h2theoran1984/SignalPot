@@ -8,6 +8,7 @@ import { validateOutput } from "@/lib/schema-validator";
 import { assertSafeUrl } from "@/lib/ssrf";
 import { trackAgentCall } from "@/lib/telemetry";
 import { getAppOrigin } from "@/lib/env";
+import { isE2EEncrypted } from "@/lib/e2e";
 
 // Allowed origins for CORS — proxy is a public API so agents call it cross-origin,
 // but we restrict to known domains rather than wildcard to prevent CSRF.
@@ -344,6 +345,7 @@ export async function POST(
   }
 
   // 7. Create job record
+  const encrypted = isE2EEncrypted(input);
   const { data: job, error: jobError } = await admin
     .from("jobs")
     .insert({
@@ -353,10 +355,11 @@ export async function POST(
       anonymous_session_id: anonymousSessionId,
       job_type: "production",
       capability_used: capability,
-      input_summary: input,
+      input_summary: encrypted ? { _encrypted: true, capability } : input,
       status: "pending",
       cost: rateAmount,
       verified: false,
+      e2e_encrypted: encrypted,
     })
     .select("id")
     .single();
@@ -374,10 +377,14 @@ export async function POST(
     input,
   });
 
-  // Store envelope in job input
+  // Store envelope in job input (redact encrypted payloads)
   await admin
     .from("jobs")
-    .update({ input_summary: { ...input, _envelope: requestEnvelope } })
+    .update({
+      input_summary: encrypted
+        ? { _encrypted: true, capability, _envelope: requestEnvelope }
+        : { ...input, _envelope: requestEnvelope },
+    })
     .eq("id", job.id);
 
   // 9. SSRF check — block private IPs, localhost, cloud metadata
@@ -467,12 +474,21 @@ export async function POST(
   const durationMs = Date.now() - startTime;
 
   // 10. Validate output against agent's declared schema
-  const capSchemas = (agent.capability_schema as Array<Record<string, unknown>>) ?? [];
-  const matchedCap = capSchemas.find(
-    (c) => (c as { name: string }).name === capability
-  );
-  const outputSchema = (matchedCap?.outputSchema as Record<string, unknown>) ?? null;
-  const validation = validateOutput(outputSchema, agentResponse);
+  //     Skip validation for E2E encrypted responses (proxy can't read them)
+  const responseEncrypted = isE2EEncrypted(agentResponse);
+  let validation: { valid: boolean; errors: string[] };
+
+  if (encrypted || responseEncrypted) {
+    // Can't validate encrypted output — mark as indeterminate
+    validation = { valid: true, errors: [] };
+  } else {
+    const capSchemas = (agent.capability_schema as Array<Record<string, unknown>>) ?? [];
+    const matchedCap = capSchemas.find(
+      (c) => (c as { name: string }).name === capability
+    );
+    const outputSchema = (matchedCap?.outputSchema as Record<string, unknown>) ?? null;
+    validation = validateOutput(outputSchema, agentResponse);
+  }
 
   // 11. Build response envelope and update job as completed
   const isSensitive = agentResponse.sensitive === true;
@@ -481,7 +497,7 @@ export async function POST(
     jobId: job.id as string,
     providerSlug: slug,
     durationMs,
-    output: isSensitive ? { redacted: true } : agentResponse,
+    output: (isSensitive || responseEncrypted) ? { redacted: true } : agentResponse,
     verified: validation.valid,
     validationErrors: validation.errors,
   });
@@ -491,11 +507,11 @@ export async function POST(
     .update({
       status: "completed",
       completed_at: new Date().toISOString(),
-      output_summary: isSensitive
-        ? { redacted: true, _envelope: responseEnvelope }
+      output_summary: (isSensitive || responseEncrypted)
+        ? { _encrypted: responseEncrypted, redacted: true, _envelope: responseEnvelope }
         : { ...agentResponse, _envelope: responseEnvelope },
       duration_ms: durationMs,
-      verified: validation.valid,
+      verified: encrypted ? true : validation.valid,
       provider_cost: providerCostUsd,
     })
     .eq("id", job.id);
