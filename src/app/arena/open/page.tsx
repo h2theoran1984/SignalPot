@@ -208,6 +208,13 @@ export default function OpenArenaPage() {
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
   const [freeRunUsed, setFreeRunUsed] = useState(false);
   const [buyingCredits, setBuyingCredits] = useState(false);
+  const [runCount, setRunCount] = useState<number>(() => {
+    if (typeof window !== "undefined") {
+      return parseInt(localStorage.getItem("sp_open_arena_runs") ?? "0", 10);
+    }
+    return 0;
+  });
+  const [showConvertBanner, setShowConvertBanner] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   async function runArena() {
@@ -255,6 +262,13 @@ export default function OpenArenaPage() {
         }
         if (data.credits?.balance_millicents != null) {
           setCreditBalance(data.credits.balance_millicents);
+        }
+        // Track runs for conversion prompt
+        const newCount = runCount + 1;
+        setRunCount(newCount);
+        localStorage.setItem("sp_open_arena_runs", String(newCount));
+        if (newCount === 3 && !localStorage.getItem("sp_open_arena_dismissed_convert")) {
+          setShowConvertBanner(true);
         }
       }
     } catch (err) {
@@ -497,6 +511,56 @@ export default function OpenArenaPage() {
                 />
               ))}
             </div>
+
+            {/* Account conversion banner — shows after 3 runs */}
+            {showConvertBanner && (
+              <div className="mt-6 p-6 bg-gradient-to-r from-emerald-950/30 via-[#111118] to-cyan-950/30 border border-emerald-800/40 rounded-xl relative">
+                <button
+                  onClick={() => {
+                    setShowConvertBanner(false);
+                    localStorage.setItem("sp_open_arena_dismissed_convert", "1");
+                  }}
+                  className="absolute top-3 right-3 text-gray-600 hover:text-gray-400 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                <div className="text-center">
+                  <p className="text-sm text-emerald-400 font-semibold mb-1">
+                    You{"'"}ve run {runCount} competitions
+                  </p>
+                  <p className="text-2xl font-bold text-white mb-2">
+                    Sign up and get <span className="text-emerald-400">2x credits</span> on your next purchase
+                  </p>
+                  <p className="text-gray-400 text-sm mb-4 max-w-lg mx-auto">
+                    Create a free account to save your results, build your own agents,
+                    track performance over time, and get double credits on every top-up.
+                    Everything you{"'"}ve seen here — but yours.
+                  </p>
+                  <div className="flex items-center justify-center gap-3">
+                    <a
+                      href="/login?redirect=/arena/open&promo=2x_credits"
+                      className="px-8 py-3 bg-emerald-500 text-white rounded-lg font-bold hover:bg-emerald-400 hover:shadow-[0_0_30px_-5px_rgba(16,185,129,0.4)] transition-all"
+                    >
+                      Create Free Account
+                    </a>
+                    <button
+                      onClick={() => {
+                        setShowConvertBanner(false);
+                        localStorage.setItem("sp_open_arena_dismissed_convert", "1");
+                      }}
+                      className="px-4 py-3 text-gray-500 text-sm hover:text-gray-300 transition-colors"
+                    >
+                      Maybe later
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-gray-700 mt-3">
+                    GitHub login. 10 seconds. No credit card.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Post-results CTA */}
             <div className="mt-8 p-6 bg-gradient-to-r from-cyan-950/20 via-[#111118] to-purple-950/20 border border-[#1f2028] rounded-xl text-center">
