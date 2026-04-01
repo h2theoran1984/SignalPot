@@ -7,6 +7,7 @@ import { wrapRequest, wrapResponse } from "@/lib/envelope";
 import { validateOutput } from "@/lib/schema-validator";
 import { assertSafeUrl } from "@/lib/ssrf";
 import { trackAgentCall } from "@/lib/telemetry";
+import { scoreFailedResult, scoreSuccessfulResult } from "@/lib/risk";
 
 // Allowed origins for CORS — proxy is a public API so agents call it cross-origin,
 // but we restrict to known domains rather than wildcard to prevent CSRF.
@@ -415,10 +416,17 @@ export async function POST(
       providerCostUsd = pc.api_cost_usd;
     }
   } catch (err) {
+    const risk = scoreFailedResult();
+
     // Mark job as failed
     await admin
       .from("jobs")
-      .update({ status: "failed", completed_at: new Date().toISOString() })
+      .update({
+        status: "failed",
+        completed_at: new Date().toISOString(),
+        verified: false,
+        output_summary: { _risk: risk },
+      })
       .eq("id", job.id);
 
     trackAgentCall({
@@ -431,6 +439,10 @@ export async function POST(
       cost: 0,
       success: false,
       caller: isAuthenticated ? "api" : "anonymous",
+      metadata: {
+        risk_confidence: risk.confidence,
+        risk_reason_code: risk.reason_code,
+      },
     });
 
     const message = err instanceof Error ? err.message : "Agent unreachable";
@@ -449,6 +461,10 @@ export async function POST(
   );
   const outputSchema = (matchedCap?.outputSchema as Record<string, unknown>) ?? null;
   const validation = validateOutput(outputSchema, agentResponse);
+  const risk = scoreSuccessfulResult({
+    validated: validation.valid,
+    durationMs,
+  });
 
   // 11. Build response envelope and update job as completed
   const isSensitive = agentResponse.sensitive === true;
@@ -468,8 +484,8 @@ export async function POST(
       status: "completed",
       completed_at: new Date().toISOString(),
       output_summary: isSensitive
-        ? { redacted: true, _envelope: responseEnvelope }
-        : { ...agentResponse, _envelope: responseEnvelope },
+        ? { redacted: true, _envelope: responseEnvelope, _risk: risk }
+        : { ...agentResponse, _envelope: responseEnvelope, _risk: risk },
       duration_ms: durationMs,
       verified: validation.valid,
       provider_cost: providerCostUsd,
@@ -487,6 +503,10 @@ export async function POST(
     cost: rateAmount,
     success: true,
     caller: isAuthenticated ? "api" : "anonymous",
+    metadata: {
+      risk_confidence: risk.confidence,
+      risk_reason_code: risk.reason_code,
+    },
   });
 
   // 12. Credit provider for paid calls
