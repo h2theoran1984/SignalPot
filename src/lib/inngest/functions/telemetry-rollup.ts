@@ -1,11 +1,24 @@
 // Telemetry Rollup — processes unrolled agent_telemetry rows every 5 minutes.
-// Updates: agent stats (total_external_calls, avg_latency_ms), trust_edges,
-// and marks rows as rolled up.
+// Updates: agent stats, trust signals, reliability snapshots, and rollback guardrail checks.
 
 import { inngest } from "@/lib/inngest/client";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  computeReliabilityScore,
+  healthToComponent,
+} from "@/lib/reliability";
+import { processRollbackForAgent } from "@/lib/arena/rollback-guardrail";
 
 const BATCH_SIZE = 500;
+
+interface AgentAgg {
+  totalCalls: number;
+  successfulCalls: number;
+  totalDurationMs: number;
+  durationCount: number;
+  totalApiCost: number;
+  totalCost: number;
+}
 
 export const telemetryRollup = inngest.createFunction(
   { id: "telemetry-rollup", name: "Telemetry Rollup" },
@@ -17,7 +30,7 @@ export const telemetryRollup = inngest.createFunction(
     const rows = await step.run("fetch-pending", async () => {
       const { data, error } = await admin
         .from("agent_telemetry")
-        .select("id, agent_id, event, capability, duration_ms, api_cost, cost, success, caller")
+        .select("id, agent_id, event, duration_ms, api_cost, cost, success")
         .eq("rolled_up", false)
         .order("created_at", { ascending: true })
         .limit(BATCH_SIZE);
@@ -31,17 +44,6 @@ export const telemetryRollup = inngest.createFunction(
     }
 
     // ── 2. Aggregate per agent ──────────────────────────────────────
-    interface AgentAgg {
-      totalCalls: number;
-      successfulCalls: number;
-      totalDurationMs: number;
-      durationCount: number;
-      totalApiCost: number;
-      totalCost: number;
-      capabilities: Set<string>;
-      callers: Set<string>;
-    }
-
     const agentAggs = new Map<string, AgentAgg>();
 
     for (const row of rows) {
@@ -57,8 +59,6 @@ export const telemetryRollup = inngest.createFunction(
           durationCount: 0,
           totalApiCost: 0,
           totalCost: 0,
-          capabilities: new Set(),
-          callers: new Set(),
         };
         agentAggs.set(agentId, agg);
       }
@@ -71,14 +71,11 @@ export const telemetryRollup = inngest.createFunction(
       }
       agg.totalApiCost += (row.api_cost as number) ?? 0;
       agg.totalCost += (row.cost as number) ?? 0;
-      if (row.capability) agg.capabilities.add(row.capability as string);
-      if (row.caller) agg.callers.add(row.caller as string);
     }
 
     // ── 3. Update agent stats ───────────────────────────────────────
     await step.run("update-agent-stats", async () => {
       for (const [agentId, agg] of agentAggs) {
-        // Fetch current stats for running average
         const { data: agent } = await admin
           .from("agents")
           .select("total_external_calls, avg_latency_ms")
@@ -91,7 +88,6 @@ export const telemetryRollup = inngest.createFunction(
         const prevAvgLatency = (agent.avg_latency_ms as number) ?? 0;
         const newTotalCalls = prevCalls + agg.totalCalls;
 
-        // Running average for latency
         let newAvgLatency = prevAvgLatency;
         if (agg.durationCount > 0) {
           const batchAvg = agg.totalDurationMs / agg.durationCount;
@@ -110,16 +106,11 @@ export const telemetryRollup = inngest.createFunction(
       }
     });
 
-    // ── 4. Update trust edges for external callers ──────────────────
-    // External calls don't have a requester agent, so we create a
-    // synthetic "external-usage" trust signal by incrementing the
-    // agent's self-referential trust (total_jobs, successful_jobs).
-    // This keeps the trust score alive and prevents decay.
+    // ── 4. Update self trust signals ────────────────────────────────
     await step.run("update-trust-signals", async () => {
       for (const [agentId, agg] of agentAggs) {
         if (agg.totalCalls === 0) continue;
 
-        // Upsert a self-referential trust edge to track external reliability
         const { data: existing } = await admin
           .from("trust_edges")
           .select("id, total_jobs, successful_jobs, total_spent, avg_latency_ms")
@@ -134,14 +125,12 @@ export const telemetryRollup = inngest.createFunction(
         if (existing) {
           const newTotal = (existing.total_jobs as number) + agg.totalCalls;
           const newSuccessful = (existing.successful_jobs as number) + agg.successfulCalls;
-          const successRate = newSuccessful / newTotal;
+          const successRate = newSuccessful / Math.max(1, newTotal);
           const newSpent = (existing.total_spent as number) + agg.totalCost;
           const stakeWeight = 1.0 + Math.log(1.0 + newSpent);
           const trustScore = Math.min(1.0, successRate * stakeWeight);
           const oldAvg = (existing.avg_latency_ms as number) ?? 0;
-          const newAvg = Math.round(
-            (oldAvg * (existing.total_jobs as number) + avgLatency * agg.totalCalls) / newTotal
-          );
+          const newAvg = Math.round((oldAvg * (existing.total_jobs as number) + avgLatency * agg.totalCalls) / Math.max(1, newTotal));
 
           await admin
             .from("trust_edges")
@@ -165,7 +154,7 @@ export const telemetryRollup = inngest.createFunction(
             target_agent_id: agentId,
             total_jobs: agg.totalCalls,
             successful_jobs: agg.successfulCalls,
-            production_jobs: agg.totalCalls, // external = production
+            production_jobs: agg.totalCalls,
             total_spent: agg.totalCost,
             avg_latency_ms: avgLatency,
             last_job_at: new Date().toISOString(),
@@ -175,7 +164,109 @@ export const telemetryRollup = inngest.createFunction(
       }
     });
 
-    // ── 5. Mark rows as rolled up ───────────────────────────────────
+    // ── 5. Reliability snapshots + auto-guardrail checks ───────────
+    const reliability = await step.run("reliability-and-guardrail", async () => {
+      let snapshots = 0;
+      let rollbacksTriggered = 0;
+
+      for (const [agentId, agg] of agentAggs) {
+        if (agg.totalCalls === 0) continue;
+
+        const [{ data: agent }, { data: trustEdge }, { data: previous }] = await Promise.all([
+          admin
+            .from("agents")
+            .select("id, slug, health_status, health_score, avg_latency_ms, freeze_until")
+            .eq("id", agentId)
+            .single(),
+          admin
+            .from("trust_edges")
+            .select("trust_score")
+            .eq("source_agent_id", agentId)
+            .eq("target_agent_id", agentId)
+            .maybeSingle(),
+          admin
+            .from("agent_reliability_snapshots")
+            .select("id")
+            .eq("agent_id", agentId)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+        ]);
+
+        if (!agent?.slug) continue;
+
+        const successRate = agg.successfulCalls / Math.max(1, agg.totalCalls);
+        const errorRate = 1 - successRate;
+        const avgLatency = agg.durationCount > 0
+          ? Math.round(agg.totalDurationMs / agg.durationCount)
+          : Math.max(0, Math.round((agent.avg_latency_ms as number | null) ?? 0));
+        const trustScore = Number(trustEdge?.trust_score ?? 0);
+        const healthComponent = healthToComponent(
+          (agent.health_status as string | null) ?? null,
+          agent.health_score == null ? null : Number(agent.health_score)
+        );
+
+        const result = computeReliabilityScore({
+          successRate,
+          errorRate,
+          avgLatencyMs: avgLatency,
+          trustScore,
+          healthComponent,
+        });
+
+        await admin.from("agent_reliability_snapshots").insert({
+          agent_id: agentId,
+          source: "telemetry_rollup",
+          sample_size: agg.totalCalls,
+          success_rate: successRate,
+          error_rate: errorRate,
+          avg_latency_ms: avgLatency,
+          trust_score: trustScore,
+          health_component: healthComponent,
+          reliability_score: result.score,
+          reliability_band: result.band === "unknown" ? "watch" : result.band,
+          drivers: result.drivers,
+        });
+
+        const freezeUntil = agent.freeze_until ? new Date(agent.freeze_until as string) : null;
+        const now = Date.now();
+        const frozenActive = freezeUntil ? freezeUntil.getTime() > now : false;
+
+        await admin
+          .from("agents")
+          .update({
+            reliability_score: result.score,
+            reliability_band: result.band,
+            reliability_checked_at: new Date().toISOString(),
+            traffic_mode: frozenActive ? "frozen" : previous ? "normal" : "canary",
+            canary_percent: frozenActive ? 0 : previous ? 100 : 20,
+          })
+          .eq("id", agentId);
+
+        const rollback = await processRollbackForAgent({
+          agentSlug: agent.slug as string,
+          metrics: {
+            sample_size: agg.totalCalls,
+            error_rate: errorRate,
+            avg_latency_ms: avgLatency,
+            success_rate: successRate,
+            trust_score: trustScore,
+          },
+          source: "telemetry_rollup",
+          triggerMode: "auto",
+        });
+
+        if (rollback.should_trigger) {
+          rollbacksTriggered++;
+        }
+
+        snapshots++;
+      }
+
+      return { snapshots, rollbacksTriggered };
+    });
+
+    // ── 6. Mark rows as rolled up ───────────────────────────────────
     await step.run("mark-rolled-up", async () => {
       const ids = rows.map((r) => r.id as string);
       const { error } = await admin
@@ -186,6 +277,11 @@ export const telemetryRollup = inngest.createFunction(
       if (error) throw new Error(`Mark rolled_up failed: ${error.message}`);
     });
 
-    return { processed: rows.length, agents: agentAggs.size };
+    return {
+      processed: rows.length,
+      agents: agentAggs.size,
+      reliability_snapshots: reliability.snapshots,
+      rollbacks_triggered: reliability.rollbacksTriggered,
+    };
   }
 );

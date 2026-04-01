@@ -7,6 +7,7 @@ import { wrapRequest, wrapResponse } from "@/lib/envelope";
 import { validateOutput } from "@/lib/schema-validator";
 import { assertSafeUrl } from "@/lib/ssrf";
 import { trackAgentCall } from "@/lib/telemetry";
+import { createHash } from "crypto";
 
 // Allowed origins for CORS — proxy is a public API so agents call it cross-origin,
 // but we restrict to known domains rather than wildcard to prevent CSRF.
@@ -33,6 +34,13 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Vary": "Origin",
   };
+}
+
+function canaryBucket(key: string): number {
+  const hash = createHash("sha256").update(key).digest();
+  // 16-bit bucket for stable percentage routing.
+  const value = (hash[0] << 8) | hash[1];
+  return value % 100;
 }
 
 // Pre-flight CORS
@@ -186,13 +194,55 @@ export async function POST(
   // 4. Look up agent
   const { data: agent } = await admin
     .from("agents")
-    .select("id, slug, owner_id, status, rate_amount, mcp_endpoint, capability_schema, listing_type, parent_agent_id")
+    .select("id, slug, owner_id, status, rate_amount, mcp_endpoint, capability_schema, listing_type, parent_agent_id, traffic_mode, canary_percent, freeze_until")
     .eq("slug", slug)
     .eq("status", "active")
     .single();
 
   if (!agent) {
     return corsJson({ error: "Agent not found or inactive" }, { status: 404 });
+  }
+
+  // 4a. Enforce traffic safety mode (normal / canary / frozen)
+  const now = Date.now();
+  let trafficMode = (agent.traffic_mode as string | null) ?? "normal";
+  const canaryPercent = Math.max(0, Math.min(100, Number(agent.canary_percent ?? 100)));
+  const freezeUntil = agent.freeze_until ? new Date(agent.freeze_until as string).getTime() : null;
+
+  if (trafficMode === "frozen") {
+    if (freezeUntil && freezeUntil > now) {
+      return corsJson(
+        {
+          error: "Agent temporarily frozen by safety guardrail",
+          retry_after: Math.ceil((freezeUntil - now) / 1000),
+        },
+        { status: 503 }
+      );
+    }
+
+    // Freeze elapsed: move to a cautious canary by default.
+    await admin
+      .from("agents")
+      .update({
+        traffic_mode: "canary",
+        canary_percent: 20,
+        freeze_until: null,
+      })
+      .eq("id", agent.id);
+    trafficMode = "canary";
+  }
+
+  if (trafficMode === "canary") {
+    const bucket = canaryBucket(scopedIdempotencyKey);
+    if (bucket >= canaryPercent) {
+      return corsJson(
+        {
+          error: "Agent in canary mode — request held out",
+          canary_percent: canaryPercent,
+        },
+        { status: 503 }
+      );
+    }
   }
 
   // Block direct calls to suite agents — they're containers, not callable
