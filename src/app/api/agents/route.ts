@@ -196,12 +196,19 @@ export async function GET(request: Request) {
       ? agents.filter((a) => a.avg_trust_score >= minTrustThreshold)
       : agents;
 
-  return NextResponse.json({
-    agents: filtered,
-    total: count,
-    page,
-    limit,
-  });
+  return NextResponse.json(
+    {
+      agents: filtered,
+      total: count,
+      page,
+      limit,
+    },
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60",
+      },
+    }
+  );
 }
 
 // POST /api/agents — Register new agent (auth required)

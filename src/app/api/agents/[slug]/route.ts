@@ -50,13 +50,20 @@ export async function GET(
       .limit(50),
   ]);
 
-  return NextResponse.json({
-    agent: safeAgent,
-    trust_graph: {
-      incoming: incomingEdges ?? [],
-      outgoing: outgoingEdges ?? [],
+  return NextResponse.json(
+    {
+      agent: safeAgent,
+      trust_graph: {
+        incoming: incomingEdges ?? [],
+        outgoing: outgoingEdges ?? [],
+      },
     },
-  });
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60",
+      },
+    }
+  );
 }
 
 // PATCH /api/agents/[slug] — Update agent (owner only)
