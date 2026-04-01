@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { getAuthContext } from "@/lib/auth";
+import { getAuthContext, hasScope } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { updateOrgSchema } from "@/lib/validations";
-import { hasOrgRole } from "@/lib/rbac";
 import { logAuditEvent, getClientIp } from "@/lib/audit";
 
 // GET /api/orgs/[slug] — Org details (members can view)
@@ -14,6 +13,9 @@ export async function GET(
   const auth = await getAuthContext(request);
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!hasScope(auth, "agents:read")) {
+    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
   }
 
   const admin = createAdminClient();
@@ -69,6 +71,9 @@ export async function PATCH(
   const auth = await getAuthContext(request);
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!hasScope(auth, "agents:write")) {
+    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
   }
 
   let body: unknown;

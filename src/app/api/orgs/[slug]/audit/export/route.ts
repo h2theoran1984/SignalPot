@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAuthContext } from "@/lib/auth";
+import { getAuthContext, hasScope } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { canViewAuditLog } from "@/lib/rbac";
 
@@ -29,6 +29,9 @@ export async function GET(
   const auth = await getAuthContext(request);
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!hasScope(auth, "jobs:read")) {
+    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
   }
 
   if (!canViewAuditLog(auth)) {
