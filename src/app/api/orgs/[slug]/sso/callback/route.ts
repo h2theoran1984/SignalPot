@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { logAuditEvent } from "@/lib/audit";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { verifyState } from "@/lib/sso-state";
+import { assertSafeUrl } from "@/lib/ssrf";
+import { getAppOrigin } from "@/lib/env";
 
 interface SsoConfig {
   enabled: boolean;
@@ -92,6 +94,13 @@ export async function GET(
 
   // Fetch OIDC discovery document for token endpoint and JWKS URI
   const discoveryUrl = `${ssoConfig.issuer_url.replace(/\/$/, "")}/.well-known/openid-configuration`;
+  try {
+    await assertSafeUrl(discoveryUrl);
+  } catch (err) {
+    console.error("[sso] Blocked unsafe discovery URL:", err);
+    return NextResponse.redirect(new URL(`/login?error=sso_provider_error`, url.origin));
+  }
+
   let discovery: { token_endpoint?: string; jwks_uri?: string; issuer?: string };
   try {
     const res = await fetch(discoveryUrl, { next: { revalidate: 3600 } });
@@ -106,8 +115,16 @@ export async function GET(
     return NextResponse.redirect(new URL(`/login?error=sso_provider_error`, url.origin));
   }
 
+  try {
+    await assertSafeUrl(discovery.token_endpoint);
+    await assertSafeUrl(discovery.jwks_uri);
+  } catch (err) {
+    console.error("[sso] Blocked unsafe token/JWKS URL:", err);
+    return NextResponse.redirect(new URL(`/login?error=sso_provider_error`, url.origin));
+  }
+
   // Exchange authorization code for tokens
-  const redirectUri = `${url.origin}/api/orgs/${slug}/sso/callback`;
+  const redirectUri = `${getAppOrigin(request.url)}/api/orgs/${slug}/sso/callback`;
   let tokenData: { id_token?: string; access_token?: string };
   try {
     const tokenParams: Record<string, string> = {
@@ -243,7 +260,7 @@ export async function GET(
     type: "magiclink",
     email,
     options: {
-      redirectTo: `${url.origin}/orgs/${slug}`,
+      redirectTo: `${getAppOrigin(request.url)}/orgs/${slug}`,
     },
   });
 
@@ -285,5 +302,5 @@ export async function GET(
   });
 
   // Session cookies are set — redirect to the org page
-  return NextResponse.redirect(new URL(`/orgs/${slug}`, url.origin));
+  return NextResponse.redirect(new URL(`/orgs/${slug}`, getAppOrigin(request.url)));
 }

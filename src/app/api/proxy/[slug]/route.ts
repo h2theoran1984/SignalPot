@@ -7,6 +7,7 @@ import { wrapRequest, wrapResponse } from "@/lib/envelope";
 import { validateOutput } from "@/lib/schema-validator";
 import { assertSafeUrl } from "@/lib/ssrf";
 import { trackAgentCall } from "@/lib/telemetry";
+import { getAppOrigin } from "@/lib/env";
 
 // Allowed origins for CORS — proxy is a public API so agents call it cross-origin,
 // but we restrict to known domains rather than wildcard to prevent CSRF.
@@ -35,6 +36,21 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
   };
 }
 
+function isTrustedInternalDispatchEndpoint(endpoint: string): boolean {
+  try {
+    const url = new URL(endpoint);
+    const appOrigin = getAppOrigin();
+    const app = new URL(appOrigin);
+    return (
+      url.protocol === app.protocol &&
+      url.hostname === app.hostname &&
+      url.port === app.port &&
+      url.pathname.startsWith("/api/")
+    );
+  } catch {
+    return false;
+  }
+}
 // Pre-flight CORS
 export async function OPTIONS(request: Request) {
   return new NextResponse(null, { status: 204, headers: getCorsHeaders(request.headers.get("origin")) });
@@ -382,7 +398,11 @@ export async function POST(
       "Content-Type": "application/json",
     };
     const internalKey = process.env.INTERNAL_DISPATCH_KEY;
-    if (internalKey && suiteRouting) {
+    if (
+      internalKey &&
+      suiteRouting &&
+      isTrustedInternalDispatchEndpoint(effectiveEndpoint)
+    ) {
       fetchHeaders["x-signalpot-internal"] = internalKey;
     }
 
