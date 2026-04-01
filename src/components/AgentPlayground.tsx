@@ -24,6 +24,64 @@ interface ProxyResponse {
   cost: number;
 }
 
+interface FriendlyError {
+  message: string;
+  nextStep: string;
+}
+
+function classifyConfidence(response: ProxyResponse): {
+  label: "high" | "medium" | "low";
+  reason: string;
+} {
+  if (!response.verified) {
+    return { label: "low", reason: "Output did not pass schema validation" };
+  }
+  if (response.duration_ms >= 20_000) {
+    return { label: "medium", reason: "Slow response, verify before acting" };
+  }
+  return { label: "high", reason: "Validated output with normal latency" };
+}
+
+function getFriendlyError(
+  status: number,
+  apiMessage?: string
+): FriendlyError {
+  if (status === 402) {
+    return {
+      message: apiMessage ?? "This call needs credits.",
+      nextStep: "Buy credits, then retry the same request.",
+    };
+  }
+  if (status === 403) {
+    return {
+      message: apiMessage ?? "You do not have permission for this action.",
+      nextStep: "Check API key scope or sign in with a higher-privilege account.",
+    };
+  }
+  if (status === 429) {
+    return {
+      message: "Rate limit reached.",
+      nextStep: "Wait a few seconds and try again.",
+    };
+  }
+  if (status === 500) {
+    return {
+      message: apiMessage ?? "Server error while processing the request.",
+      nextStep: "Retry once. If it repeats, use a different capability/input and report the job id.",
+    };
+  }
+  if (status === 502 || status === 503) {
+    return {
+      message: apiMessage ?? "Agent is temporarily unavailable.",
+      nextStep: "Try again shortly or switch to another capability.",
+    };
+  }
+  return {
+    message: apiMessage ?? `Request failed (${status}).`,
+    nextStep: "Double-check input JSON and capability, then retry.",
+  };
+}
+
 function isStripeUrl(url: string): boolean {
   try {
     const u = new URL(url);
@@ -46,7 +104,7 @@ export default function AgentPlayground({
   );
   const [inputJson, setInputJson] = useState("{}");
   const [response, setResponse] = useState<ProxyResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<FriendlyError | null>(null);
   const [loading, setLoading] = useState(false);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
@@ -130,10 +188,16 @@ export default function AgentPlayground({
       if (data.url && isStripeUrl(data.url)) {
         window.location.href = data.url;
       } else {
-        setError("Failed to create checkout session");
+        setError({
+          message: "Failed to create checkout session.",
+          nextStep: "Retry in a few seconds.",
+        });
       }
     } catch {
-      setError("Failed to connect to payment service");
+      setError({
+        message: "Failed to connect to payment service.",
+        nextStep: "Retry in a few seconds.",
+      });
     } finally {
       setBuyingCredits(false);
     }
@@ -149,7 +213,10 @@ export default function AgentPlayground({
       try {
         parsedInput = JSON.parse(inputJson);
       } catch {
-        setError("Invalid JSON input — check your syntax");
+        setError({
+          message: "Invalid JSON input.",
+          nextStep: "Fix JSON syntax, then try again.",
+        });
         return;
       }
 
@@ -169,17 +236,7 @@ export default function AgentPlayground({
       const data = await res.json();
 
       if (!res.ok) {
-        if (res.status === 402) {
-          setError(
-            data.error ?? "Credits required — purchase credits to use this agent"
-          );
-        } else if (res.status === 429) {
-          setError("Rate limit reached — please wait a moment and try again");
-        } else if (res.status === 502) {
-          setError(data.error ?? "Agent is currently unreachable");
-        } else {
-          setError(data.error ?? `Request failed (${res.status})`);
-        }
+        setError(getFriendlyError(res.status, data.error as string | undefined));
       } else {
         setResponse(data as ProxyResponse);
         // Update local balance display
@@ -204,7 +261,10 @@ export default function AgentPlayground({
         }
       }
     } catch {
-      setError("Network error — check your connection");
+      setError({
+        message: "Network error.",
+        nextStep: "Check connection and retry.",
+      });
     } finally {
       setLoading(false);
     }
@@ -338,13 +398,31 @@ export default function AgentPlayground({
         {/* Error display */}
         {error && (
           <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-            <p className="text-sm text-red-400">{error}</p>
+            <p className="text-sm text-red-400">{error.message}</p>
+            <p className="text-xs text-red-300/80 mt-1">Next: {error.nextStep}</p>
           </div>
         )}
 
         {/* Response display */}
         {response && (
           <div className="space-y-2">
+            {(() => {
+              const confidence = classifyConfidence(response);
+              const confidenceClass =
+                confidence.label === "high"
+                  ? "bg-emerald-400/10 text-emerald-400 border-emerald-400/20"
+                  : confidence.label === "medium"
+                    ? "bg-yellow-400/10 text-yellow-400 border-yellow-400/20"
+                    : "bg-red-400/10 text-red-400 border-red-400/20";
+              return (
+                <div className="text-xs">
+                  <span className={`font-mono px-2 py-0.5 rounded border ${confidenceClass}`}>
+                    confidence: {confidence.label}
+                  </span>
+                  <span className="text-gray-500 ml-2">{confidence.reason}</span>
+                </div>
+              );
+            })()}
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs text-gray-500 uppercase tracking-widest">
                 Response
