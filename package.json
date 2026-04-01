@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:rollback": "tsx scripts/test-rollback-guardrail.ts",
+    "test:reliability": "tsx scripts/test-reliability.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
