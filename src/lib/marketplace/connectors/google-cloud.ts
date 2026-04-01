@@ -275,6 +275,7 @@ export const googleCloudConnector: MarketplaceConnector = {
   async activateSubscription(input: SubscriptionActivateInput, listingId: string): Promise<string> {
     // Called after JWT verification resolves the subscription details.
     // In production, this would also call the Procurement API to approve the account.
+    void listingId; // Reserved for per-listing entitlement flows.
     const token = await getAccessToken();
     if (token) {
       try {
