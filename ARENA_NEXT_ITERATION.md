@@ -1,141 +1,127 @@
 # Arena Next Iteration — Async Agent Execution
 
-Working design for removing the Vercel timeout dependency from Arena match execution. This is the pickup point for the next session.
+Working design for removing the Vercel timeout dependency from Arena match execution.
 
 ---
 
-## The Problem
+## Status: IMPLEMENTED (2026-03-28)
 
-Arena matches call two agents and wait for responses. Both agents run LLM inference that can take 10-60+ seconds. Currently, each agent call happens inside a Vercel serverless function (via Inngest steps), which has a hard 60s limit on Pro (300s with maxDuration, but that costs more and is still a ceiling).
-
-As prompts get harder and schemas get richer, agent response times will increase. The architecture shouldn't care how long an agent takes.
+All phases completed and deployed. See commit `d6b218a`.
 
 ---
 
-## Current Architecture (What Works Today)
+## Architecture (Current — Post-Rewrite)
 
 ```
-Inngest event: arena/match.created
-  → Step 1: setup (load match, resolve template, mark running)
-  → Step 2: call Agent A (own Vercel invocation, up to 300s with maxDuration)
-  → Step 3: call Agent B (own Vercel invocation, up to 300s with maxDuration)
-  → Step 4: finalize (save results, billing)
-  → Step 5: trigger judging event
+POST /api/arena/matches → creates match (pending) → fires Inngest event
+
+Inngest: arenaExecuteMatch
+  → Step 1: setup (load match, agents, resolve template, mark running)
+  → Step 2: fire-agent-a (POST to agent with callback_url, returns immediately)
+  → Step 3: fire-agent-b (POST to agent with callback_url, returns immediately)
+  → Step 4: waitForEvent("agent-a-responded", timeout: 15m)
+  → Step 5: waitForEvent("agent-b-responded", timeout: 15m)
+  → Step 6: finalize (save results, billing, status transitions)
+  → Step 7: trigger judging event (if both succeeded)
 ```
 
-Each agent call is a separate Inngest step, so they don't share timeout budget. But each step still runs inside a Vercel function that has a wall-clock limit.
+**No Vercel timeout dependency.** Agents can take up to 15 minutes. The waitForEvent pattern
+wakes up the Inngest function when the callback endpoint receives the result.
 
-**Limitation**: Agents must respond within Vercel's maxDuration (currently 300s). Fire-and-forget doesn't work in serverless — background promises get killed when the function returns.
+### Callback Flow
+```
+Agent completes → POSTs to /api/arena/matches/[id]/callback?side=a|b
+  → Callback fires Inngest event: arena/agent.responded
+  → waitForEvent wakes up → match continues
+```
 
 ---
 
-## Proposed Architecture: Webhook Callbacks via External Worker
+## A2A Protocol Compliance (~85%)
 
-### Core Idea
+### Implemented
+- **Push Notifications**: tasks/pushNotificationConfig set/get/list/delete + webhook dispatch
+- **Agent Card**: protocolVersion 0.2.5, securitySchemes (apiKey + bearer), security bindings, iconUrl
+- **Streaming**: message/stream as proper method, tasks/resubscribe, TaskArtifactUpdateEvent, SSE event IDs
+- **Task Lifecycle**: contextId session grouping, graceful cancel (canceled != failed), clean message history
+- **Auth Framework**: Public methods (tasks/get), auth-required methods with scheme hints, X-API-Key support
+- **Error Codes**: All 12 A2A error codes including -32007 to -32009
 
-Move the "wait for agent response" out of Vercel entirely. Use a lightweight external process that can wait indefinitely.
-
-### Option A: Inngest-Native with Background Functions
-
-Inngest supports "background" function execution that isn't tied to Vercel's timeout. Instead of running the agent call inside a Vercel step.run(), use Inngest's invoke pattern:
-
-```
-Step 1: setup
-Step 2: fire Agent A request (via Inngest child function — runs on Inngest's infra)
-Step 3: fire Agent B request (same)
-Step 4: waitForEvent("agent-a-responded", timeout: "30m")
-Step 5: waitForEvent("agent-b-responded", timeout: "30m")
-Step 6: finalize
-```
-
-The child functions run on Inngest's infrastructure (not Vercel), which has longer timeouts. When each agent responds, the child function fires an event, and the parent wakes up.
-
-**Pros**: No new infrastructure. Inngest handles the orchestration.
-**Cons**: Requires Inngest Pro for long-running functions. Need to check if Inngest's own compute supports arbitrary HTTP calls.
-
-### Option B: Dedicated Worker (Fly.io / Railway / AWS Lambda with longer timeout)
-
-Deploy a small worker service that:
-1. Receives "call this agent" requests via a queue (SQS, Redis, or Inngest event)
-2. Makes the HTTP call to the agent endpoint (no timeout pressure)
-3. When the agent responds, POSTs the result to the callback URL
-4. The callback endpoint (on Vercel) fires the Inngest event to resume
-
-```
-Vercel (Inngest step) → sends message to queue → returns immediately
-Worker (Fly.io) → picks up message → calls agent → waits however long → POSTs to callback
-Vercel (callback endpoint) → receives result → fires Inngest event
-Inngest → wakes up → continues to finalize/judge
-```
-
-**Pros**: True async. No timeout. Worker can be a $5/mo Fly.io machine.
-**Cons**: New infrastructure to manage. Another deployment target.
-
-### Option C: Agent-Side Webhooks (A2A Task Model)
-
-Instead of calling agents synchronously, adopt the A2A protocol's task model:
-
-1. Arena creates a "task" — POSTs to agent's endpoint with a task_id and callback_url
-2. Agent immediately returns `{ "status": "accepted", "task_id": "..." }`
-3. Agent processes asynchronously on its own infrastructure
-4. When done, agent POSTs result to the callback_url
-5. Arena receives the callback and continues
-
-```
-Arena → POST /agent/tasks { task_id, callback_url, prompt }
-Agent → 202 Accepted (immediate)
-...agent thinks...
-Agent → POST /arena/callback { task_id, result }
-Arena → continues
-```
-
-**Pros**: Standard A2A pattern. Agents control their own compute. Scales to any complexity.
-**Cons**: Requires all agents to implement async task model. Breaking change for existing agent endpoints. Need to handle agents that never call back (timeouts).
+### Not Implemented (enterprise-specific, add per customer)
+- mTLS authentication scheme
+- OpenID Connect
+- OAuth2 flows (authorization code, device code)
+- agent/authenticatedExtendedCard (returns -32007, no private skills yet)
+- Supabase Realtime subscriptions for streaming (polling is pragmatic in serverless)
 
 ---
 
-## Recommended Path: Option A First, Then Option C
+## Key Files
 
-### Phase 1: Inngest-native (next session)
-
-- Check if Inngest's `step.invoke()` or child function pattern supports longer execution
-- If yes, move agent calls to Inngest child functions
-- Parent function uses `step.waitForEvent()` (already implemented, already has the callback endpoint + event types)
-- No new infrastructure
-
-### Phase 2: A2A Task Model (future)
-
-- Define the async task interface for agents
-- Update The Underdog and The Goliath to support `202 Accepted` + callback
-- Update the Arena engine to use the task model for new agents
-- Keep backward compatibility for sync agents (wrap them in a worker)
+| File | Purpose |
+|------|---------|
+| `src/lib/inngest/functions/arena-execute-match.ts` | Async match orchestration (fire + waitForEvent) |
+| `src/lib/arena/engine.ts` | Agent calling, fire-and-forget, push notification dispatch |
+| `src/lib/a2a/handler.ts` | A2A JSON-RPC dispatcher (10 methods) |
+| `src/lib/a2a/types.ts` | Full A2A type system |
+| `src/app/api/agents/[slug]/a2a/rpc/route.ts` | A2A RPC endpoint (auth-aware) |
+| `src/app/api/agents/[slug]/a2a/rpc/stream/route.ts` | SSE streaming (message/stream, tasks/resubscribe) |
+| `src/app/api/arena/matches/[id]/callback/route.ts` | Callback endpoint (fires Inngest event) |
+| `src/app/.well-known/agent.json/route.ts` | Platform-level Agent Card |
+| `supabase/migrations/00056_a2a_push_notifications.sql` | Push config table, canceled status, context_id |
 
 ---
 
-## Already Built (Reusable)
+## Testing
 
-These pieces from the current session are ready to use:
+### Verified (2026-03-28)
+- ✅ DB: Push notification config CRUD
+- ✅ DB: canceled job status
+- ✅ DB: context_id on jobs
+- ✅ API: Agent Card with protocolVersion, pushNotifications, securitySchemes
+- ✅ API: Public method access (tasks/get without auth)
+- ✅ API: Auth-required method rejection with scheme hints
+- ✅ TypeScript: Clean compilation
+- ✅ Lint: 0 errors
 
-1. **Callback endpoint**: `POST /api/arena/matches/[id]/callback?side=a|b&job_id=xxx` — receives agent results, fires Inngest event
-2. **Event type**: `arena/agent.responded` — defined in Inngest client with match_id, side, response, duration, cost, error
-3. **waitForEvent pattern**: The Inngest function already has the structure for waiting on callback events (was tested, works conceptually, just needs the agent-side to fire the callback)
+### Pending (needs local Inngest dev server)
+- ⬜ Full async match flow: fire → waitForEvent → callback → finalize
+- ⬜ 15-minute timeout behavior
+- ⬜ Push notification webhook delivery
+
+### To test locally
+```bash
+# Terminal 1
+npm run dev
+
+# Terminal 2
+npx inngest-cli@latest dev -u http://localhost:3000/api/inngest
+
+# Then in Inngest dashboard (http://localhost:8288):
+# 1. Send event: arena/match.created with data: {"match_id":"<pending-match-id>"}
+# 2. Watch fire-agent-a/b complete, wait-agent-a/b hang
+# 3. Send event: arena/agent.responded to simulate completion
+```
 
 ---
 
-## Key Decisions for Next Session
+## Next: The Architect (Agent Factory)
 
-1. Does Inngest Pro support long-running child functions? If yes, Option A is the path.
-2. If not, is a $5/mo Fly.io worker acceptable? If yes, Option B.
-3. Should agents be required to support async tasks? If yes, start migrating to Option C.
-4. What's the maximum reasonable wait time for an agent? 5 min? 30 min? This determines timeout configs.
+Design doc: `ARCHITECT_DESIGN.md`
+
+A meta-agent that creates and iteratively refines agents from natural language descriptions.
+Two capabilities: `create_agent` (build from scratch) and `refine_agent` (improvement loop).
+
+Key insight: **config-driven agents** — one universal endpoint (`/api/arena/custom/[slug]`)
+reads system_prompt + schema from DB and executes any agent. No code generation, no deploys.
+
+The refinement loop uses Arena matches as a fitness function:
+fire match → read judgment → rewrite prompt → repeat until plateau.
 
 ---
 
-## Testing Plan
+## Legacy
 
-Once async execution is in place:
-1. Run The Underdog vs The Goliath with the competitive analysis schema
-2. Verify both agents complete without timeout pressure
-3. Compare response quality when Opus has unlimited time
-4. Run 5 matches on different category scenarios (Pain Relief, Digestive, Allergy, Cold/Flu, Vitamins)
-5. Analyze: does domain knowledge still win when Opus is truly unconstrained?
+The sync endpoint (`POST /api/arena/fight`) is preserved for dev/testing.
+It still calls agents synchronously with a 55s timeout — useful for quick tests
+where you don't need the full async pipeline.

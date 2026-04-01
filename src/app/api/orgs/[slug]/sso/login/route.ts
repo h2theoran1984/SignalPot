@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { randomUUID } from "crypto";
 import { signState } from "@/lib/sso-state";
+import { assertSafeUrl } from "@/lib/ssrf";
+import { getAppOrigin } from "@/lib/env";
 
 interface SsoConfig {
   enabled: boolean;
@@ -40,6 +42,14 @@ export async function GET(
 
   // Fetch OIDC discovery document
   const discoveryUrl = `${ssoConfig.issuer_url.replace(/\/$/, "")}/.well-known/openid-configuration`;
+  try {
+    await assertSafeUrl(discoveryUrl);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unsafe discovery URL";
+    console.error("[sso] Blocked unsafe issuer discovery URL:", message);
+    return NextResponse.json({ error: "Unsafe identity provider URL" }, { status: 400 });
+  }
+
   let discovery: { authorization_endpoint?: string };
   try {
     const res = await fetch(discoveryUrl, { next: { revalidate: 3600 } });
@@ -66,7 +76,7 @@ export async function GET(
   });
 
   // Build the redirect URI based on request origin
-  const origin = new URL(request.url).origin;
+  const origin = getAppOrigin(request.url);
   const redirectUri = `${origin}/api/orgs/${slug}/sso/callback`;
 
   // Build authorization URL
