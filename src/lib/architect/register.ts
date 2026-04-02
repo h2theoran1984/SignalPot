@@ -115,5 +115,26 @@ export async function registerAgent(
     throw new Error(`Failed to register agent: ${error?.message ?? "Unknown error"}`);
   }
 
+  // Seed initial prompt version for Middle Out training
+  // Each capability gets its own prompt version so it can be independently tuned
+  const { error: pvError } = await admin
+    .from("prompt_versions")
+    .insert({
+      agent_id: agent.id,
+      capability: schema.name,
+      version: 1,
+      system_prompt: systemPrompt,
+      model: modelConfig.id,
+      max_tokens: 1024,
+      temperature: 0,
+      is_active: true,
+      elo_at_creation: null,
+    });
+
+  if (pvError) {
+    console.error(`[architect] Failed to seed prompt version for ${slug}/${schema.name}:`, pvError.message);
+    // Non-fatal — agent still works, just can't run Middle Out until manually seeded
+  }
+
   return agent as RegisteredAgent;
 }
