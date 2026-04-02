@@ -454,8 +454,10 @@ export async function generateConstraintChallenges(params: {
     ? `Training goal: "${trainingGoal}". Design challenges that specifically test this goal.`
     : "";
 
-  const message = await anthropic.messages.create({
-    model: "claude-sonnet-4-20250514",
+  let message;
+  try {
+    message = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
     max_tokens: 4096,
     messages: [{
       role: "user",
@@ -499,7 +501,12 @@ Return ONLY valid JSON array:
   }
 ]`,
     }],
-  });
+    });
+  } catch (apiErr) {
+    const errMsg = apiErr instanceof Error ? apiErr.message : String(apiErr);
+    console.error("[constraint-scorer] Anthropic API call failed:", errMsg);
+    throw new Error(`Sonnet API call failed: ${errMsg}`);
+  }
 
   const text = message.content[0].type === "text" ? message.content[0].text : "[]";
 
