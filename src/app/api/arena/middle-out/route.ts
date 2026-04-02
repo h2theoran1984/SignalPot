@@ -347,6 +347,30 @@ export async function POST(request: NextRequest) {
   const startScores = iterations[0]?.scores ?? { accuracy: 0, speed: 0, cost: 0, reliability: 0, weissman_score: 0 };
   const endScores = iterations[iterations.length - 1]?.scores ?? startScores;
 
+  const improvement = {
+    accuracy: endScores.accuracy - startScores.accuracy,
+    speed: endScores.speed - startScores.speed,
+    cost: endScores.cost - startScores.cost,
+    reliability: endScores.reliability - startScores.reliability,
+    weissman_score: endScores.weissman_score - startScores.weissman_score,
+  };
+
+  // Save run to middle_out_runs for history
+  await admin.from("middle_out_runs").insert({
+    agent_id: agent.id,
+    capability,
+    level,
+    training_goal: training_goal ?? null,
+    factor_weights: factorWeights,
+    start_dot: startScores,
+    end_dot: endScores,
+    improvement,
+    iterations,
+    challenges_used: challengeSet.length,
+    weissman_start: startScores.weissman_score,
+    weissman_end: endScores.weissman_score,
+  });
+
   return NextResponse.json({
     agent: agent_slug,
     capability,
@@ -354,17 +378,10 @@ export async function POST(request: NextRequest) {
     training_goal: training_goal ?? null,
     factor_weights: factorWeights,
     iterations,
-    // The dots for the graph
     start_dot: startScores,
     end_dot: endScores,
-    target_dot: factorWeights, // User's ideal = all 1.0 weighted by their preferences
-    improvement: {
-      accuracy: endScores.accuracy - startScores.accuracy,
-      speed: endScores.speed - startScores.speed,
-      cost: endScores.cost - startScores.cost,
-      reliability: endScores.reliability - startScores.reliability,
-      weissman_score: endScores.weissman_score - startScores.weissman_score,
-    },
+    target_dot: factorWeights,
+    improvement,
     challenges_used: challengeSet.length,
   });
 }

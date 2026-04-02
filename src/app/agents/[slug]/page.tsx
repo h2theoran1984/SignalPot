@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import AuthButton from "@/components/AuthButton";
 import AgentPlayground from "@/components/AgentPlayground";
+import { MiddleOutHistory } from "@/components/MiddleOutHistory";
 import { Badge } from "@/components/ui/badge";
 
 export async function generateMetadata({
@@ -456,6 +457,12 @@ export default async function AgentDetailPage({
               </a>
             </div>
             <p className="text-xs text-gray-600 mt-2">Only you can see this.</p>
+          </div>
+        )}
+
+        {isOwner && (
+          <div className="mb-8">
+            <MiddleOutHistory agentSlug={agent.slug as string} />
           </div>
         )}
 
