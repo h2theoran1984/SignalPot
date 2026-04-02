@@ -88,7 +88,7 @@ export interface IterationScores {
   /** Reliability = 1 - coefficient of variation of accuracy scores */
   reliability: number;
   /** Weighted composite using the user's factor weights */
-  composite: number;
+  weissman_score: number;
   /** Per-challenge breakdown */
   challenges: ChallengeScore[];
   /** Which constraints failed most often (for weakness analysis) */
@@ -436,7 +436,7 @@ export function aggregateScores(
   const n = challengeScores.length;
   if (n === 0) {
     return {
-      accuracy: 0, speed: 0, cost: 0, reliability: 0, composite: 0,
+      accuracy: 0, speed: 0, cost: 0, reliability: 0, weissman_score: 0,
       challenges: [], worst_constraints: [],
     };
   }
@@ -454,7 +454,7 @@ export function aggregateScores(
   const reliability = 1 - cv;
 
   // Composite weighted by user's factor weights
-  const composite =
+  const weissman_score =
     avgAccuracy * factorWeights.accuracy +
     avgSpeed * factorWeights.speed +
     avgCost * factorWeights.cost +
@@ -487,7 +487,7 @@ export function aggregateScores(
     speed: avgSpeed,
     cost: avgCost,
     reliability,
-    composite,
+    weissman_score,
     challenges: challengeScores,
     worst_constraints,
   };

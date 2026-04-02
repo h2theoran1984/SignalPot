@@ -1,10 +1,17 @@
 // GET /api/arena/tunable-agents — Returns agents that have prompt versions (SignalPot-managed).
-// Used by AutoTune v2 to filter the agent dropdown.
+// Used by Middle Out to filter the agent dropdown.
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getAuthContext } from "@/lib/auth";
+import { verifyArenaAdminAuth } from "@/lib/arena/admin-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const isServiceRole = await verifyArenaAdminAuth(request);
+  const auth = isServiceRole ? null : await getAuthContext(request);
+  if (!isServiceRole && !auth) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const admin = createAdminClient();
 
   // Get distinct agent IDs that have at least one active prompt version

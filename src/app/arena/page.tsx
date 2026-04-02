@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import SiteNav from "@/components/SiteNav";
 import { ArenaMatchCard } from "@/components/ArenaMatchCard";
 import { ArenaGrindPanel } from "@/components/ArenaGrindPanel";
-import { ArenaAutoTuneV2Panel } from "@/components/ArenaAutoTuneV2Panel";
+import { MiddleOutPanel } from "@/components/MiddleOutPanel";
 import type { ArenaMatchStatus, ArenaMatchType } from "@/lib/arena/types";
 
 interface MatchRow {
@@ -618,7 +618,7 @@ function ArenaPage() {
             <ArenaGrindPanel />
 
             {/* AutoTune */}
-            <ArenaAutoTuneV2Panel />
+            <MiddleOutPanel />
 
             {/* Training Match History */}
             <section>

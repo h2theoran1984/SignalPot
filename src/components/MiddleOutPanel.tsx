@@ -20,7 +20,7 @@ interface AxisScores {
   speed: number;
   cost: number;
   reliability: number;
-  composite: number;
+  weissman_score: number;
 }
 
 interface SoloIterationResult {
@@ -240,7 +240,7 @@ function FactorSlider({
 // Main Panel
 // ============================================================
 
-export function ArenaAutoTuneV2Panel() {
+export function MiddleOutPanel() {
   // Agent list
   const [agents, setAgents] = useState<AgentOption[]>([]);
   const [agentsLoading, setAgentsLoading] = useState(false);
@@ -330,7 +330,7 @@ export function ArenaAutoTuneV2Panel() {
     setError(null);
 
     try {
-      const res = await fetch("/api/arena/autotune-v2", {
+      const res = await fetch("/api/arena/middle-out", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -609,10 +609,10 @@ export function ArenaAutoTuneV2Panel() {
                   {result.agent} / {result.capability}
                 </p>
                 <p className="text-3xl font-bold tracking-wide">
-                  {result.improvement.composite > 0.005 ? (
-                    <span className="text-emerald-400">+{(result.improvement.composite * 100).toFixed(1)}%</span>
-                  ) : result.improvement.composite < -0.005 ? (
-                    <span className="text-red-400">{(result.improvement.composite * 100).toFixed(1)}%</span>
+                  {result.improvement.weissman_score > 0.005 ? (
+                    <span className="text-emerald-400">+{(result.improvement.weissman_score * 100).toFixed(1)}%</span>
+                  ) : result.improvement.weissman_score < -0.005 ? (
+                    <span className="text-red-400">{(result.improvement.weissman_score * 100).toFixed(1)}%</span>
                   ) : (
                     <span className="text-gray-400">No change</span>
                   )}
@@ -716,7 +716,7 @@ export function ArenaAutoTuneV2Panel() {
                       <div className="text-xs ml-auto">
                         <span className="text-gray-600">AW:</span>
                         <span className="text-cyan-400 font-mono font-bold">
-                          {(iter.scores.composite * 100).toFixed(1)}%
+                          {(iter.scores.weissman_score * 100).toFixed(1)}%
                         </span>
                       </div>
                     </div>

@@ -1,6 +1,6 @@
-// POST /api/arena/autotune-v2 — Solo AutoTune loop with constraint-based scoring.
+// POST /api/arena/middle-out — Solo AutoTune loop with constraint-based scoring.
 // No opponent needed. Agent runs challenges → deterministic constraint scoring →
-// analyze failures → improve prompt → keep/revert based on composite score.
+// analyze failures → improve prompt → keep/revert based on weissman score.
 // 4-axis scoring: accuracy, speed, cost, reliability.
 export const maxDuration = 300; // 5 minutes max
 
@@ -53,7 +53,7 @@ interface SoloIterationResult {
     speed: number;
     cost: number;
     reliability: number;
-    composite: number;
+    weissman_score: number;
   };
   prompt_version: number;
   weakness_summary: string;
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
   // ============================================================
   // Step 1: Generate constraint challenge set (one-time expensive step)
   // ============================================================
-  console.log(`[autotune-v2] Generating ${rounds_per_phase} constraint challenges for ${agent_slug} / ${capability} L${level}...`);
+  console.log(`[middle-out] Generating ${rounds_per_phase} constraint challenges for ${agent_slug} / ${capability} L${level}...`);
 
   let challengeSet: ConstraintChallenge[];
   try {
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
-    console.error("[autotune-v2] Challenge generation failed:", errMsg);
+    console.error("[middle-out] Challenge generation failed:", errMsg);
     return NextResponse.json({ error: `Failed to generate challenge set: ${errMsg}` }, { status: 500 });
   }
 
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  console.log(`[autotune-v2] Generated ${challengeSet.length} challenges. Starting solo loop...`);
+  console.log(`[middle-out] Generated ${challengeSet.length} challenges. Starting solo loop...`);
 
   // ============================================================
   // Step 2: Solo AutoTune loop
@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
   let previousScores: IterationScores | null = null;
 
   for (let iter = 1; iter <= max_iterations; iter++) {
-    console.log(`[autotune-v2] Iteration ${iter}/${max_iterations}`);
+    console.log(`[middle-out] Iteration ${iter}/${max_iterations}`);
 
     // Run agent through all challenges
     const currentVersion = await getActivePromptVersion(agent.id, capability);
@@ -169,12 +169,13 @@ export async function POST(request: NextRequest) {
     const scores = await runChallengeSet(
       agent.mcp_endpoint as string,
       currentVersion.system_prompt,
+      currentVersion.model,
       capability,
       challengeSet,
       factorWeights,
     );
 
-    console.log(`[autotune-v2] Iteration ${iter} scores — accuracy: ${scores.accuracy.toFixed(3)}, speed: ${scores.speed.toFixed(3)}, cost: ${scores.cost.toFixed(3)}, reliability: ${scores.reliability.toFixed(3)}, composite: ${scores.composite.toFixed(3)}`);
+    console.log(`[middle-out] Iteration ${iter} scores — accuracy: ${scores.accuracy.toFixed(3)}, speed: ${scores.speed.toFixed(3)}, cost: ${scores.cost.toFixed(3)}, reliability: ${scores.reliability.toFixed(3)}, weissman: ${scores.weissman_score.toFixed(3)}`);
 
     // First iteration = baseline, just record scores
     if (iter === 1) {
@@ -189,7 +190,7 @@ export async function POST(request: NextRequest) {
           speed: scores.speed,
           cost: scores.cost,
           reliability: scores.reliability,
-          composite: scores.composite,
+          weissman_score: scores.weissman_score,
         },
         prompt_version: currentVersion.version,
         weakness_summary: weakSummary,
@@ -198,7 +199,7 @@ export async function POST(request: NextRequest) {
       });
 
       // If already perfect, stop
-      if (scores.composite >= 0.95) {
+      if (scores.weissman_score >= 0.95) {
         iterations[iterations.length - 1].stopped_reason = "near_perfect";
         break;
       }
@@ -209,7 +210,7 @@ export async function POST(request: NextRequest) {
 
     // For iterations after the first: compare with previous
     if (iter > 1 && previousScores) {
-      const delta = scores.composite - previousScores.composite;
+      const delta = scores.weissman_score - previousScores.weissman_score;
       const kept = delta > 0;
 
       const weakSummary = scores.worst_constraints.length > 0
@@ -218,7 +219,7 @@ export async function POST(request: NextRequest) {
 
       if (!kept) {
         // Revert
-        console.log(`[autotune-v2] Composite delta ${delta.toFixed(4)} — reverting`);
+        console.log(`[middle-out] Weissman delta ${delta.toFixed(4)} — reverting`);
         await revertToVersion(currentVersionId);
 
         iterations.push({
@@ -228,7 +229,7 @@ export async function POST(request: NextRequest) {
             speed: scores.speed,
             cost: scores.cost,
             reliability: scores.reliability,
-            composite: scores.composite,
+            weissman_score: scores.weissman_score,
           },
           prompt_version: currentVersion.version,
           weakness_summary: weakSummary,
@@ -238,7 +239,7 @@ export async function POST(request: NextRequest) {
         break;
       }
 
-      console.log(`[autotune-v2] Composite delta +${delta.toFixed(4)} — keeping`);
+      console.log(`[middle-out] Weissman delta +${delta.toFixed(4)} — keeping`);
       currentVersionId = currentVersion.id;
 
       iterations.push({
@@ -248,7 +249,7 @@ export async function POST(request: NextRequest) {
           speed: scores.speed,
           cost: scores.cost,
           reliability: scores.reliability,
-          composite: scores.composite,
+          weissman_score: scores.weissman_score,
         },
         prompt_version: currentVersion.version,
         weakness_summary: weakSummary,
@@ -258,7 +259,7 @@ export async function POST(request: NextRequest) {
 
       previousScores = scores;
 
-      if (scores.composite >= 0.95) {
+      if (scores.weissman_score >= 0.95) {
         iterations[iterations.length - 1].stopped_reason = "near_perfect";
         break;
       }
@@ -299,7 +300,7 @@ export async function POST(request: NextRequest) {
 
       // Log the diff
       const diff = promptDiff(currentVersion.system_prompt, newPromptText);
-      console.log(`[autotune-v2] Activated candidate v${candidateVersion.version}`);
+      console.log(`[middle-out] Activated candidate v${candidateVersion.version}`);
 
       // Log to autotune_runs
       await admin.from("autotune_runs").insert({
@@ -323,7 +324,7 @@ export async function POST(request: NextRequest) {
       // Brief pause for any caching
       await new Promise((r) => setTimeout(r, 1000));
     } catch (err) {
-      console.error("[autotune-v2] Prompt improvement failed:", err);
+      console.error("[middle-out] Prompt improvement failed:", err);
       iterations.push({
         iteration: iter,
         scores: {
@@ -331,7 +332,7 @@ export async function POST(request: NextRequest) {
           speed: scores.speed,
           cost: scores.cost,
           reliability: scores.reliability,
-          composite: scores.composite,
+          weissman_score: scores.weissman_score,
         },
         prompt_version: currentVersion.version,
         weakness_summary: "Prompt generation failed",
@@ -343,7 +344,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Build response with iteration 1 (start) and iteration N (end) dots
-  const startScores = iterations[0]?.scores ?? { accuracy: 0, speed: 0, cost: 0, reliability: 0, composite: 0 };
+  const startScores = iterations[0]?.scores ?? { accuracy: 0, speed: 0, cost: 0, reliability: 0, weissman_score: 0 };
   const endScores = iterations[iterations.length - 1]?.scores ?? startScores;
 
   return NextResponse.json({
@@ -362,7 +363,7 @@ export async function POST(request: NextRequest) {
       speed: endScores.speed - startScores.speed,
       cost: endScores.cost - startScores.cost,
       reliability: endScores.reliability - startScores.reliability,
-      composite: endScores.composite - startScores.composite,
+      weissman_score: endScores.weissman_score - startScores.weissman_score,
     },
     challenges_used: challengeSet.length,
   });
@@ -379,6 +380,7 @@ export async function POST(request: NextRequest) {
 async function runChallengeSet(
   mcpEndpoint: string,
   systemPrompt: string,
+  model: string,
   capability: string,
   challenges: ConstraintChallenge[],
   factorWeights: FactorWeights,
@@ -396,7 +398,7 @@ async function runChallengeSet(
 
     try {
       const message = await anthropic.messages.create({
-        model: "claude-haiku-4-5-20251001",
+        model,
         max_tokens: 1024,
         system: systemPrompt,
         messages: [{ role: "user", content: challenge.prompt }],
@@ -405,7 +407,7 @@ async function runChallengeSet(
       output = message.content[0].type === "text" ? message.content[0].text : "";
       tokensUsed = (message.usage?.input_tokens ?? 0) + (message.usage?.output_tokens ?? 0);
     } catch (err) {
-      console.error("[autotune-v2] Agent call failed:", err);
+      console.error("[middle-out] Agent call failed:", err);
     }
 
     runs.push({
