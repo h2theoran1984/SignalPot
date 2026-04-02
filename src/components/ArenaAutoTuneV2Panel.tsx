@@ -278,16 +278,14 @@ export function ArenaAutoTuneV2Panel() {
     }
   }, [selectedAgent?.description]);
 
-  // Fetch agents when panel opens
-  // Shows all active agents — backend rejects agents without prompt versions
-  // (only SignalPot-managed agents have prompt versions and can run the full autotune loop)
+  // Fetch only tunable agents (those with prompt versions managed by SignalPot)
   useEffect(() => {
     if (!isOpen || agents.length > 0) return;
 
     async function loadAgents() {
       setAgentsLoading(true);
       try {
-        const res = await fetch("/api/agents?limit=100&status=active");
+        const res = await fetch("/api/arena/tunable-agents");
         if (res.ok) {
           const data = await res.json();
           setAgents(
