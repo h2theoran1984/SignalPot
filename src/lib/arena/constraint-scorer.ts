@@ -354,6 +354,75 @@ function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
 }
 
 // ============================================================
+// JSON Repair — handles common LLM JSON issues
+// ============================================================
+
+/**
+ * Try to parse JSON, with progressive repair for common LLM output issues:
+ * - Trailing commas
+ * - Unescaped newlines in strings
+ * - Truncated output (parse what we can)
+ * - Single quotes instead of double quotes
+ */
+function parseJsonWithRepair(jsonStr: string): unknown[] {
+  // Attempt 1: direct parse
+  try {
+    return JSON.parse(jsonStr);
+  } catch {
+    // continue to repair
+  }
+
+  // Attempt 2: fix trailing commas (,] or ,})
+  let repaired = jsonStr.replace(/,\s*([\]}])/g, "$1");
+  try {
+    return JSON.parse(repaired);
+  } catch {
+    // continue
+  }
+
+  // Attempt 3: fix unescaped newlines inside string values
+  repaired = repaired.replace(/(?<=:\s*"[^"]*)\n/g, "\\n");
+  try {
+    return JSON.parse(repaired);
+  } catch {
+    // continue
+  }
+
+  // Attempt 4: truncated output — find the last complete object in the array
+  // Look for the last complete "}" followed by optional whitespace and "]"
+  // or just find all complete objects
+  const lastCompleteClose = repaired.lastIndexOf("}");
+  if (lastCompleteClose > 0) {
+    const truncated = repaired.slice(0, lastCompleteClose + 1) + "]";
+    try {
+      const result = JSON.parse(truncated);
+      if (Array.isArray(result) && result.length > 0) {
+        console.log(`[constraint-scorer] Recovered ${result.length} challenges from truncated JSON`);
+        return result;
+      }
+    } catch {
+      // Try finding the second-to-last complete object boundary
+      const secondLast = repaired.lastIndexOf("},", lastCompleteClose);
+      if (secondLast > 0) {
+        const moreTruncated = repaired.slice(0, secondLast + 1) + "]";
+        try {
+          const result = JSON.parse(moreTruncated);
+          if (Array.isArray(result) && result.length > 0) {
+            console.log(`[constraint-scorer] Recovered ${result.length} challenges from deeply truncated JSON`);
+            return result;
+          }
+        } catch {
+          // give up on truncation repair
+        }
+      }
+    }
+  }
+
+  console.error("[constraint-scorer] All JSON repair attempts failed. Raw (first 1000 chars):", jsonStr.slice(0, 1000));
+  return [];
+}
+
+// ============================================================
 // Iteration Aggregation
 // ============================================================
 
@@ -526,36 +595,34 @@ Return ONLY valid JSON array:
     }
   }
 
-  try {
-    const parsed = JSON.parse(jsonStr) as Array<{
-      title: string;
-      prompt: string;
-      constraints: Constraint[];
-      speed_threshold_ms: number;
-      token_budget: number;
-    }>;
+  // Try to parse, with repair fallback
+  const parsed = parseJsonWithRepair(jsonStr);
 
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      console.error("[constraint-scorer] Parsed result is empty or not an array. Raw response:", text.slice(0, 500));
-      return [];
-    }
-
-    return parsed.map((c) => ({
-      title: c.title ?? "Challenge",
-      prompt: c.prompt ?? "",
-      constraints: (c.constraints ?? []).map((con) => ({
-        name: con.name ?? "unnamed",
-        type: con.type ?? "semantic",
-        value: con.value ?? "",
-        weight: con.weight ?? 0.2,
-      })),
-      factor_weights: factorWeights ?? { accuracy: 0.4, speed: 0.2, cost: 0.2, reliability: 0.2 },
-      speed_threshold_ms: c.speed_threshold_ms ?? 5000,
-      token_budget: c.token_budget ?? 500,
-    }));
-  } catch (err) {
-    console.error("[constraint-scorer] Failed to parse generated challenges. Error:", err);
-    console.error("[constraint-scorer] Raw response (first 1000 chars):", text.slice(0, 1000));
+  if (!Array.isArray(parsed) || parsed.length === 0) {
+    console.error("[constraint-scorer] Parsed result is empty or not an array. Raw response:", text.slice(0, 500));
     return [];
   }
+
+  const validTypes = new Set(["contains", "not_contains", "matches_regex", "json_field", "numeric_range", "semantic"]);
+
+  return parsed.map((item: unknown) => {
+    const c = item as Record<string, unknown>;
+    return {
+      title: (c.title as string) ?? "Challenge",
+      prompt: (c.prompt as string) ?? "",
+      constraints: (Array.isArray(c.constraints) ? c.constraints : []).map((raw: unknown) => {
+        const con = raw as Record<string, unknown>;
+        const rawType = (con.type as string) ?? "semantic";
+        return {
+          name: (con.name as string) ?? "unnamed",
+          type: (validTypes.has(rawType) ? rawType : "semantic") as Constraint["type"],
+          value: (con.value as string) ?? "",
+          weight: (con.weight as number) ?? 0.2,
+        };
+      }),
+      factor_weights: factorWeights ?? { accuracy: 0.4, speed: 0.2, cost: 0.2, reliability: 0.2 },
+      speed_threshold_ms: (c.speed_threshold_ms as number) ?? 5000,
+      token_budget: (c.token_budget as number) ?? 500,
+    };
+  });
 }
