@@ -494,15 +494,108 @@ export function aggregateScores(
 }
 
 // ============================================================
-// Challenge Set Generator (the expensive one-time step)
+// Challenge Set Cache — generate once, reuse across all agents
 // ============================================================
 
+import { createAdminClient } from "@/lib/supabase/admin";
+
 /**
- * Generate a constraint-based challenge set for a domain + level.
- * Uses Sonnet for high-quality challenge + constraint generation.
- * This is the ONE expensive call — everything after is cheap.
+ * Get or generate a constraint challenge set for a capability + level.
+ * Checks the database cache first. If no cached set exists (or it's stale),
+ * generates fresh via Sonnet and caches it. ALL agents in the same capability
+ * domain share the same challenge set — enabling comparable scores.
  */
-export async function generateConstraintChallenges(params: {
+export async function getOrGenerateConstraintChallenges(params: {
+  agentName: string;
+  agentDescription: string | null;
+  capability: string;
+  level: number;
+  count: number;
+  trainingGoal?: string;
+  factorWeights?: FactorWeights;
+}): Promise<ConstraintChallenge[]> {
+  const { capability, level, factorWeights } = params;
+  const admin = createAdminClient();
+
+  // Check cache
+  const { data: cached } = await admin
+    .from("constraint_challenge_sets")
+    .select("challenges, challenge_count")
+    .eq("capability", capability)
+    .eq("level", level)
+    .eq("stale", false)
+    .single();
+
+  if (cached && cached.challenges) {
+    const challenges = cached.challenges as Array<Record<string, unknown>>;
+    if (challenges.length > 0) {
+      console.log(`[constraint-scorer] Using cached challenge set: ${challenges.length} challenges for ${capability} L${level}`);
+      return hydrateChallenges(challenges, factorWeights);
+    }
+  }
+
+  // Generate fresh
+  console.log(`[constraint-scorer] No cache — generating fresh challenges for ${capability} L${level}`);
+  const challenges = await generateConstraintChallenges(params);
+
+  if (challenges.length > 0) {
+    // Cache for reuse — upsert so we don't fail on duplicate
+    await admin
+      .from("constraint_challenge_sets")
+      .upsert({
+        capability,
+        level,
+        challenges: challenges.map((c) => ({
+          title: c.title,
+          prompt: c.prompt,
+          constraints: c.constraints,
+          speed_threshold_ms: c.speed_threshold_ms,
+          token_budget: c.token_budget,
+        })),
+        challenge_count: challenges.length,
+        generated_at: new Date().toISOString(),
+        training_goal: params.trainingGoal ?? null,
+        factor_weights: factorWeights ?? null,
+        stale: false,
+      }, { onConflict: "capability,level" });
+
+    console.log(`[constraint-scorer] Cached ${challenges.length} challenges for ${capability} L${level}`);
+  }
+
+  return challenges;
+}
+
+/** Hydrate raw DB challenge objects into typed ConstraintChallenge[] */
+function hydrateChallenges(
+  raw: Array<Record<string, unknown>>,
+  factorWeights?: FactorWeights,
+): ConstraintChallenge[] {
+  const validTypes = new Set(["contains", "not_contains", "matches_regex", "json_field", "numeric_range", "semantic"]);
+
+  return raw.map((c) => ({
+    title: (c.title as string) ?? "Challenge",
+    prompt: (c.prompt as string) ?? "",
+    constraints: (Array.isArray(c.constraints) ? c.constraints : []).map((raw: unknown) => {
+      const con = raw as Record<string, unknown>;
+      const rawType = (con.type as string) ?? "semantic";
+      return {
+        name: (con.name as string) ?? "unnamed",
+        type: (validTypes.has(rawType) ? rawType : "semantic") as Constraint["type"],
+        value: (con.value as string) ?? "",
+        weight: (con.weight as number) ?? 0.2,
+      };
+    }),
+    factor_weights: factorWeights ?? { accuracy: 0.4, speed: 0.2, cost: 0.2, reliability: 0.2 },
+    speed_threshold_ms: (c.speed_threshold_ms as number) ?? 5000,
+    token_budget: (c.token_budget as number) ?? 500,
+  }));
+}
+
+/**
+ * Generate fresh constraint challenges via Sonnet.
+ * Internal — called by getOrGenerateConstraintChallenges when cache misses.
+ */
+async function generateConstraintChallenges(params: {
   agentName: string;
   agentDescription: string | null;
   capability: string;
@@ -603,26 +696,5 @@ Return ONLY valid JSON array:
     return [];
   }
 
-  const validTypes = new Set(["contains", "not_contains", "matches_regex", "json_field", "numeric_range", "semantic"]);
-
-  return parsed.map((item: unknown) => {
-    const c = item as Record<string, unknown>;
-    return {
-      title: (c.title as string) ?? "Challenge",
-      prompt: (c.prompt as string) ?? "",
-      constraints: (Array.isArray(c.constraints) ? c.constraints : []).map((raw: unknown) => {
-        const con = raw as Record<string, unknown>;
-        const rawType = (con.type as string) ?? "semantic";
-        return {
-          name: (con.name as string) ?? "unnamed",
-          type: (validTypes.has(rawType) ? rawType : "semantic") as Constraint["type"],
-          value: (con.value as string) ?? "",
-          weight: (con.weight as number) ?? 0.2,
-        };
-      }),
-      factor_weights: factorWeights ?? { accuracy: 0.4, speed: 0.2, cost: 0.2, reliability: 0.2 },
-      speed_threshold_ms: (c.speed_threshold_ms as number) ?? 5000,
-      token_budget: (c.token_budget as number) ?? 500,
-    };
-  });
+  return hydrateChallenges(parsed as Array<Record<string, unknown>>, factorWeights);
 }

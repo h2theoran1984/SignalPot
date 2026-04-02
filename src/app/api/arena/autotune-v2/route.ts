@@ -19,7 +19,7 @@ import { proposeImprovedPrompt, promptDiff } from "@/lib/arena/autotune";
 import {
   batchScoreOutputs,
   aggregateScores,
-  generateConstraintChallenges,
+  getOrGenerateConstraintChallenges,
   type ConstraintChallenge,
   type ChallengeRun,
   type FactorWeights,
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
 
   let challengeSet: ConstraintChallenge[];
   try {
-    challengeSet = await generateConstraintChallenges({
+    challengeSet = await getOrGenerateConstraintChallenges({
       agentName: agent.name as string,
       agentDescription: agent.description as string | null,
       capability,
