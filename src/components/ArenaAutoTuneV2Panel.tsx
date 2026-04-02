@@ -623,6 +623,20 @@ export function ArenaAutoTuneV2Panel() {
                 {result.training_goal && (
                   <p className="text-xs text-gray-600 mt-1 italic">Goal: {result.training_goal}</p>
                 )}
+                {/* Weights used for this run */}
+                <div className="flex items-center justify-center gap-3 mt-2">
+                  {AXES.map((axis) => {
+                    const w = result.factor_weights[axis];
+                    return (
+                      <span key={axis} className="text-[10px] text-gray-600">
+                        <span className="capitalize">{axis}</span>:{" "}
+                        <span className={w > 0.25 ? "text-cyan-400 font-medium" : "text-gray-600"}>
+                          {Math.round(w * 100)}%
+                        </span>
+                      </span>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* 4-axis scores comparison */}
