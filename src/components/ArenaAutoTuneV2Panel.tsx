@@ -374,9 +374,9 @@ export function ArenaAutoTuneV2Panel() {
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
         </svg>
-        <span className="text-cyan-400">AutoTune v2</span>
+        <span className="text-cyan-400">Middle Out</span>
         <span className="text-xs text-gray-600 font-normal ml-2">
-          Solo training loop — constraint-based scoring on 4 axes, no opponent needed
+          Solo training — goal-driven, 4-axis scoring, Agent Weissman Score
         </span>
       </button>
 
@@ -541,8 +541,8 @@ export function ArenaAutoTuneV2Panel() {
               {/* How it works */}
               <div className="p-3 bg-[#0a0a0f] border border-[#1f2028] rounded-lg">
                 <p className="text-xs text-gray-500">
-                  Solo training — no opponent needed. Generates constraint-based challenges, scores your agent deterministically,
-                  identifies weaknesses, improves the prompt, and re-scores. Keeps improvements, reverts regressions.
+                  Middle Out — set your goal, we figure out what to test. Generates challenges with cheat sheets,
+                  scores on 4 axes, identifies weaknesses, improves the prompt, re-scores. Agent Weissman Score tracks progress.
                 </p>
               </div>
 
@@ -559,7 +559,7 @@ export function ArenaAutoTuneV2Panel() {
                 disabled={!selectedSlug.trim() || !capability.trim()}
                 className="w-full"
               >
-                Start AutoTune v2
+                Start Middle Out
               </Button>
             </div>
           )}
@@ -568,7 +568,7 @@ export function ArenaAutoTuneV2Panel() {
           {running && (
             <div className="flex flex-col items-center justify-center py-12 gap-4">
               <div className="w-10 h-10 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-              <p className="text-cyan-400 font-medium">AutoTuning (Solo)...</p>
+              <p className="text-cyan-400 font-medium">Middle Out — Running...</p>
               <p className="text-sm text-gray-500">
                 Generating challenges → scoring → improving — up to {maxIterations} iteration{maxIterations !== 1 ? "s" : ""}
               </p>
@@ -616,7 +616,7 @@ export function ArenaAutoTuneV2Panel() {
                   ) : (
                     <span className="text-gray-400">No change</span>
                   )}
-                  <span className="text-gray-600 text-lg ml-2">composite</span>
+                  <span className="text-gray-600 text-lg ml-2">AW Score</span>
                 </p>
                 {result.training_goal && (
                   <p className="text-xs text-gray-600 mt-1 italic">Goal: {result.training_goal}</p>
@@ -714,7 +714,7 @@ export function ArenaAutoTuneV2Panel() {
                         </div>
                       ))}
                       <div className="text-xs ml-auto">
-                        <span className="text-gray-600">Composite: </span>
+                        <span className="text-gray-600">AW:</span>
                         <span className="text-cyan-400 font-mono font-bold">
                           {(iter.scores.composite * 100).toFixed(1)}%
                         </span>
