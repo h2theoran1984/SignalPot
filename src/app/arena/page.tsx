@@ -6,6 +6,7 @@ import SiteNav from "@/components/SiteNav";
 import { ArenaMatchCard } from "@/components/ArenaMatchCard";
 import { ArenaGrindPanel } from "@/components/ArenaGrindPanel";
 import { ArenaAutoTunePanel } from "@/components/ArenaAutoTunePanel";
+import { ArenaAutoTuneV2Panel } from "@/components/ArenaAutoTuneV2Panel";
 import type { ArenaMatchStatus, ArenaMatchType } from "@/lib/arena/types";
 
 interface MatchRow {
@@ -617,7 +618,10 @@ function ArenaPage() {
             {/* Grind Mode */}
             <ArenaGrindPanel />
 
-            {/* AutoTune */}
+            {/* AutoTune v2 — Solo constraint-based training */}
+            <ArenaAutoTuneV2Panel />
+
+            {/* AutoTune (Classic) — Head-to-head against sparring partner */}
             <ArenaAutoTunePanel />
 
             {/* Training Match History */}
