@@ -138,12 +138,16 @@ export async function POST(request: NextRequest) {
       factorWeights,
     });
   } catch (err) {
-    console.error("[autotune-v2] Challenge generation failed:", err);
-    return NextResponse.json({ error: "Failed to generate challenge set" }, { status: 500 });
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[autotune-v2] Challenge generation failed:", errMsg);
+    return NextResponse.json({ error: `Failed to generate challenge set: ${errMsg}` }, { status: 500 });
   }
 
   if (challengeSet.length === 0) {
-    return NextResponse.json({ error: "Challenge generation returned empty set" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Challenge generation returned empty set — Sonnet may have returned non-JSON. Check server logs for raw response." },
+      { status: 500 },
+    );
   }
 
   console.log(`[autotune-v2] Generated ${challengeSet.length} challenges. Starting solo loop...`);

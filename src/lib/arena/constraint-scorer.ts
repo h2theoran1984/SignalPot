@@ -503,9 +503,20 @@ Return ONLY valid JSON array:
 
   const text = message.content[0].type === "text" ? message.content[0].text : "[]";
 
+  // Try multiple strategies to extract the JSON array
   let jsonStr = text.trim();
+
+  // Strip markdown fencing
   if (jsonStr.startsWith("```")) {
     jsonStr = jsonStr.replace(/^```(?:\w+)?\s*/, "").replace(/\s*```$/, "");
+  }
+
+  // If the response doesn't start with [, try to find the array in the text
+  if (!jsonStr.startsWith("[")) {
+    const arrayMatch = jsonStr.match(/\[[\s\S]*\]/);
+    if (arrayMatch) {
+      jsonStr = arrayMatch[0];
+    }
   }
 
   try {
@@ -517,16 +528,27 @@ Return ONLY valid JSON array:
       token_budget: number;
     }>;
 
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      console.error("[constraint-scorer] Parsed result is empty or not an array. Raw response:", text.slice(0, 500));
+      return [];
+    }
+
     return parsed.map((c) => ({
-      title: c.title,
-      prompt: c.prompt,
-      constraints: c.constraints,
+      title: c.title ?? "Challenge",
+      prompt: c.prompt ?? "",
+      constraints: (c.constraints ?? []).map((con) => ({
+        name: con.name ?? "unnamed",
+        type: con.type ?? "semantic",
+        value: con.value ?? "",
+        weight: con.weight ?? 0.2,
+      })),
       factor_weights: factorWeights ?? { accuracy: 0.4, speed: 0.2, cost: 0.2, reliability: 0.2 },
-      speed_threshold_ms: c.speed_threshold_ms,
-      token_budget: c.token_budget,
+      speed_threshold_ms: c.speed_threshold_ms ?? 5000,
+      token_budget: c.token_budget ?? 500,
     }));
-  } catch {
-    console.error("[constraint-scorer] Failed to parse generated challenges");
+  } catch (err) {
+    console.error("[constraint-scorer] Failed to parse generated challenges. Error:", err);
+    console.error("[constraint-scorer] Raw response (first 1000 chars):", text.slice(0, 1000));
     return [];
   }
 }
