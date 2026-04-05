@@ -1,0 +1,66 @@
+---
+title: "150 Organizations Just Wired Their Agents Together. Now Comes the Hard Part."
+date: "2026-04-05"
+description: "Google's Agent2Agent protocol now has 150+ enterprise backers and just shipped a major upgrade. The plumbing for multi-agent interoperability is essentially solved. What isn't solved is whether anyone should trust what flows through it."
+tags: ["A2A protocol", "AI agents", "agent trust", "multi-agent systems", "enterprise AI", "agent verification"]
+author: "SignalPot Team"
+slug: "a2a-protocol-trust-layer"
+---
+
+The internet for AI agents just got a major upgrade — and most people missed it.
+
+[Google Cloud announced significant updates to the Agent2Agent (A2A) protocol](https://cloud.google.com/blog/products/ai-machine-learning/agent2agent-protocol-is-getting-an-upgrade), the open standard that lets AI agents built by different teams, on different frameworks, in different clouds, communicate with each other. The new version ships with stronger streaming support, improved task lifecycle management, and tighter authentication primitives. More importantly, the protocol now has over 150 organizations behind it — spanning every major hyperscaler, dozens of enterprise software vendors, and a growing roster of specialized AI companies.
+
+That is a significant moment. Not because any single feature landed, but because 150 organizations agreeing on a communication standard is how you get a foundational layer. It's the TCP/IP moment for agentic AI.
+
+And like TCP/IP, it creates a problem that didn't exist before. When agents couldn't talk to each other, you only had to worry about whether *your* agents worked. Now that they can route tasks across organizational boundaries, across model providers, and across deployment environments — you have to worry about whether *all of them* work. And right now, most enterprises have no structured way to answer that question.
+
+## What A2A Actually Enables
+
+The protocol is deceptively simple in concept. An agent publishes an Agent Card — a machine-readable descriptor of its capabilities, its interface, and what tasks it can handle. Other agents or orchestrators read those cards and decide whether to delegate tasks accordingly. Authentication is handled at the protocol layer so agents don't have to rebuild identity logic from scratch.
+
+In practice, this means a healthcare orchestration agent can discover and delegate to a clinical data analysis agent built by a different vendor, without anyone writing custom integration code. A financial services workflow can route compliance tasks to a specialized regulatory agent that wasn't in scope when the workflow was designed. Multi-agent pipelines can be assembled and reassembled dynamically, with agents from different providers slotting in based on capability claims.
+
+That flexibility is genuinely powerful. It also introduces a question that the protocol, by design, doesn't answer: **are the capability claims accurate?**
+
+## The Trust Gap the Protocol Doesn't Close
+
+[McKinsey's State of AI Trust report for 2026](https://www.mckinsey.com/capabilities/tech-and-ai/our-insights/tech-forward/state-of-ai-trust-in-2026-shifting-to-the-agentic-era) landed alongside the A2A upgrades with some data worth sitting with. Twenty-eight percent of US organizations say they lack confidence in the quality of their own AI data. Sixty-three percent still require human validation of agent outputs before acting on them. And governance maturity — the ability to systematically verify what agents are doing and how well — remains the exception, not the rule.
+
+Those numbers reflect a fundamental structural problem: the enterprise world has been deploying agents faster than it's been developing the frameworks to evaluate them. Every agent comes with capability claims from the vendor. Almost none come with independently verified performance data.
+
+In a single-agent, single-task deployment, this is bad but manageable. You put the agent in a limited environment, watch it closely, catch the failures before they compound. It's not good practice, but it's recoverable.
+
+In a multi-agent environment — where an orchestrator is reading Agent Cards and making routing decisions automatically, potentially at a scale no human team can supervise — unverified capability claims become operational risk. The orchestrator will route a task to the agent that claims it can do the job, not the agent that has *proven* it can do the job. Those are not the same thing.
+
+## Multi-Model Routing Makes This Worse
+
+[Industry analysis published this week](https://markets.financialcontent.com/stocks/article/abnewswire-2026-4-3-2026-agentic-ai-era-why-multi-model-routing-has-become-a-must-have-not-a-nice-to-have) describes what's quietly becoming standard practice in serious enterprise deployments: multi-model routing, where orchestration systems dynamically select which underlying model to call based on task type, latency requirements, cost constraints, and availability. Relying on a single LLM for production agentic workloads is now considered an architectural antipattern — too fragile, too expensive, too easy to arbitrage.
+
+The emergence of multi-model routing is rational. But it layers additional complexity onto the trust problem. Now you're not just evaluating whether an agent works. You're evaluating whether an agent works across the mix of models it might be routed to, under conditions your test environment may not have covered, on tasks that may differ meaningfully from the benchmark set the vendor used.
+
+A single performance score doesn't capture that. Neither does a demo or a case study. You need multi-axis evaluation — accuracy, reliability, cost-efficiency, adversarial resistance — across the actual task distribution you care about. And you need it to be continuous, because model routing means the agent's effective performance can shift without anyone changing a line of code.
+
+## The Agent Card Should Include a Trust Score
+
+Here's what needs to happen, and it's not complicated in concept even if it's nontrivial to build.
+
+The Agent Card already carries capability declarations, interface definitions, and authentication data. It should also carry independently verified performance signals. A structured trust profile — accuracy scores on relevant task categories, OWASP LLM compliance results, benchmark comparisons against alternative agents, last-verified timestamp — embedded directly in the protocol artifact that orchestrators are already reading.
+
+This isn't a new category of work. Financial instruments carry credit ratings from independent agencies. Medical devices carry clearance documentation from regulatory bodies. Software supply chains now carry SBOMs and CVE records. Agents operating inside enterprise infrastructure, making decisions that affect real workflows, should carry verified performance records.
+
+The A2A protocol has the right architecture for this. Agent Cards are already machine-readable and already consumed by automated orchestrators. Adding a standardized trust signal field is a protocol extension, not a protocol replacement. The harder problem is populating those fields with signals that weren't generated by the agent vendor.
+
+## What 150 Organizations Should Build Next
+
+The A2A upgrade is a win. Getting 150 organizations to align on a communication standard is hard, and it matters. The protocol deserves credit for getting to this point.
+
+But standardized communication between agents creates leverage — for the good outcomes and the bad ones. A well-verified agent in a multi-agent pipeline produces better results as it gains access to more capable peers. An unverified agent in the same pipeline introduces compounding risk at every node where its outputs influence downstream decisions.
+
+The organizations that built the A2A protocol should now be building the trust layer that sits on top of it. Not as an afterthought. As the next protocol milestone.
+
+Because the pipes are connected. What matters now is what flows through them — and whether anyone checked.
+
+---
+
+<MatrixPills />
