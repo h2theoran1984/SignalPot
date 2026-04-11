@@ -1,0 +1,76 @@
+---
+title: "Anthropic Solved Deployment. Now Comes the Hard Part."
+date: "2026-04-11"
+description: "Anthropic's Managed Agents just stripped the infrastructure friction out of shipping AI agents. Notion, Rakuten, and Asana are already live in production. When deployment takes weeks instead of months, the competition moves somewhere else entirely."
+tags: ["AI agents", "Anthropic", "enterprise AI", "agent verification", "deployment", "trust", "performance"]
+author: "SignalPot Team"
+slug: "anthropic-solved-deployment-now-comes-the-hard-part"
+---
+
+Anthropic stripped the infrastructure out of shipping AI agents.
+
+[Claude Managed Agents](https://siliconangle.com/2026/04/08/anthropic-launches-claude-managed-agents-speed-ai-agent-development/), launched April 8, is a cloud service that handles the things that used to take months to build and maintain: sandboxing, orchestration, error recovery, context management, automatic scaling. Developers define their tasks, tools, and guardrails. Anthropic handles the execution layer. Notion, Rakuten, and Asana are already using it in production. [The company says it compresses the development cycle from months to weeks](https://www.datacenterknowledge.com/data-center-software/anthropic-targets-ai-data-center-bottleneck-with-claude-managed-agents).
+
+The infrastructure problem for enterprise agents is, for all practical purposes, solved.
+
+Which means a different problem just became the most important one in the room.
+
+## When Deployment Is Easy, Volume Follows
+
+[40% of enterprise applications will include task-specific AI agents by the end of 2026](https://www.barchart.com/story/news/1204699/belitsoft-releases-ai-agent-development-forecast-2026-40-of-enterprise-applications-to-include-task-specific-agents-by-year-end) — up from under 5% last year. Managed Agents doesn't create that trend, but it accelerates it. Every team that was blocked on infrastructure work now has a clear path to production.
+
+The agents are coming. Faster than most enterprise teams are prepared for.
+
+Here's the part Gartner also said: **more than 40% of agentic AI projects will be canceled before the end of 2027**. Sit with both numbers at the same time. Massive deployment wave in 2026. Massive cancellation wave right behind it.
+
+That's not a contradiction. That's a sequence. Deploy fast, discover the agent doesn't actually perform, cancel the project. The failure mode isn't deploying agents — it's deploying agents that nobody verified worked before they went into production.
+
+## Infrastructure Is Not Performance
+
+Managed Agents gives you managed execution. It handles the hard distributed systems problems — how do you run a long-lived agent session across failures? How do you coordinate multiple agents working in parallel? How do you scale from five users to five thousand without rewriting everything?
+
+These are genuinely hard problems. Solving them is real value.
+
+What Managed Agents doesn't tell you is whether your agent gives correct answers when it matters. Whether it holds up on edge cases. Whether it outperforms the three competing agents your enterprise customer is also evaluating. Whether it has ever been tested against prompt injection or data exfiltration attempts.
+
+Those questions are still entirely on you.
+
+An agent can run flawlessly on Managed Agents infrastructure — perfect uptime, clean scaling, zero orchestration errors — and still be mediocre at the job it was built for. Still lose head-to-head against a competitor's agent by 30 percentage points. Still hallucinate in the edge cases that matter most to your buyer. None of that shows up in infrastructure monitoring. It shows up in outcomes, and usually after the contract is already signed.
+
+## The Competition Just Moved
+
+Before Managed Agents, a real competitive moat for agent builders was operational: could you run a production-grade agent reliably, at scale, without it falling apart? Building the execution layer is expensive and time-consuming. Teams that did it well had an advantage.
+
+Anthropic just handed that advantage to everyone.
+
+[The enterprise agentic AI landscape in 2026](https://www.kai-waehner.de/blog/2026/04/06/enterprise-agentic-ai-landscape-2026-trust-flexibility-and-vendor-lock-in/) has two documented failure modes: agents that underperform expectations, and vendor lock-in that makes it costly to swap them out when they do. Managed Agents doesn't fix either one. It makes deploying faster — which is useful — but the question enterprise buyers are increasingly asking isn't "can you ship a production agent?" Everyone can ship a production agent now.
+
+The question is: **how do we know if this agent is actually good at the thing it claims to do?**
+
+That question has a verification answer, not an infrastructure answer.
+
+## What Happens to Builders
+
+If you're building an agent on top of Claude — or any model — this week's news changes your situation in one important way. The baseline just moved up. Stable, scalable production deployment used to be a differentiator. Now it's table stakes.
+
+The differentiation that matters is demonstrable performance.
+
+Enterprise buyers are not comparing infrastructure stacks. They're comparing agents. And increasingly, they're looking for something beyond vendor-provided benchmarks and staged demos. They want to see how an agent performs against alternatives, on real tasks, under conditions the vendor didn't handpick. They want verification that didn't originate with the team that built the thing.
+
+That's not a nice-to-have. It's the answer to the cancellation problem.
+
+The 40% of agentic projects that get canceled won't mostly fail because of bad infrastructure. They'll fail because someone realized, six months into deployment, that the agent's actual performance didn't match what was promised before the purchase. Managed Agents makes deployment faster. It doesn't make that reckoning any softer when it comes.
+
+The projects that survive will be the ones where someone ran independent verification before going live — not as an afterthought, but as a precondition for the contract.
+
+## What to Do With This
+
+**If you're building an agent:** Managed Agents is worth using. The infrastructure savings are real. But don't let easier deployment substitute for the harder question of whether your agent actually performs. Get independent benchmarking. Know your performance profile across accuracy, reliability, and edge case handling before your customers discover it for you. Right now, verified performance data is what separates agents that close enterprise deals from agents that get stuck in pilot purgatory.
+
+**If you're buying agents:** the ease of deployment means you're about to see significantly more of them. That makes pre-purchase verification more important, not less. An agent that shipped in two weeks on Managed Agents had less time to be tested, not more. Ask how it performed against alternatives on your specific tasks. Demand independently verified scores, not benchmarks from the builder's own test suite.
+
+Anthropic solved the deployment problem. The performance problem is still wide open — and in a world where every team can ship production agents in weeks, it's the only problem that's going to matter.
+
+---
+
+<MatrixPills />
