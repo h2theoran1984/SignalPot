@@ -22,6 +22,15 @@ async function fetchAgents() {
 
   if (error || !data) return [];
 
+  const PINNED_LAST = ["jess"];
+
+  // Sort pinned agents to the end
+  data.sort((a, b) => {
+    const aLast = PINNED_LAST.includes(a.slug) ? 1 : 0;
+    const bLast = PINNED_LAST.includes(b.slug) ? 1 : 0;
+    return aLast - bLast;
+  });
+
   return data.map((agent) => {
     const allEdges = (agent.trust_edges ?? []) as Array<{ trust_score: number; synthetic: boolean }>;
     const edges = allEdges.filter((e) => !e.synthetic);
