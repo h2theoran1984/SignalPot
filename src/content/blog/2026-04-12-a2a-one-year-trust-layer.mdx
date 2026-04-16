@@ -1,0 +1,78 @@
+---
+title: "A2A at One: The Protocol Won. Now Build the Trust Layer."
+date: "2026-04-12"
+description: "The Agent2Agent protocol just turned one with 150+ supporting organizations and deep integration in Azure, AWS Bedrock, and Google Cloud. Agents can now talk to each other across any vendor stack. The problem nobody is solving yet: should they trust what they hear?"
+tags: ["A2A", "AI agents", "multi-agent systems", "agent trust", "interoperability", "enterprise AI", "agent verification"]
+author: "SignalPot Team"
+slug: "a2a-one-year-trust-layer"
+---
+
+The A2A protocol just had its first birthday, and the numbers are hard to argue with.
+
+One year ago, Google launched the [Agent2Agent protocol](https://developers.googleblog.com/en/a2a-a-new-era-of-agent-interoperability/) — a specification for how AI agents discover each other, negotiate tasks, and coordinate across vendors and frameworks. Last week, [the Linux Foundation announced the one-year milestone](https://www.linuxfoundation.org/press/a2a-protocol-surpasses-150-organizations-lands-in-major-cloud-platforms-and-sees-enterprise-production-use-in-first-year): 150+ supporting organizations including AWS, Cisco, IBM, Microsoft, Salesforce, SAP, and ServiceNow. Over 22,000 GitHub stars. Production deployments across supply chain, financial services, insurance, and IT operations. Five production-ready SDKs in Python, JavaScript, Java, Go, and .NET. And — the defining move — Microsoft baked A2A into Azure AI Foundry and Copilot Studio while AWS added support through Amazon Bedrock AgentCore Runtime.
+
+This isn't a protocol that generated buzz and stalled. It's a protocol that generated buzz and became infrastructure.
+
+## What A2A Actually Solves
+
+"Agent-to-agent communication" sounds abstract until you look at what enterprise multi-agent systems actually require.
+
+Today's serious AI deployments aren't single agents. They're networks. A procurement agent calling a vendor validation agent calling a compliance agent calling a payment processor. An IT operations system routing tickets between a triage agent, a diagnostic agent, and a resolution agent — each potentially built by a different vendor, running on a different model, living on a different cloud. Before A2A, those agents had no standard way to find each other, no common format to negotiate capabilities, no shared vocabulary to coordinate handoffs. You could build a multi-agent system, but you were wiring it together manually, and agents could only reliably talk to agents in the same stack.
+
+A2A gives every compliant agent the same discovery document, the same handshake protocol, and the same task negotiation format. Drop a compliant agent into any A2A ecosystem and it's immediately callable — by human orchestrators or by other agents. That's the [agent marketplace dynamic](https://signalpot.dev/blog/agent-marketplace-moment-is-here) taken to its logical end: not just agents you can hire, but agents that can hire each other.
+
+## The Birthday Gift Nobody Mentioned
+
+Here's what the anniversary announcement quietly sidesteps.
+
+A2A is a communication standard. It tells you *how* agents talk. It says nothing about *whether to trust* what they say.
+
+When agent A invokes agent B via A2A — discovers it, sends it a task, receives a result — what does agent A actually know about agent B? It knows agent B's schema. It knows the tasks agent B *claims* to handle. It knows the interface.
+
+It doesn't know whether agent B is accurate. It doesn't know whether agent B has been tested for prompt injection. It doesn't know whether agent B's self-reported capabilities reflect production performance or a vendor demo curated to look impressive. It doesn't know whether agent B's performance on financial reconciliation is anything like its performance on the healthcare workflows being routed to it now.
+
+As A2A scales from 150 organizations to a thousand — from pilots to production, from controlled integrations to open agent networks — this trust gap becomes structural. You're building systems where individual nodes make autonomous decisions to delegate high-stakes tasks to other nodes they've never evaluated. The quality of every output in the chain depends on the quality of every node. And there is currently no standard way for any node to assess any other.
+
+## The Industry Is Starting to Notice
+
+The first signal that this is becoming a real problem arrived quietly in March. UiPath became the first enterprise automation platform to earn [AIUC-1 certification](https://ir.uipath.com/news/detail/430/uipath-achieves-aiuc-1-certification-setting-new-standard-for-ai-agent-security-and-reliability) — a new standard developed with Anthropic, Stanford, MIT, the Cloud Security Alliance, and MITRE — verifying that AI agents meet rigorous benchmarks across data protection, security, reliability, and operational boundaries. The certification required 2,000+ technical evaluations by [Schellman](https://www.schellman.com/), the largest specialized cybersecurity auditor, testing for prompt injection, data leakage, and hallucination under adversarial conditions.
+
+That same week, Microsoft open-sourced the [Agent Governance Toolkit](https://opensource.microsoft.com/blog/2026/04/02/introducing-the-agent-governance-toolkit-open-source-runtime-security-for-ai-agents/) — a runtime security framework with cryptographic identity, dynamic trust scoring on a 0–1000 scale, and coverage across all 10 OWASP Agentic risks.
+
+These are real moves. But notice two things.
+
+First, AIUC-1 certifies a *platform*, not the agents running on it. It's analogous to certifying the container ship rather than the cargo. And it's binary — you pass or you don't. The granular data that multi-agent orchestrators actually need — axis-by-axis evaluation across task types, comparative benchmarks against similar agents, adversarial test scores over time — isn't in scope.
+
+Second, and more critically: neither AIUC-1 nor Microsoft's trust scoring is embedded in A2A. An agent's verification status isn't discoverable via the protocol. There's no trust signal in the handshake. You have to go find it elsewhere — if it exists at all.
+
+## What the Protocol Needs in Year Two
+
+A2A Agent Cards — the discovery documents agents publish about their capabilities — need a trust signals section. Not just *what can I do* but *here's evidence I actually do it well*. Independent performance scores, security compliance ratings, adversarial test results, last-evaluated timestamps. Machine-readable, standardized, and sourced from outside the agent's own vendor chain.
+
+The A2A roadmap points this direction — the specification mentions an interoperability registry, expanded testing tooling, and security best practices. That's right. The question is whether trust signals become first-class citizens of that registry or an afterthought added after the first wave of multi-agent failures makes the gap impossible to ignore.
+
+Because failures are coming. When an orchestrating agent autonomously delegates a compliance task to an agent it discovered via A2A three seconds ago — and that agent's self-reported capability score is the only signal it had — you will eventually encounter a bad outcome. [88% of enterprises already report AI agent security incidents](https://signalpot.dev/blog/enterprise-ai-deployment-trust-gap). The addition of agent-to-agent trust chains doesn't reduce that number on its own. It multiplies the surface area.
+
+## The Optimistic Read
+
+A2A had a remarkable first year for a structural reason: 150 organizations chose a common standard because the alternative — incompatible multi-agent silos across every vendor stack — was obviously worse than the coordination cost of standardizing. Interoperability had sufficient shared pain to force alignment.
+
+Trust has the same structure. Right now, most A2A integrations happen between known partners in controlled environments. The problem is manageable. As A2A makes cross-vendor, cross-platform, even cross-company agent delegation routine — and it will — the pain of unverified trust chains will be obvious enough to force the same kind of alignment that got 150 organizations to agree on a protocol.
+
+The question is whether that alignment happens proactively or reactively. Before the failures accumulate, or after.
+
+The verification infrastructure — independent benchmarking, adversarial testing, multi-axis scoring, machine-readable performance data — exists today. What doesn't exist is A2A-native integration that puts those trust signals in the discovery layer where orchestrators can consume them automatically. That's the gap. And the organizations building multi-agent systems now should not wait for the protocol to close it for them.
+
+## The Protocol Won. Now Build the Trust Layer.
+
+A2A's first year proved that agents from different vendors, different models, and different clouds can talk to each other. That's done. 150 organizations and three hyperscalers embedded into their core infrastructure settles the question.
+
+Year two is about what happens when those conversations scale into autonomous delegation chains across organizational and vendor boundaries at production volume. The communication layer works. The trust layer hasn't been built yet.
+
+That's not an indictment of A2A's first year. It's the natural sequence: you can't solve trust before you solve communication. A2A did its job. Now the next job is clear.
+
+The agent internet is real. Now it needs a reputation system.
+
+---
+
+<MatrixPills />
