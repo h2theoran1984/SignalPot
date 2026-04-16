@@ -1,0 +1,70 @@
+---
+title: "Every Enterprise AI Agent Needs an Identity. Most Still Don't Have One."
+date: "2026-04-06"
+description: "Okta is putting 'Okta for AI Agents' into general availability on April 30 — and the headline finding from their research is brutal: 88% of organizations have had AI agent security incidents, yet only 22% treat agents as independent, identity-bearing entities. Before you can trust an agent, you have to know what it is."
+tags: ["AI agents", "enterprise AI", "security", "agent identity", "Okta", "trust", "governance", "shadow AI"]
+author: "SignalPot Team"
+slug: "every-agent-needs-an-id"
+---
+
+Somewhere in your organization, an AI agent is running that nobody on your security team knows about.
+
+Maybe an engineer spun it up last quarter. Maybe a vendor bundled it into a SaaS product you renewed without reading the release notes. Maybe a well-meaning employee connected it to a third-party workflow tool and forgot about it. It has access to your internal data. It's making decisions or drafting outputs that flow into real processes. And it has no identity in any system your IT team controls.
+
+This is the shadow agent problem — and it's the headline finding in [Okta's blueprint for the secure agentic enterprise](https://www.okta.com/newsroom/press-releases/showcase-2026/), announced this week alongside the April 30 general availability of Okta for AI Agents. The numbers should make any enterprise architect uncomfortable: **88% of organizations report suspected or confirmed AI agent security incidents in the past year.** Yet only **22% of organizations treat AI agents as independent, identity-bearing entities.**
+
+That gap — between how many organizations are running agents and how many actually know who those agents are — is the identity crisis at the center of enterprise AI in 2026.
+
+## What "Agent Identity" Actually Means
+
+When Okta talks about treating agents as identity-bearing entities, they mean something specific. Right now, the majority of AI agents authenticate to downstream systems by borrowing a human credential — a service account, an API key, sometimes an actual employee's token. The agent isn't a distinct entity in your identity infrastructure. It's a ghost wearing someone else's badge.
+
+That creates three concrete problems.
+
+First, you can't audit the agent's actions separately from the human whose credentials it's using. If something goes wrong, the audit trail points at a person, not an agent. Second, you can't apply least-privilege access controls at the agent level. If the service account has broad access, the agent inherits that access, regardless of what the agent actually needs to do its job. Third, and most critically, you can't discover agents you don't know about. If agents hide behind shared service accounts, your identity provider has no way to surface them.
+
+[Okta for AI Agents](https://www.okta.com/blog/ai/okta-ai-agents-early-access-announcement/) addresses this by expanding the Universal Directory to treat agents as first-class identities — each with a unique identity, a defined lifecycle, and scoped permissions that can be managed, audited, and revoked independently of any human account. Their framework centers on three questions every organization should be able to answer about their agent fleet: where are my agents, what can they connect to, and what can they do.
+
+Most organizations can't answer any of those three questions today.
+
+## The Scale of the Problem
+
+The [Okta enterprise buyer survey](https://www.okta.com/newsroom/articles/enterprise-buyer-survey-ai-agent-security/) polled 150 IT and security decision-makers in January 2026. Eighty-six percent of respondents said AI agent workflows are "very important" or "mission-critical" to their organization's strategy. Eighty-eight percent had experienced security incidents involving agents. Only twenty-two percent had the governance infrastructure to treat agents as distinct identities.
+
+Do that math: organizations are betting their strategy on technology they haven't secured and can't fully see. That's not a niche risk for early adopters. That's the median situation for enterprise AI today.
+
+[KPMG's Q1 2026 AI Pulse](https://kpmg.com/us/en/media/news/q1-ai-pulse2026.html) adds another dimension. Organizations are projecting average AI spending of $207 million over the next twelve months — nearly double from the same period last year. Nearly three-quarters are using AI agents to automate workflows that span multiple business functions. The money is moving fast. The governance is not.
+
+Microsoft, for what it's worth, is building toward this problem from a different direction. Their [Agent Governance Toolkit](https://www.msspalert.com/news/okta-wants-ai-agents-treated-like-identities-heres-why-that-matters), announced alongside Okta's framework, is an open-source layer that blocks dangerous agent actions in under 0.1 milliseconds and protects against ten categories of agent-specific attack. Security teams are getting tools. The question is how fast organizations actually deploy them.
+
+## Identity Is Step One. Trust Is Step Two.
+
+Here's where the Okta announcement matters beyond the security layer.
+
+Giving every agent a unique identity is the prerequisite for everything else. You cannot benchmark an agent you can't distinguish from three other agents sharing the same service account. You cannot track performance degradation over time for an agent that has no persistent identity. You cannot embed verified trust signals into an agent's protocol card if the agent isn't a real entity in your infrastructure.
+
+Identity is the foundation. But it's not the building.
+
+Once an agent has an identity, the next question — the one that determines whether that agent is worth keeping — is whether it actually performs. Does it give accurate outputs? How does it hold up under adversarial inputs? How does it compare to alternative agents doing the same job? Does it pass OWASP LLM compliance testing, or does a basic prompt injection test expose it?
+
+These are verification questions, not identity questions. And most organizations have no structured answer to them, even for the agents they do know about.
+
+The irony is pointed: the 22% of organizations that treat agents as proper identities are in a position to answer the verification question. They can track performance per agent, audit behavior per agent, and eventually embed trust signals per agent. The 78% that haven't gotten to identity yet are two steps behind — they haven't solved the prerequisite.
+
+## What This Means If You're Running Agents Today
+
+**Audit your agent fleet first.** Before any governance framework can work, you need to know what's running. That includes shadow agents — the ones your security team didn't approve, don't know about, and can't see in current tooling. Okta's framework explicitly addresses shadow agent discovery. That's where the audit starts.
+
+**Give every agent its own identity.** Shared service accounts and borrowed API keys are not agent identities. They're liability laundering. Each agent should have a unique, revocable identity with scoped access that reflects what the agent actually needs — nothing more.
+
+**Then verify what each agent actually does.** Identity tells you an agent exists and what it's allowed to do. It doesn't tell you whether the agent is good at its job. That requires independent benchmarking — head-to-head performance testing against comparable agents, OWASP compliance testing against known LLM attack patterns, and verified metrics that didn't come from the agent vendor's own test suite.
+
+The organizations winning the agent era won't just be the ones who deployed the most agents. They'll be the ones who know, at any moment, exactly which agents are running, exactly what they have access to, and exactly how well they perform. Right now, that describes about one in five enterprises.
+
+The other four are flying with agents they can't see, can't verify, and haven't secured.
+
+That's not a technology problem. It's a decision problem. The tools to fix it are now generally available.
+
+---
+
+<MatrixPills />
