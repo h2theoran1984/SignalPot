@@ -1,0 +1,70 @@
+---
+title: "Who Audits the Audit AI?"
+date: "2026-04-08"
+description: "EY just deployed agentic AI to 130,000 auditors processing 1.4 trillion data points. The audit profession runs entirely on trust. So why are audit AI agents the last to be independently verified?"
+tags: ["enterprise AI", "AI agents", "audit", "AI verification", "trust", "EY", "Mastercard", "agent governance"]
+author: "SignalPot Team"
+slug: "who-audits-the-audit-ai"
+---
+
+EY just handed agentic AI to 130,000 auditors.
+
+The firm's new multi-agent framework — integrated with Microsoft Azure, Microsoft Foundry, and Microsoft Fabric — is now embedded in EY Canvas, the global assurance platform that processes more than [1.4 trillion lines of journal entry data](https://www.ey.com/en_us/newsroom/2026/04/ey-launches-enterprise-scale-agentic-ai-to-redefine-the-audit-experience-for-the-ai-era) per year across 160,000 audit engagements in more than 150 countries. [Announced yesterday](https://www.cpapracticeadvisor.com/2026/04/07/ey-rolls-out-agentic-ai-in-assurance-across-its-global-network-of-accounting-firms/181097/), this isn't a pilot. It isn't a controlled experiment with ten agents running in a sandboxed environment while a steering committee writes a framework. It's a global rollout of AI agents embedded in the daily workflows of the people whose literal job is to verify whether other organizations' numbers are trustworthy.
+
+Think about what that means. Audit exists for one reason: independent verification. Investors trust financial statements because an auditor — bound by professional standards, legal liability, and regulatory oversight — has put their name on them. That trust is the foundation of capital markets.
+
+And now EY is asking AI agents to participate in that process at unprecedented scale. Nobody asked the agents for their credentials.
+
+## The Verification Paradox
+
+To be fair to EY, they're not reckless. The deployment includes human oversight, a phased roadmap toward full end-to-end coverage by 2028, and partnership with Microsoft's enterprise-grade infrastructure. Auditors aren't being replaced — they're being augmented.
+
+But "enterprise-grade infrastructure" is not the same as "independently verified agent performance." Those are different things. Microsoft Azure is a reliable compute platform. That says nothing about whether the specific agents running on it hallucinate on edge-case journal entries, perform consistently across different industry sectors, or fail gracefully when they encounter data distributions they weren't trained for.
+
+There are no independently verified benchmarks for EY's audit agents. No third-party compliance scores. No OWASP LLM security testing results published alongside the announcement. No competitive ranking against other audit AI systems on representative tasks. There's a press release describing what the agents are supposed to do and a partnership with Harvard's Digital Data Design Institute.
+
+That's the standard most of the enterprise AI market is operating on right now. And audit is supposed to be the most trust-obsessed profession there is.
+
+## The Payments Industry Is Solving This Faster
+
+Here's the telling contrast. While audit AI is being deployed at global scale without standardized verification, the payments industry — which moves faster, has clearer feedback loops, and where agent failures surface as fraud losses within hours — is already building the verification layer.
+
+Mastercard, in partnership with Google, recently launched [Verifiable Intent](https://www.mastercard.com/us/en/news-and-trends/stories/2026/verifiable-intent.html), an open-source cryptographic framework that creates tamper-resistant proof of consumer authorization for every transaction executed by an AI agent. The specification links identity, intent, and action into a single privacy-preserving record. Visa is working on a competing [Trusted Agent Protocol](https://fidoalliance.org/finextra-deep-dive-mastercard-verifiable-intent-vs-visa-trusted-agent-protocol/) with Stripe and Shopify — the industry shorthand is "Know Your Agent," like KYC but for bots. Okta is launching [a security blueprint for the agentic enterprise](https://www.okta.com/newsroom/press-releases/showcase-2026/) with identity verification built into the agent layer itself.
+
+The pattern is clear. Industries where agent failures have fast, measurable costs are building verification infrastructure first. Industries where failures are slower to surface — audit, compliance, legal, assurance — are deploying first and figuring out verification later.
+
+That's backwards. The slower the feedback loop, the more important pre-deployment verification becomes. In payments, a fraudulent agent transaction shows up in a chargeback report the next morning. An audit agent that systematically underweights a particular risk category might not surface that error for years — until a restatement, a regulatory inquiry, or litigation forces the issue.
+
+## What's Actually at Stake
+
+Audit AI that hallucinates is not a UX problem. It's a regulatory exposure problem.
+
+EY's announcement notes that human judgment remains central and that agents are augmenting professional work, not replacing it. That's the right framing. But the volume of data those agents are processing — 1.4 trillion lines of journal entries — means they're not being supervised line by line. Agents handling work at that scale are trusted to be right the vast majority of the time. That's what scale means.
+
+If an agent is susceptible to prompt injection, an adversarially crafted journal entry could manipulate how it classifies transactions. If it's undertested on the long tail of industry-specific accounting edge cases, it may produce confident-sounding summaries that a human auditor reasonably defers to. The professional liability for a missed material misstatement doesn't shift to the AI. It stays with the auditor, and the firm.
+
+None of this means EY made the wrong call by deploying. Competitive pressure alone — the other Big Four are on the same trajectory — makes standing still untenable. The question isn't whether to deploy; it's whether the verification infrastructure has to be built after the fact or before.
+
+## The Norm That Gets Set Here
+
+When the biggest firms move, everyone else follows. EY's deployment will be studied, cited, and replicated by mid-size accounting firms, regional auditors, and enterprise compliance teams over the next 18 months. The due diligence standard EY models — whatever it is — becomes the industry baseline.
+
+Right now, that standard is: partner with a credible cloud provider, maintain human oversight, and phase in capabilities gradually. That's a reasonable operational approach. What it doesn't include is independently verified agent performance benchmarks, OWASP LLM compliance scores, or any third-party attestation that these agents have been tested against the failure modes that matter most in high-stakes environments.
+
+If the industry normalizes deployment without independent verification, it's going to take a high-profile failure to change that norm. And in audit, high-profile failures have names attached to them.
+
+## What Should Happen
+
+Independent verification of AI agents doing high-stakes work should be a prerequisite, not a retrofit.
+
+For audit specifically, that means: performance benchmarks on representative audit tasks, generated independently by parties without a stake in the outcome. OWASP LLM compliance scores — because an audit agent susceptible to prompt injection is an attack surface with direct financial consequences. Competitive benchmarking against other systems on the same tasks, so "it seems to work" can be distinguished from "it actually performs." And machine-readable trust signals that human auditors and oversight systems can evaluate continuously, not just at deployment.
+
+At SignalPot, that's exactly the kind of verification we run — challenge patterns, OWASP compliance testing, competitive benchmarking — in minutes, not months. The technology isn't the bottleneck.
+
+The bottleneck is the expectation. The enterprise AI market has collectively decided that vendor-curated demos and high-profile partnerships are sufficient due diligence for agents doing critical work. EY's deployment isn't an exception to that norm. It is the norm.
+
+The audit profession built its entire value proposition on the idea that self-reporting isn't enough. It's time to apply that principle to the AI agents doing the auditing.
+
+---
+
+<MatrixPills />
