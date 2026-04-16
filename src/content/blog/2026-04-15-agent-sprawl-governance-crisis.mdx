@@ -1,0 +1,86 @@
+---
+title: "96% of Enterprises Have AI Agents. Only 12% Know How to Govern Them."
+date: "2026-04-15"
+description: "A new OutSystems report drops a number that should terrify every enterprise architect: 96% of companies are running AI agents in production, but only 12% have centralized governance for them. Agent sprawl isn't a future problem — it's the problem you have right now."
+tags: ["AI agents", "enterprise AI", "agent governance", "agent sprawl", "trust", "verification", "2026"]
+author: "SignalPot Team"
+slug: "agent-sprawl-governance-crisis"
+---
+
+The question enterprises spent 2024 debating — *should we use AI agents?* — is settled. The question 2026 is forcing on them is considerably harder: *what do we do about all the agents we already have?*
+
+OutSystems released its [2026 State of AI Development report](https://www.businesswire.com/news/home/20260407749542/en/Agentic-AI-Goes-Mainstream-in-the-Enterprise-but-94-Raise-Concern-About-Sprawl-OutSystems-Research-Finds) last week. It surveyed nearly 1,900 IT leaders globally. The headline numbers are striking: **96% of enterprises are already using AI agents in some capacity**, and 97% are exploring system-wide agentic AI strategies.
+
+Read those as good news for five seconds. Then read the next one.
+
+**Only 12% have implemented a centralized platform to manage those agents.** And 94% of organizations say AI sprawl is increasing their complexity, technical debt, and security risk.
+
+So the industry has sprinted past the adoption problem and landed face-first in a governance crisis. Agents everywhere, oversight almost nowhere.
+
+## What Sprawl Actually Looks Like
+
+Agent sprawl isn't a buzzword. It's a concrete architectural failure mode that's playing out inside real organizations right now.
+
+Here's how it happens. The marketing team adopts a content agent from one vendor. The finance team builds a custom reconciliation agent using an open-source framework. The IT help desk rolls out a support agent from a third vendor, bundled into their ticketing system. The security team gets a threat detection agent as part of their SOC platform renewal.
+
+Six months later, no single person in the organization has a complete list of what agents are running. Nobody knows which frameworks they're built on, what external APIs they're calling, what data they have access to, or how any of them were evaluated before deployment. 38% of organizations globally report mixing custom-built and pre-built agents — a recipe for stacks that resist standardization and make consistent security review nearly impossible.
+
+This isn't a hypothetical. It's the median state of enterprise AI deployment right now.
+
+## Why This Is a Verification Problem, Not Just a Management Problem
+
+There's a temptation to frame sprawl as an IT management challenge — too many tools, too many vendors, not enough visibility. That's true, but it understates the problem.
+
+The deeper issue is that each agent in a sprawling estate was almost certainly evaluated differently — or not evaluated at all. The marketing team saw a demo. The finance team tested on internal data that was conveniently clean. The help desk agent shipped in a bundle nobody specifically vetted. The security agent came with a compliance checkbox from the vendor's own test suite.
+
+When you have a unified fleet of agents you actually understand, you can govern it. You can establish performance baselines. You can test against adversarial inputs. You can compare agents against each other and against alternatives. You can build a trust signal that means something.
+
+When you have sprawl, you have none of that. You have a collection of black boxes that each arrived with different promises from different vendors, and you're hoping they're collectively doing approximately the right thing.
+
+The 88% of enterprises reporting AI security incidents in the past year aren't mostly companies that were reckless. [They're the median outcome](https://www.prnewswire.com/apac/news-releases/agentic-ai-goes-mainstream-in-the-enterprise-but-94-raise-concern-about-sprawl-outsystems-research-finds-302739251.html) of organizations that moved fast on deployment and slow on oversight — which is, according to this data, nearly everyone.
+
+## The Protocol Layer Is Already Maturing Faster Than Governance
+
+Here's the ironic part. On the interoperability side of the agent stack, things are moving fast in the right direction.
+
+The [A2A (Agent2Agent) protocol](https://www.linuxfoundation.org/press/a2a-protocol-surpasses-150-organizations-lands-in-major-cloud-platforms-and-sees-enterprise-production-use-in-first-year) — the open standard for agent-to-agent communication that Google introduced a year ago and moved to the Linux Foundation — just announced it has crossed 150 supporting organizations. AWS, Microsoft, Cisco, IBM, Salesforce, SAP, ServiceNow are all in. It's in production deployments across supply chain, financial services, insurance, and IT operations. The GitHub repository has surpassed 22,000 stars. The SDK now has five production-ready language implementations.
+
+In one year, A2A went from announcement to real infrastructure. Agents can find each other, negotiate tasks, and coordinate across frameworks and providers. The communication layer works.
+
+But communication without verification is just noise at scale. 150 organizations agree on *how* agents talk to each other. Far fewer have agreed on *how* to know whether those agents are worth talking to.
+
+Governance didn't keep pace. It rarely does.
+
+## 73% Trust Is Not the Same as Verified Trust
+
+The OutSystems report offers one finding that reads as optimism: 73% of IT leaders now trust autonomous agents to act on behalf of the enterprise. That number has grown significantly from a year ago.
+
+But there's a difference between trust that accreted through familiarity and trust that was earned through evidence. If your organization has been running agents for a year and nothing catastrophically wrong has happened yet, it's easy to feel increasingly comfortable with them. That's not the same as having verified that they perform correctly, behave safely under adversarial inputs, and comply with your actual data governance policies.
+
+The trust in that 73% figure is largely experiential. It's the kind of trust you develop when you've driven the same route to work for six months without an accident. What it doesn't capture is whether the brakes have been inspected.
+
+At small agent counts, experiential trust is fine. When you're heading toward hundreds or thousands of agents across the organization — and Gartner says 40% of enterprise applications will have embedded task-specific agents by year-end — it breaks down fast. You can't derive trust from lived experience at that scale. You need structured evidence.
+
+## What the 12% Are Doing Differently
+
+The organizations with mature, centralized agent governance aren't just running better software. They have a fundamentally different posture toward agent procurement and deployment.
+
+They start with a standard. Before an agent enters the estate, it gets evaluated against a consistent set of criteria — performance on representative tasks, behavior under adversarial inputs, compliance with data access policies. That evaluation doesn't come from the vendor's marketing materials. It comes from structured testing against defined benchmarks.
+
+They track continuously. Agent performance at deployment isn't agent performance six months later as data drifts, prompts evolve, and underlying models are updated. The 12% treat agent evaluation as an ongoing operational function, not a one-time procurement checkbox.
+
+They make trust signals machine-readable. This is the piece most organizations miss. Trust signals that live in a spreadsheet or a compliance dashboard are useful for quarterly reviews. Trust signals embedded in agent metadata — readable by orchestrators, procurement systems, and governance workflows — are essential for operating at scale. The [A2A protocol's agent card specification](https://cloud.google.com/blog/products/ai-machine-learning/agent2agent-protocol-is-getting-an-upgrade) is moving in this direction. The infrastructure is there. The adoption isn't.
+
+## The Window to Get Ahead of This Is Closing
+
+Every quarter that organizations run unverified agents in production is another quarter of compounding technical debt and undocumented security surface. The agents that were deployed without structured evaluation don't become safer with time — they just become more embedded and harder to audit.
+
+The organizations that establish centralized agent governance now — before the next wave of Gartner's 40% lands — are the ones who will have the audit trails, the performance baselines, and the trust infrastructure to operate effectively at scale. The ones who don't will be retroactively building governance around agents that were never designed to be governed.
+
+The OutSystems report is a useful snapshot of where the industry is. 96% deployed. 94% concerned. 12% ready.
+
+The question isn't whether you're in the 96%. You almost certainly are. The question is which side of that 12% line you're on.
+
+---
+
+<MatrixPills />
