@@ -1,0 +1,88 @@
+---
+title: "A2A Just Crossed 150 Organizations. The Trust Layer Is Still Missing."
+date: "2026-04-13"
+description: "The Agent-to-Agent protocol hit a major milestone this week: 150 organizations, production deployments across five industries, AWS and Azure integrations. A2A solved how agents talk to each other. It didn't solve whether they should trust each other."
+tags: ["A2A", "multi-agent systems", "agent trust", "enterprise AI", "agent sprawl", "AI protocols", "agent verification"]
+author: "SignalPot Team"
+slug: "a2a-150-orgs-trust-layer"
+---
+
+One year ago, Google released a spec. This week, that spec became infrastructure.
+
+The [Agent-to-Agent (A2A) protocol](https://www.prnewswire.com/news-releases/a2a-protocol-surpasses-150-organizations-lands-in-major-cloud-platforms-and-sees-enterprise-production-use-in-first-year-302737641.html) — now hosted by the Linux Foundation — just crossed 150 supporting organizations. AWS, Microsoft, Cisco, IBM, Salesforce, SAP, and ServiceNow are all in. AWS integrated it into Amazon Bedrock AgentCore Runtime. Microsoft wired it into Azure AI Foundry and Copilot Studio. The GitHub repo has 22,000 stars. There are production SDKs in Python, JavaScript, Java, Go, and .NET. Vertical deployments are live in supply chain, financial services, insurance, and IT operations.
+
+This is not a research project anymore. A2A is the nervous system of the emerging agent internet.
+
+Which is exactly why the conversation needs to shift — because A2A solved the coordination problem, and the trust problem just got a lot bigger.
+
+## What A2A Actually Did
+
+To understand the gap, you need to understand what A2A is and isn't.
+
+A2A is a protocol for agent interoperability. It gives agents a common language to advertise their capabilities (via Agent Cards), negotiate tasks, stream results, and coordinate across different frameworks, clouds, and organizational boundaries. Before A2A, getting a Salesforce agent to hand off work to an SAP agent involved custom integration work. Now it's a standard handshake.
+
+That's genuinely important. The industry needed this. MCP solved how agents connect to tools and data. A2A solves how agents connect to each other. Together, they form the foundational plumbing for multi-agent systems at enterprise scale.
+
+But a protocol that defines *how* agents communicate says nothing about *whether* the agent on the other end is any good.
+
+When an orchestrator agent selects a downstream agent to execute a task — and with A2A, that downstream agent may now belong to a completely different organization — it needs more than a capability advertisement. It needs a trust signal. And that signal isn't in the spec.
+
+## 150 Organizations Means Thousands of Agents Crossing Boundaries
+
+Here's the arithmetic that keeps enterprise architects up at night.
+
+With 150 organizations using A2A in production, you have agents from different companies, built on different models, with different training data and quality standards, now communicating in shared pipelines. An orchestrator at a financial services firm can call an analytics agent owned by a SaaS vendor. A procurement agent can hand off to a compliance agent from a different provider. A customer service pipeline can delegate to specialized agents from third parties.
+
+This is the design. This is the point. Multi-agent coordination only creates value if agents can cross organizational boundaries.
+
+But the moment you have agents crossing those boundaries, you have a quality propagation problem. A mediocre agent embedded in a multi-agent pipeline doesn't fail visibly — it degrades outcomes quietly. The orchestrating agent calls it, gets a plausible-looking response, and passes that response downstream. No error. No exception. Just quietly wrong output flowing through a production system.
+
+The [OutSystems State of AI Development 2026 report](https://www.businesswire.com/news/home/20260407749542/en/Agentic-AI-Goes-Mainstream-in-the-Enterprise-but-94-Raise-Concern-About-Sprawl-OutSystems-Research-Finds), released this week after surveying nearly 1,900 IT leaders globally, found that **94% of organizations are concerned that AI sprawl is increasing complexity, technical debt, and security risk**. Nearly every org is already using agents. Almost none have centralized governance. Only 12% have implemented a platform to manage sprawl.
+
+The conversation in that report frames sprawl as the problem. But sprawl is a symptom. The root cause is that there's no reliable quality signal attached to agents — so organizations can't rationalize their portfolios, orchestrators can't make informed routing decisions, and procurement teams can't tell the good agents from the mediocre ones until they've already deployed.
+
+Sprawl is what happens when you have no way to compare.
+
+## The Propagation Risk Is Real
+
+Think through a concrete scenario.
+
+A financial services firm builds an automated risk assessment pipeline. Their orchestrator calls four agents: a data ingestion agent (internal), a market analysis agent (third-party vendor A), a regulatory compliance checker (third-party vendor B), and a report generation agent (internal). The pipeline runs in production, handles hundreds of assessments per week.
+
+Vendor A's market analysis agent has a known weakness in edge cases involving low-liquidity assets. Not a catastrophic failure — it returns reasonable-looking estimates that are off by 15-30% in those cases. The agent has no trust score. No benchmark data. The vendor self-reported that it "achieves 94% accuracy on standard market data."
+
+Standard market data isn't low-liquidity assets.
+
+The compliance checker and report generator downstream have no signal that the analysis they're processing is unreliable. They execute correctly against incorrect inputs. The reports look normal. The risk assessments are systematically off in a predictable class of cases.
+
+This isn't hypothetical. It's the failure mode that A2A interoperability at scale makes structurally more likely — not less. The more easily agents connect, the more quickly quality problems propagate.
+
+## What a Trust Layer Looks Like
+
+The solution isn't to slow down A2A adoption. The infrastructure is good. The solution is to build the trust layer that sits on top of it.
+
+Here's what that looks like in practice.
+
+**Verified performance scores embedded in Agent Cards.** A2A defines the Agent Card format and already supports extensions. Trust scores and compliance scores should be machine-readable fields in those cards — not marketing copy, but independently verified numbers. When an orchestrator is selecting an agent for a task, it can filter by verified accuracy, success rate, or OWASP compliance score the same way a router filters by latency. The spec supports this. Someone needs to generate the scores worth embedding.
+
+**Head-to-head competitive benchmarking.** Self-reported metrics are close to worthless in a market where every vendor claims top performance. What buyers and orchestrators need is relative performance data — how does agent A perform against agent B on the same tasks, under the same conditions, with neither party controlling the test environment. ELO-style ratings from competitive evaluation give you a number that accounts for the quality of the competition, not just the absolute score on a friendly benchmark.
+
+**Continuous verification, not point-in-time audits.** Models update. Pipelines change. An agent that scored well six months ago may have drifted. Trust signals need to be live — fed by telemetry from real usage and periodic re-verification, not a badge earned once and displayed forever.
+
+**Cross-organizational accountability.** When Agent A in Org 1 hands a task to Agent B in Org 2, and Agent B performs poorly, that needs to be traceable. Not to assign blame — to update the routing decision. Multi-agent systems need feedback loops that cross the boundaries A2A was designed to enable.
+
+## The Infrastructure Layer Is Done. What's Next?
+
+A2A crossing 150 organizations is a genuine milestone. It means the coordination problem is largely solved at the protocol level. The industry worked fast: one year from spec to production-grade open standard, integrated into the three major clouds.
+
+The trust problem takes the same energy. And it can't wait for another year to pass.
+
+The pattern in the OutSystems data is telling: 96% of enterprises using agents, 97% exploring system-wide agentic strategies, and 94% worried about the mess they're creating. That's not a coincidence. Adoption without verification creates sprawl. Sprawl without governance creates the 40% cancellation rate Gartner is projecting for agentic AI projects by 2027.
+
+The organizations that will avoid that cancellation wave are the ones building trust infrastructure now — before they're three hundred agents deep and can't tell which ones are actually working.
+
+A2A solved the handshake. Now we need to verify who we're shaking hands with.
+
+---
+
+<MatrixPills />
