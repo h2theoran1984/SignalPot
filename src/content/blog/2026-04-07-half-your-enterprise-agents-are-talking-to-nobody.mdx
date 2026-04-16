@@ -1,0 +1,82 @@
+---
+title: "Half Your Enterprise Agents Are Talking to Nobody"
+date: "2026-04-07"
+description: "A new report finds the average enterprise runs 12 AI agents — but half of them operate in complete isolation, with no connection to other agents or systems. At $600 billion in investment, this is the most expensive silence in tech right now."
+tags: ["enterprise AI", "AI agents", "multi-agent systems", "A2A protocol", "agent interoperability", "trust", "vendor lock-in"]
+author: "SignalPot Team"
+slug: "half-your-enterprise-agents-are-talking-to-nobody"
+---
+
+A [new industry report from Belitsoft](https://markets.financialcontent.com/stocks/article/abnewswire-2026-4-6-belitsoft-report-2026-ai-agent-trends-enterprises-run-12-ai-agents-on-average-but-half-work-alone) dropped this week with a number that sounds impressive until you read the fine print: the average enterprise now runs **12 AI agents**. By 2027, that's expected to climb to 20.
+
+Here's the fine print: **50% of those agents operate in complete isolation.** No connection to other agents. No handoffs. No shared context. A dozen specialized AI systems running in parallel, none of them talking to each other.
+
+This is what $600 billion in enterprise AI investment has built. A fleet of agents that don't know the others exist.
+
+## The Deployment Trap
+
+The path to this situation is predictable in hindsight. Enterprises bought agents the same way they bought SaaS: one at a time, team by team, use case by use case. A procurement agent here. A customer support agent there. A code review agent for engineering. An insights agent for the analytics team.
+
+Each one shipped fast. Each one got adopted. Each one became a local success — which is exactly the problem. Local success doesn't require interoperability. Local success only requires that the agent works for the team that bought it. And so the enterprise ends up with a dozen agents doing a dozen things in a dozen siloes, with no compound effect.
+
+The irony is that this is the opposite of how agentic AI is supposed to work. The case for AI agents was never "replace one person's workflow with one agent." It was orchestration — a network of specialized agents collaborating on complex tasks, handing work to each other, combining their capabilities. That's the scenario where the productivity math gets genuinely interesting.
+
+Instead, most enterprises built a dozen isolated tools and called it an agentic strategy.
+
+## Trust Is the Missing Piece
+
+A separate analysis by [Kai Waehner published this week](https://www.kai-waehner.de/blog/2026/04/06/enterprise-agentic-ai-landscape-2026-trust-flexibility-and-vendor-lock-in/) frames what's actually blocking interoperability. It's not a technical problem. The protocols exist. A2A (Agent-to-Agent) is live. MCP is shipping in production environments. The plumbing is there.
+
+What's blocking it is **trust and vendor lock-in**.
+
+When an orchestrator agent considers handing a task to a downstream agent — especially one built by a different vendor, or procured through a marketplace — there's a fundamental question that has no good answer today: *how do I know this agent will handle the task correctly and safely?*
+
+Without a verifiable answer to that question, enterprises have two options: stick to agents from a single vendor (building the lock-in problem into their architecture from day one) or run everything in isolation (which is where most of them ended up).
+
+Waehner's research found only about one-third of organizations report maturity levels of 3 or higher in AI governance. The organizations that haven't cracked governance can't let their agents collaborate, because they have no framework for deciding which agents are safe to trust with which tasks.
+
+## Isolation Is Expensive
+
+The cost of this situation isn't just missed productivity. It's concrete and measurable.
+
+Consider the enterprise with a procurement agent and a compliance agent that don't talk to each other. Every procurement decision that has compliance implications requires a human to carry context from one system to the other. That's the exact overhead that compound agent architectures are supposed to eliminate. Instead, the human is the API.
+
+Or consider a multi-stage analytics workflow where a data extraction agent, a transformation agent, and an insights agent all exist in the same enterprise — but none of them are connected. Every stage of the pipeline still requires manual handoff. Three agents, zero compound value.
+
+The return on investment from AI agents, in the case for agentic AI that everyone is making, is fundamentally a case about orchestration. A single specialized agent is valuable. A network of specialized agents that collaborate is the thing that actually transforms how work gets done. Half of enterprise agents living in isolation means half the potential ROI is sitting on the table.
+
+## What Compound Agent Systems Actually Need
+
+Building a network of collaborating agents requires solving three things simultaneously:
+
+**Interoperability at the protocol level.** Agents need a common language for discovering each other's capabilities, passing tasks, and returning results. This is what A2A is designed for — agent cards that describe what an agent can do, what it expects, and what it returns. The infrastructure is available. Organizations need to require it rather than letting vendor agents ship without it.
+
+**Identity and scope.** An agent that hands a task to another agent needs to know what that agent is allowed to do. [Okta's upcoming "Okta for AI Agents" launch on April 30th](https://nationaltoday.com/us/ca/san-francisco/news/2026/03/22/okta-unveils-okta-for-ai-agents-sets-april-30-launch/) is addressing this directly — treating agents as first-class non-human identities with scoped credentials and auditable access. This matters enormously for multi-agent systems where a compromised downstream agent can propagate bad behavior back up the chain.
+
+**Verified trust signals.** This is the part that's still largely unsolved. For an orchestrator to confidently hand a task to a downstream agent — especially a third-party or marketplace agent — it needs machine-readable evidence of that agent's performance and safety profile. Not a vendor's self-reported benchmark. Not a demo. Verified, independently generated scores that say: *this agent handles this category of task at this accuracy level, and it's been tested against known adversarial patterns.*
+
+Without trust signals that travel with the agent, interoperability is either a leap of faith or a vendor lock-in bet. Neither is a strategy.
+
+## The Architecture Problem Is the Business Problem
+
+The Belitsoft report frames this as an interoperability gap. It's actually a governance gap masquerading as an architecture problem. The reason enterprises didn't build connected agent systems isn't that they didn't know it was possible. It's that they had no framework for trusting agents enough to let them collaborate.
+
+Solve the trust problem — with verified performance data, machine-readable scores, adversarial testing baked into the procurement pipeline — and the interoperability problem mostly solves itself. The protocols exist. The runtime infrastructure is mature. What's missing is the confidence that the agent on the other end of the handoff is actually reliable.
+
+This is exactly why verification has to come before orchestration, not after. Organizations that get serious about independent benchmarking, compliance testing, and embedding trust signals into their agent protocol cards aren't just solving a security problem. They're unblocking the compound value they already paid for.
+
+## What to Do With 12 Agents
+
+If you're running agents in an enterprise environment right now, the practical question is: how many of them are talking to each other, and how many are siloed? If the honest answer is closer to half-siloed, the path forward isn't buying more agents. It's connecting the ones you have.
+
+That starts with requiring A2A compatibility from every agent in your portfolio — new procurements and existing deployments. Agents that don't expose agent cards can't participate in orchestration. Make that a procurement gate, not an optional feature.
+
+It continues with demanding verified performance data before any cross-agent handoff goes live. You wouldn't give a new employee unsupervised access to critical systems before verifying their competence. Apply the same standard to agents.
+
+And it ends with building governance infrastructure that scales to 20 agents, not 12 — because that's where the average enterprise is heading in the next eighteen months. The organizations that build that governance layer now will have connected, compound systems running at scale. The ones that don't will have 20 isolated agents doing 20 isolated things, for twice the cost and half the return.
+
+The fleet is already in the hangar. Time to get it talking.
+
+---
+
+<MatrixPills />
