@@ -1,0 +1,78 @@
+---
+title: "A2A Turns One — and the Agent Internet Just Got Real"
+date: "2026-04-16"
+description: "Google's Agent2Agent protocol just hit 150+ organizations and landed in every major cloud. But new research shows 97% of enterprises run AI agents and only 12% have centralized control. The infrastructure for agent communication is ready. The infrastructure for agent trust is not."
+tags: ["A2A", "agent protocol", "enterprise AI", "agent governance", "AI trust", "multi-agent systems"]
+author: "SignalPot Team"
+slug: "a2a-turns-one-agent-trust-infrastructure"
+---
+
+On April 9, the Agent2Agent (A2A) protocol hit its one-year mark — and the numbers are striking.
+
+[More than 150 organizations](https://www.prnewswire.com/news-releases/a2a-protocol-surpasses-150-organizations-lands-in-major-cloud-platforms-and-sees-enterprise-production-use-in-first-year-302737641.html) now support the standard. Microsoft integrated it into Azure AI Foundry and Copilot Studio. AWS added native support through Amazon Bedrock AgentCore Runtime. Google has it baked into every major Vertex AI offering. The Linux Foundation, which governs A2A, also introduced the companion Agent Payments Protocol (AP2) — a standard for secure agent-driven transactions that already has 60 financial services organizations behind it.
+
+In twelve months, an experimental protocol became foundational infrastructure.
+
+This is genuinely worth celebrating. A2A solves a real problem: agents built on different frameworks, by different vendors, running on different clouds, couldn't talk to each other without custom glue code for every handoff. A2A gives agents a shared language for capability discovery, task delegation, and workflow coordination. It's what makes multi-agent systems work at scale without requiring every org to standardize on a single vendor stack.
+
+The agent internet is being built.
+
+And yet. Last week, [OutSystems released research](https://www.prnewswire.com/apac/news-releases/agentic-ai-goes-mainstream-in-the-enterprise-but-94-raise-concern-about-sprawl-outsystems-research-finds-302739251.html) with a finding that deserves at least as much attention: 97% of enterprises are running AI agents. Only 12% have centralized control over them. And 94% say they're concerned that AI sprawl — the uncontrolled proliferation of ungoverned agents across business units — is creating compounding complexity, technical debt, and security risk.
+
+Read those two data sets together. The protocols are maturing fast. The governance is not.
+
+## The Highway Problem
+
+Here's the thing about highways: they don't check whether drivers have licenses. They don't verify whether the vehicle passed a safety inspection. They don't know if the cargo matches the manifest. They route traffic.
+
+A2A is building highways between agents. Fast, standardized, interoperable highways. This is good infrastructure.
+
+But when agents can discover each other and delegate tasks dynamically across the A2A network, an orchestrator isn't making a manual procurement decision. It's routing work in real time to whatever agent declares the right capabilities. The assumption baked into that system is that agents on the network are what they claim to be.
+
+That assumption is not safe to make right now.
+
+The [OWASP Top 10 for LLM applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/) maps out what the failure modes look like in practice: prompt injection attacks that hijack agent behavior mid-task, data exfiltration through manipulated outputs, supply chain compromises in third-party components, unauthorized action execution at steps the operator never intended. These aren't theoretical. [Microsoft's Security Blog reported](https://www.microsoft.com/en-us/security/blog/2026/02/10/80-of-fortune-500-use-active-ai-agents-observability-governance-and-security-shape-the-new-frontier/) that 80% of Fortune 500 companies now run active AI agents — and security incidents are already commonplace.
+
+## 150 Organizations, Zero Common Verification Standard
+
+Here's the gap nobody is talking about in the A2A anniversary coverage. The protocol specifies how agents communicate. It does not specify how agents prove they're trustworthy.
+
+A2A defines agent cards — structured documents where an agent describes its capabilities. Those cards tell an orchestrator what tasks the agent handles, what inputs it expects, and what protocols it supports. What they don't tell you: whether this agent has been tested against adversarial inputs. Whether it has a verified performance history. Whether its self-reported benchmarks came from a rigorous independent test suite or from a favorable demo environment.
+
+The card is a declaration. There's no receipt.
+
+This matters more at A2A scale than it did in simpler deployment models. When an enterprise team manually evaluated a vendor agent, the bar was relatively low — demo, references, careful rollout, watch it closely. When an orchestrator is dynamically routing thousands of tasks per day across a network of 150+ organizations' agents, trust needs to be machine-readable, independently verified, and embedded in the protocol itself.
+
+Right now, it isn't.
+
+## What the Governance Gap Actually Looks Like
+
+The OutSystems numbers — 97% running agents, 12% with centralized control — aren't surprising if you've watched how enterprise AI adoption actually happens. Individual teams find a useful agent, deploy it, get results, and expand. Finance runs one. Legal runs one. Product runs three. No one has a registry of what's running or what it has access to. The governance team finds out after the fact, usually when something goes wrong.
+
+This is agent sprawl. It's not a failure of intent. It's what happens when deployment is easy and governance tooling is an afterthought.
+
+The [McKinsey State of AI Trust report for 2026](https://www.mckinsey.com/capabilities/tech-and-ai/our-insights/tech-forward/state-of-ai-trust-in-2026-shifting-to-the-agentic-era) frames the consequence clearly: organizations building durable AI advantages aren't necessarily the fastest movers. They're the ones building governance infrastructure that scales without compounding risk — centralized agent registries, identity-driven access controls, continuous monitoring rather than quarterly audits.
+
+The problem is that most governance tooling still lives in a compliance dashboard that nobody touches until after an incident. It's not connected to the agent protocol layer. It can't be read by orchestrators. It doesn't travel with the agent across cloud boundaries.
+
+## Completing the Stack
+
+The A2A card extension mechanism exists precisely to close this gap. You can embed additional metadata alongside a capability declaration — not just what the agent does, but what it's been tested against. Verified performance scores. ELO benchmark ratings from head-to-head competitive evaluations. OWASP compliance results. Telemetry-backed call history from real production deployments.
+
+Orchestrators can read these automatically. Enterprise buyers can compare them before routing live traffic. And because the scores are embedded in the agent card — not sitting in a separate dashboard — they travel with the agent everywhere it goes. To Google Cloud. To Azure. To Bedrock. To whatever orchestration layer comes next.
+
+This is what trust infrastructure for the agent internet looks like. Not replacing A2A. Completing it.
+
+SignalPot builds exactly this layer: independent verification, competitive benchmarking via Arena ELO, OWASP compliance testing, and trust scores embedded directly into A2A card extensions so they're readable wherever your agent runs. The agents that win in this environment won't just be the ones that perform well — they'll be the ones that can prove it at protocol level.
+
+## The Second Year Is Different
+
+A2A's first year was about reaching production. The protocol works. The cloud integrations are real. The network effects are accumulating. That's a genuine achievement, and the team behind it deserves credit.
+
+The second year will be about what happens when 150 organizations becomes 500, and those agents are handling financial transactions, compliance reporting, and supply chain decisions at enterprise scale. The OutSystems research found that 94% of enterprises are already worried about what they're building. That's not a signal that adoption will slow — it's a signal that trust infrastructure has moved from nice-to-have to critical path.
+
+The highways are ready. Now build the licensing system.
+
+---
+
+<MatrixPills />
