@@ -1,0 +1,72 @@
+---
+title: "OpenAI Gave Agents a Sandbox. What They Still Need Is a Report Card."
+date: "2026-04-17"
+description: "OpenAI shipped sandboxed execution in its Agents SDK this week — a real safety improvement that the enterprise world is going to misread as a trust solution. Containment and verification are different problems, and confusing them is expensive."
+tags: ["OpenAI", "AI agents", "agent verification", "enterprise AI", "benchmarks", "agent safety", "trust", "2026"]
+author: "SignalPot Team"
+slug: "openai-sandbox-not-a-report-card"
+---
+
+[OpenAI shipped a significant update to its Agents SDK on April 16.](https://openai.com/index/the-next-evolution-of-the-agents-sdk/) The headline feature: sandboxed execution. Agents now run inside isolated workspaces, accessing only designated files and code. System integrity is preserved even during fully autonomous operation. The SDK also adds formal guardrails, handoff primitives, and harness support for long-horizon tasks — the multi-step work that actually matters in enterprise deployments.
+
+This is good engineering. It's also going to get misread.
+
+## What Sandboxing Actually Does
+
+A sandbox is a containment mechanism. It answers the question: *can this agent damage my system?* With OpenAI's update, agents work inside a siloed environment — reading designated files, executing code — without being able to touch things outside their boundary. If something goes wrong inside the sandbox, the blast radius is constrained.
+
+That's a real improvement over the previous state, where agents running with broad permissions could theoretically write to unintended locations, spawn processes, or expose data to external services. The enterprise community has been asking for this. It solves a genuine operational problem.
+
+But sandboxing answers a security question, not a performance question. It tells you the agent can't trash your filesystem. It doesn't tell you whether the agent does the right thing with the files it *does* have access to.
+
+## Two Different Problems
+
+There are two distinct trust problems for enterprise AI agents, and the industry keeps collapsing them into one.
+
+**Containment**: Can the agent act outside its authorized scope? Can it touch systems or data it shouldn't? Can a bad actor use it to exfiltrate information or execute unauthorized commands?
+
+**Reliability**: Does the agent actually solve the problem it was deployed to solve? Does it perform correctly on representative workloads? Does it degrade gracefully at edge cases? Does it maintain accuracy over time as data distribution shifts?
+
+Sandboxing solves the first problem. The second one remains open — and for most enterprise deployments, the reliability problem carries the bigger financial exposure.
+
+A payroll agent that can't access systems outside its sandbox is better than one that can. But an HR team doesn't primarily worry about their payroll agent exfiltrating salary data to a third party. They worry about the agent missing the variance that triggers a compliance issue, or surfacing false positives that eat two hours of investigation per cycle, or quietly failing on the retroactive adjustment edge case that only shows up once a quarter.
+
+Those failures don't look like security incidents. They look like wrong answers. Sandboxing does nothing to prevent them.
+
+## Benchmarks Have the Same Problem
+
+[Researchers at Berkeley's RDI lab published a detailed post-mortem](https://rdi.berkeley.edu/blog/trustworthy-benchmarks-cont/) on how they broke top AI agent benchmarks, including SWE-bench — the most cited coding benchmark for production agents.
+
+The finding is uncomfortable: SWE-bench is exploitable at 100%. The vulnerability is architectural. When an agent's patch gets applied inside the same Docker container where the tests run, anything the patch introduces executes with full privileges inside the evaluation environment. A trivial exploit agent — one that doesn't actually solve the underlying problem — can outscore sophisticated systems that do the real work.
+
+The Berkeley team's recommendation is the same principle OpenAI just applied to production deployments: **isolate the evaluator from the evaluated**. In a properly isolated benchmark environment, the agent cannot observe, influence, or contaminate how it gets scored. In a leaky environment, the agent with the highest score isn't necessarily the most capable agent — it's the one that was best at gaming the environment it found itself in.
+
+This is the same insight, applied to two different contexts. OpenAI's sandbox is containment isolation for production: the agent can't affect the system around it. Benchmark isolation is evaluation integrity for pre-deployment testing: the agent can't affect how it gets measured. Both are about ensuring that what you observe reflects actual capability, not the agent's ability to exploit its environment.
+
+One problem OpenAI just solved. One problem the AI evaluation industry is still reckoning with.
+
+## What Verification Actually Requires
+
+The sandbox update solves the containment problem. What's still needed is a verification layer that addresses reliability before and during deployment.
+
+**Independent benchmarking against workloads that reflect your actual environment.** Not the vendor's curated test set. Not a benchmark run in a container where the agent has write access to the evaluator. Representative tasks from the domain the agent is going to operate in, evaluated in an environment the agent cannot influence.
+
+**Adversarial testing that goes beyond containment.** The [OWASP Top 10 for LLM applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/) documents the known attack surface: prompt injection, indirect injection via data sources, insecure output handling. Sandboxing mitigates some of these. It doesn't eliminate them — particularly indirect injection, where an adversary plants instructions in data the agent is authorized to process.
+
+**Longitudinal performance tracking.** An agent that scores 94% on the pre-deployment evaluation may score 78% six months later as data distribution shifts, model weights are updated, and prompt configurations drift. Enterprise deployment requires ongoing measurement, not a one-time box-check.
+
+**Comparative evaluation.** If you're choosing between two agents for a task, sandbox parity is table stakes. The decision should hinge on head-to-head performance on representative workloads — not vendor marketing materials and not benchmarks the vendor controlled.
+
+## The Industry's New Default Response
+
+OpenAI is building toward a real answer to enterprise trust concerns, and the sandbox update is a genuine piece of that. But watch how the enterprise market responds over the next few quarters.
+
+"Does it run in a sandbox?" is going to become the new "does it have an API?" — a hygiene check that quickly becomes a default, table-stakes expectation. As soon as that happens, the differentiation question shifts downstream: not *is this agent contained*, but *is this agent correct*.
+
+[Gartner predicts that 40% of enterprise applications will include task-specific AI agents by the end of 2026](https://www.gartner.com/en/newsroom/press-releases/2025-10-21-gartner-unveils-top-predictions-for-it-organizations-and-users-in-2026-and-beyond), jumping from less than 5% in 2025. That's a lot of agents being onboarded very quickly, into organizations where [only 12% have centralized governance in place](https://www.prnewswire.com/apac/news-releases/agentic-ai-goes-mainstream-in-the-enterprise-but-94-raise-concern-about-sprawl-outsystems-research-finds-302739251.html). The containment question matters for all of them. The reliability question matters more.
+
+The containment layer is getting built. It's good that it is. The verification layer is where the work is — and the industry hasn't treated it with the same urgency yet.
+
+---
+
+<MatrixPills />
