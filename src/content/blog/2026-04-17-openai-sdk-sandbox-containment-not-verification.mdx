@@ -1,0 +1,82 @@
+---
+title: "OpenAI Added a Sandbox to Its Agents SDK. Containment Is Not the Same as Trust."
+date: "2026-04-17"
+description: "OpenAI's April 2026 Agents SDK update ships native sandboxed execution — and the industry is treating it as a safety milestone. It's not. Sandboxing limits blast radius. It says nothing about whether your agent is any good at its job."
+tags: ["AI agents", "OpenAI", "agent safety", "agent verification", "enterprise AI", "agent trust", "sandboxing"]
+author: "SignalPot Team"
+slug: "openai-sdk-sandbox-containment-not-verification"
+---
+
+This week, [OpenAI updated its Agents SDK](https://techcrunch.com/2026/04/15/openai-updates-its-agents-sdk-to-help-enterprises-build-safer-more-capable-agents/) with a feature that's getting a lot of attention: native sandboxed execution. Agents can now run in isolated compute environments — scoped file access, isolated credentials, contained execution — so that if an agent goes sideways, it can't take down the systems around it.
+
+The announcement framing positioned this as a safety breakthrough, and the coverage largely agreed. *Safer agents. Controlled environments. Enterprise-ready.* Somewhere in a hundred enterprise architecture Slack channels, someone just added "sandboxed" to their agent procurement checklist.
+
+They should. But they should also understand what they're actually checking off.
+
+Sandboxing is a blast-radius control. It answers the question: *how bad can this get if the agent misbehaves?* That's a real and important question. It's not, however, the question enterprises think they're answering when they feel safer about their agent deployments. The question they think they're answering is: *can I trust this agent to do its job correctly?*
+
+Those are different questions. Conflating them is how organizations end up with well-contained agents producing wrong answers at scale.
+
+## What the Sandbox Actually Does
+
+[OpenAI's sandboxing architecture](https://www.artificialintelligence-news.com/news/openai-agents-sdk-improves-governance-sandbox-execution/) separates the control harness from the compute layer. Model-generated code executes in a siloed workspace with scoped permissions — the agent can access specific files and tools for a specific operation, but a malicious or errant command can't reach the central control plane or steal primary API keys. Credentials are isolated from the execution environment entirely.
+
+This is legitimately good engineering. The [OWASP Top 10 for LLM applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/) treats prompt injection, unauthorized action execution, and credential exfiltration as major attack surfaces. A well-designed sandbox addresses all three — not completely, but meaningfully. It's a real reduction in the worst-case outcome when an agent gets manipulated or makes a catastrophic error.
+
+The updated SDK also ships with sandbox-aware orchestration, configurable memory, MCP tool integration, and a long-horizon harness for multi-step tasks. For teams building agents from scratch, this is a significant tooling upgrade. Production agents need this kind of infrastructure.
+
+But here's the problem. A sandbox tells you what a bad agent *can't* do to your systems. It tells you nothing about whether the agent is actually good.
+
+## The Gap Between "Safe" and "Correct"
+
+Consider a procurement agent that processes supplier invoices and flags anomalies for human review. A sandboxed version of this agent is prevented from accessing systems outside its authorized scope. It can't exfiltrate credentials or execute arbitrary commands. These are genuine protections.
+
+What the sandbox cannot tell you: whether the agent's anomaly detection logic is accurate on your invoice distribution. Whether it hallucinates legitimate invoice details. Whether its output rates — catch rates, false positive rates, escalation rates — are good enough to trust in a workflow where human review is the exception, not the rule. Whether an adversarial invoice — crafted specifically to manipulate the agent's reasoning — gets flagged or waved through.
+
+That last one matters more than most security teams realize. [The OWASP prompt injection category](https://owasp.org/www-project-top-10-for-large-language-model-applications/) doesn't just describe technical exploits. It describes inputs that exploit the agent's reasoning directly — content embedded in invoices, documents, or messages that hijacks the agent's instructions without ever touching the execution environment. A sandbox stops the exploit from spreading laterally. It doesn't stop the agent from being manipulated in the first place.
+
+Sandboxing is containment. Verification is something else.
+
+## The Procurement Confusion This Creates
+
+The problem with the sandbox announcement isn't the feature — it's the frame. "Safer agents" is true in a specific technical sense. But in the enterprise buying context, "safer" collapses into "trustworthy," and those are not the same thing.
+
+When an enterprise team evaluates an agent for production deployment, the checklist they actually need to run looks like this:
+
+**Performance on representative tasks.** Not benchmark data from the vendor's press release. Evaluation on task distributions that reflect the actual workload — with the variance, edge cases, and adversarial inputs the agent will encounter in production. A sandbox says nothing about any of this.
+
+**Failure modes under adversarial conditions.** What happens when a malicious actor embeds instructions in the agent's input stream? What's the false positive rate on a dataset the vendor didn't curate? How does the agent behave when its context window fills up? Sandboxing contains the damage from these failures. It doesn't tell you they won't happen.
+
+**Calibration on your specific domain.** A general-purpose agent benchmarked on general-purpose tasks is not the same as an agent verified for your supply chain, your compliance workflow, or your customer escalation queue. Domain gap is one of the most common failure modes in production agent deployments, and no sandbox catches it.
+
+**Track record over time.** Model updates, prompt drift, and data distribution shifts all affect agent performance after initial deployment. An agent verified at procurement may not be the agent running in your environment six months later. Containment doesn't degrade. Performance does.
+
+None of these questions are answered by sandboxed execution. They require structured evaluation — head-to-head benchmarking, adversarial testing, domain-specific task sets, ongoing measurement. That's a different kind of infrastructure than what OpenAI shipped this week.
+
+## Why This Matters Now
+
+[Gartner projects that 40% of enterprise applications will include embedded task-specific agents by the end of 2026.](https://www.epsilla.com/blogs/ai-agents-ecosystem-update-april-2026) That's an enormous amount of agent deployment happening in a compressed window. The [OutSystems research](https://www.prnewswire.com/apac/news-releases/agentic-ai-goes-mainstream-in-the-enterprise-but-94-raise-concern-about-sprawl-outsystems-research-finds-302739251.html) released earlier this month found that only 12% of enterprises have centralized governance for the agents they're already running.
+
+In that environment, any feature that makes agents feel more enterprise-ready creates real risk. Not because the feature is bad — sandboxing genuinely reduces attack surface. But because "enterprise-ready" is a much higher bar than "won't exfiltrate my credentials," and the industry has a demonstrated tendency to stop at the first milestone and declare the problem solved.
+
+The OpenAI SDK sandbox is the first milestone. It's a necessary part of production agent infrastructure. It is not sufficient for trust.
+
+## What Verification Actually Requires
+
+Containment and verification are complementary, not substitutes. An agent that's both sandboxed *and* independently verified is meaningfully safer than one that's only sandboxed. The industry needs both layers — and currently, only one of them got a major infrastructure investment this week.
+
+The verification layer that's still missing:
+
+- **Independent performance benchmarking** on task distributions the vendor didn't select
+- **Adversarial testing** against prompt injection, goal hijacking, and edge-case inputs that sit outside training distribution  
+- **Domain-specific evaluation** that reflects the actual workload, not the demo workload
+- **Machine-readable trust signals** that live in agent metadata, not compliance PDFs, so orchestrators can make routing decisions based on verified performance rather than marketing claims
+- **Continuous re-evaluation** as models update and production data drifts
+
+Sandboxing tells you what a bad agent can't touch. Verification tells you whether you have a good agent. You need both. Right now, the ecosystem has made a major investment in one and almost none in the other.
+
+The question for every enterprise team evaluating agents this quarter: are you asking *"what happens if this goes wrong?"* or *"how do I know this works correctly?"* If you're only asking the first question, the sandbox gives you an answer. The second question is still waiting for its infrastructure.
+
+---
+
+<MatrixPills />
