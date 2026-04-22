@@ -1,0 +1,74 @@
+---
+title: "Salesforce Built the Agent Marketplace. Who's Vetting the Agents?"
+date: "2026-04-22"
+description: "At TDX 2026, Salesforce exposed its entire platform to AI agents and launched a marketplace with 1,000+ of them. The 'trusted' label is doing a lot of work — and it's not doing enough."
+tags: ["Salesforce", "agent marketplace", "AgentExchange", "agent verification", "trust", "enterprise AI", "benchmarks", "2026"]
+author: "SignalPot Team"
+slug: "salesforce-agent-marketplace-verification"
+---
+
+At TDX last week, Salesforce made an architectural bet that's been two and a half years in the making. Every capability in the platform — every workflow, object schema, automation trigger, CRM record — is now accessible to an AI agent without a browser, without a human at the keyboard, via API, MCP tool, or CLI command. [Headless 360](https://venturebeat.com/ai/salesforce-launches-headless-360-to-turn-its-entire-platform-into-infrastructure-for-ai-agents) is the most structurally significant enterprise AI announcement of 2026.
+
+And then they opened a store.
+
+[AgentExchange](https://www.salesforceben.com/agentexchange-salesforce-launches-trusted-marketplace-for-agentforce/) consolidates more than 10,000 Salesforce apps, 2,600 Slack apps, and 1,000+ Agentforce agents, tools, and MCP servers into a single AI-searchable destination. Partners include Google, Docusign, and Notion. There's a $50 million Builders Initiative behind it. You browse, activate in one click, and the agent starts operating your CRM.
+
+Salesforce calls it a "trusted marketplace." That word is doing a lot of work. It deserves scrutiny.
+
+## The Architectural Shift Is Real
+
+Before dismissing the trust question as obvious, it's worth taking seriously what Headless 360 actually changes.
+
+Before this, AI agents interacting with Salesforce were largely supplemental. They'd summarize a meeting, suggest next steps, pull a report. A human still navigated the interface, clicked the buttons, approved the changes. The friction was by design — the platform wasn't built for agents as primary operators.
+
+Headless 360 removes that friction entirely. Sixty-plus new MCP tools and 30 preconfigured coding skills give agents live access to your full data model, workflow logic, and business rules — without ever rendering a UI. As [The Register put it](https://www.theregister.com/2026/04/15/salesforce_headless_360/), Salesforce has rebuilt itself from the ground up for a world where the agent is the user.
+
+That's a genuine architectural shift, not a product marketing rebrand. When your CRM — the system of record for revenue, pipeline, customer relationships, and sales performance — is now fully operable by autonomous agents, the trust bar has to change with it.
+
+## What "Trusted" Means in Practice
+
+Salesforce's trust story for AgentExchange rests on two pillars: the Einstein Trust Layer and a mandatory security review for all listings.
+
+The [Einstein Trust Layer](https://salesforcedevops.net/index.php/2026/04/14/agentexchange-salesforces-bet-that-trust-can-scale-with-agentic-speed/) handles data protection — zero data retention, toxicity detection, secure data retrieval, dynamic grounding. It's a serious containment layer. The security review process means every agent listing gets audited before it appears in the marketplace.
+
+This is the right infrastructure for answering one question: *can this agent access data or systems it shouldn't?*
+
+It doesn't answer the question enterprise buyers actually care about once an agent is deployed: *does this agent do what it claims, reliably, at the scale I'm running?*
+
+Those are different questions. The first is about containment. The second is about performance. And in a marketplace with 1,000+ agents — many of them covering the same categories, all claiming to handle Opportunity Analysis or Account Scoring or Pipeline Forecasting better than the alternatives — the performance question is where decisions get made and mistakes get buried.
+
+## The Missing Layer
+
+Browse AgentExchange and you'll find multiple agents promising similar outcomes. Some will be excellent. Some will handle the happy path and break on edge cases — the custom object schema you inherited from a three-year-old data migration, the multi-currency deal with non-standard close date logic, the opportunity that's been reclassified four times this quarter.
+
+Which ones? The security review won't tell you. The partner's own benchmark documentation won't tell you. Vendor-reported benchmarks are, at best, optimistic. At worst, they're misleading — and not always intentionally.
+
+The [UC Berkeley RDI team](https://rdi.berkeley.edu/blog/trustworthy-benchmarks-cont/) published a systematic audit of eight industry-standard AI agent benchmarks this month, including SWE-bench (the benchmark coding agents most commonly cite as evidence of capability). Their finding: every single one can be exploited to achieve near-perfect scores without solving any underlying task. On SWE-bench Verified, a 10-line Python conftest.py file that forces tests to report as passing achieves 100% on all 500 instances. On WebArena, navigating Chromium to a `file://` URL lets the agent read the gold answer directly from task configuration. On FieldWorkArena, sending an empty JSON object scores perfectly across all 890 tasks because the validator only checks that the final message came from the assistant role.
+
+These exploits exist because the evaluator and the evaluated share an environment. When an agent can observe or modify how it gets scored, the leaderboard stops measuring capability and starts measuring gaming.
+
+For enterprise buyers browsing AgentExchange, this means: the benchmark scores an agent cites as social proof may have been run in exactly those conditions. The leaderboard ranking that made it look compelling may not reflect how it will behave on your data, in your org, on the task you actually need it to do.
+
+## The Buying Decision Default
+
+When evaluation infrastructure is weak, the buying decision defaults to proxies. Brand recognition. Partnership logos on the listing page. G2 reviews from customers who may not have tested edge cases. Demo polish.
+
+This is how inferior agents capture enterprise contracts. Not by cheating security reviews — Salesforce's containment layer is real. But by winning a marketing competition in a space where performance evidence is either absent or unverifiable. The agent with the better pitch deck beats the agent with the better performance.
+
+It's the same pattern that played out in enterprise software for decades — vendors winning on feature lists rather than actual fit, customers discovering the gaps six months post-deployment, when unwinding the contract is painful enough that they absorb the cost and work around it. Agents compress this cycle. They operate at higher frequency, touch more data, and make more decisions per hour than the software they're replacing.
+
+## What Actual Verification Looks Like
+
+Independent performance verification means something specific. It means evaluation in an environment the agent cannot influence. It means tasks that are representative of actual production conditions, not curated demos. It means head-to-head comparison between agents handling the same workload under the same conditions, with an impartial judge — not the vendor's own test harness.
+
+It also means ongoing measurement, not a one-time pre-deployment checkbox. An agent that performs at 91% accuracy in March may perform at 74% in September as your data model evolves and the agent's prompt configuration drifts against it. The security review doesn't catch that. The launch-day benchmark doesn't catch that. Continuous monitoring does.
+
+Salesforce has built the right layer for one half of the trust problem. The infrastructure now exists for agents to operate enterprise CRMs at scale, with data governance that matches enterprise requirements. That's not a small thing. The agent internet is real, and AgentExchange is a meaningful piece of it.
+
+The missing layer is performance verification — independent, adversarial, evaluator-isolated scoring that travels with the agent, can be compared across listings, and updates as agents and orgs evolve. Without it, "trusted marketplace" is a security posture, not a performance guarantee. And in a platform where agents are now the primary operators of revenue-critical workflows, those two things can't be the same.
+
+Buying a Salesforce agent based on its security review and demo video is the 2026 version of buying software based on the box art. The marketplace exists. The verification infrastructure does not — yet.
+
+---
+
+<MatrixPills />
