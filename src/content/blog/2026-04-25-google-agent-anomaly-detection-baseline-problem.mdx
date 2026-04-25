@@ -1,0 +1,66 @@
+---
+title: "Google Shipped Anomaly Detection for AI Agents. Anomaly From What?"
+date: "2026-04-25"
+description: "At Google Cloud Next '26, Google shipped real-time anomaly detection for AI agent reasoning. It's the right move. But anomaly detection works by flagging deviations from a baseline — and most enterprise agents were never measured against one before they went live."
+tags: ["AI agents", "enterprise AI", "agent governance", "agent trust", "Google Cloud", "anomaly detection", "agent evaluation", "verification", "2026"]
+author: "SignalPot Team"
+slug: "google-agent-anomaly-detection-baseline-problem"
+---
+
+Autonomous AI agent traffic grew [7,851% year-over-year in 2025](https://www.humansecurity.com/learn/blog/ai-traffic-growth-2025-key-findings/). Machines have crossed the threshold and [become the majority of internet users](https://www.cnbc.com/2026/03/26/ai-bots-humans-internet.html). That number matters because it means the assumptions baked into most web security and governance infrastructure — that traffic comes primarily from humans — are now wrong.
+
+The industry is catching up. This week at [Google Cloud Next '26](https://cloud.google.com/blog/topics/google-cloud-next/google-cloud-next-2026-wrap-up/), Google announced what is arguably the most comprehensive agent governance infrastructure any major cloud vendor has shipped: the Gemini Enterprise Agent Platform, with a dedicated registry, gateway, cryptographic identity for every agent, and — the most technically interesting addition — real-time **Agent Anomaly Detection** that flags suspicious AI reasoning patterns as they happen.
+
+The rest of the week filled in around that announcement. [Salesforce unified AppExchange, Slack Marketplace, and the Agentforce ecosystem into AgentExchange](https://www.salesforceben.com/appexchange-slack-marketplace-and-the-agentforce-ecosystem-are-now-one-with-fresh-50m-funding/) — a single catalog of 10,000+ apps and 1,000+ Agentforce agents with semantic search and one-click activation. [Google committed $750 million](https://www.googlecloudpresscorner.com/2026-04-22-Google-Cloud-Commits-750-Million-to-Accelerate-Partners-Agentic-AI-Development) to agent development across its 120,000-member partner ecosystem. Everywhere you looked, the scaffolding for agent-scale infrastructure was going up.
+
+Agent Anomaly Detection is the most substantive new piece in Google's stack. It's also the one worth examining closely, because what it does and doesn't do defines the gap still left to close.
+
+## What Anomaly Detection Detects
+
+Anomaly detection works by establishing a pattern of normal behavior and flagging deviations from it. In the network security context, that's packet volumes, connection patterns, and protocol behavior. Applied to AI agents, Google's system flags "suspicious AI reasoning patterns in real time" — the likely interpretation being: prompt injection attempts, reasoning chains that fall outside the agent's defined scope, tool-call sequences that match known attack patterns, or outputs that deviate significantly from the agent's historical response distribution.
+
+This is valuable. It catches agents that have been hijacked. It catches adversarial prompts at scale. It catches agents that start behaving differently from their deployment behavior. At 7,851% agent traffic growth, you need automated detection because human review doesn't scale to the volume.
+
+But anomaly detection operates in monitoring mode. It runs after deployment. It flags deviations from a pattern. That creates a structural dependency: for anomaly detection to work correctly, you need an accurate model of what "normal" looks like.
+
+## The Baseline Problem
+
+If you deployed an agent without systematically measuring its performance — without establishing how it handles representative tasks, where its error rates cluster, how it behaves on edge cases — then your baseline for "normal" is whatever the agent happened to do in its first weeks of production operation.
+
+That's a shaky foundation. First-week production data often isn't representative. The hard cases arrive later, from users who've figured out how to push the system. If your anomaly detector calibrates on early behavior, it's comparing against a potentially optimistic baseline.
+
+There's also a subtler failure mode: an agent can be consistently wrong without triggering an anomaly detector. If the agent gives confident but incorrect guidance in a specific domain — and does so consistently — the deviation from baseline is small. The system sees normal behavior. The user gets wrong advice. This is the "confident deputy" failure: [the agent doesn't go rogue](https://owasp.org/www-project-top-10-for-large-language-model-applications/), it was just never good at the specific thing you needed it to do.
+
+Anomaly detection catches agents that change. It doesn't catch agents that were wrong from the start.
+
+## The Deployment Gap Anomaly Detection Can't Close
+
+The numbers on enterprise agent deployment create context for why this matters. [54% of enterprises are now running AI agents in core operations](https://www.ampcome.com/post/enterprise-ai-agents-2026-mid-year-report), but only 11–14% of enterprise AI agent pilots have reached production at sustained scale. The gap between "running agents" and "running agents reliably" is where most enterprise AI programs currently live.
+
+Executive confidence in fully autonomous AI agents dropped from 43% to 22% in a single year — not because agents got worse, but because organizations accumulated enough production exposure to see the gap between pilot performance and real-world delivery. That gap doesn't come from agents going rogue in ways anomaly detection would catch. It comes from agents evaluated on the wrong tasks, measured on vendor benchmarks that didn't reflect the actual workload, and deployed with a performance assumption the production environment quickly contradicted.
+
+The [37% gap between benchmark performance and production performance](https://www.technologyreview.com/2026/04/13/1135675/want-to-understand-the-current-state-of-ai-check-out-these-charts/) that MIT Technology Review documented across enterprise AI is almost entirely a distribution mismatch problem. The agent was evaluated on tasks that weren't representative of the job. Anomaly detection can tell you the agent changed from that inadequate baseline. It can't tell you whether the baseline was reliable.
+
+## What a Baseline Actually Requires
+
+The prerequisite for useful anomaly detection is a verified performance baseline established before the anomaly detector starts running. Not first-week production behavior — a structured, pre-deployment evaluation that captures the agent's actual performance envelope.
+
+That requires domain-representative task coverage: not generic benchmarks, but tasks drawn from the actual distribution of inputs the agent will see. It requires adversarial testing against known LLM attack patterns from [OWASP's LLM Top 10](https://owasp.org/www-project-top-10-for-large-language-model-applications/) before deployment, so the anomaly detector has a meaningful reference point for those threat vectors when real adversarial inputs arrive. And it requires ongoing tracking — baseline isn't a snapshot taken at launch, it's a time series that reflects how the agent's performance distribution evolves as underlying models update and data distribution shifts.
+
+Without that structured baseline, the anomaly detector is measuring drift from an unknown starting point. It can flag change. It cannot say whether what changed was previously trustworthy.
+
+## The Layer That's Still Missing
+
+Google's agent governance stack at Cloud Next '26 — registry, identity, gateway, observability, anomaly detection — is the right architecture. It addresses real operational problems at the scale agents now operate at.
+
+[Salesforce's AgentExchange](https://salesforcedevops.net/index.php/2026/04/14/agentexchange-salesforces-bet-that-trust-can-scale-with-agentic-speed/) explicitly brands itself as a trust infrastructure play. Semantic search that matches customers to agents based on business intent, side-by-side comparison tools, 1,000+ agents in a unified catalog — the discovery and procurement problem is being solved at scale.
+
+Both platforms are investing heavily in infrastructure. Neither has a mechanism for answering the question that actually determines whether deployment succeeds: how does this agent perform on tasks like mine, before it touches my data?
+
+Discovery tells you an agent exists. Identity tells you who it is. Anomaly detection tells you if it changes. The missing layer is the one that tells you whether the agent was worth deploying in the first place — and gives the anomaly detector something defensible to compare against.
+
+The agent governance infrastructure is coming together faster than anyone expected. The evaluation layer is the last mile. It's also the one that determines whether everything built on top of it holds up when it matters.
+
+---
+
+<MatrixPills />
