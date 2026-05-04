@@ -1,0 +1,66 @@
+---
+title: "Microsoft Built the Control Plane for Enterprise AI. The Performance Layer Is Still Missing."
+date: "2026-05-04"
+description: "Microsoft Agent 365 went generally available May 1 — a $15/user/month control plane giving IT teams real-time visibility into every AI agent in their organization. It tells you what agents you have, what permissions they carry, and whether they're sanctioned. It has no idea whether those agents are actually reliable. That's not a product gap. It's a category gap — and it's the one that explains most of the AI failures organizations have already absorbed."
+tags: ["AI agents", "enterprise AI", "agent governance", "Microsoft", "agent reliability", "agent verification", "2026"]
+author: "SignalPot Team"
+slug: "microsoft-agent-365-governance-vs-performance"
+---
+
+[Microsoft Agent 365 went generally available on May 1](https://www.microsoft.com/en-us/security/blog/2026/05/01/microsoft-agent-365-now-generally-available-expands-capabilities-and-integrations/) — a dedicated control plane for managing AI agents across enterprise environments, priced at $15 per user per month or bundled into the new [M365 E7 suite at $99 per user per month](https://techcommunity.microsoft.com/blog/microsoft_365blog/microsoft-365-e7-and-agent-365-are-now-generally-available/4516295). The product has been in preview since late 2025, and its general availability marks the moment enterprise AI governance stops being aspirational and starts being a line item.
+
+Agent 365 is built on three pillars: observe, govern, and secure. The observe layer gives IT admins a real-time dashboard of every agent in the organization — registered agents, active users, growth trends, connected platforms, total runtime hours, and emerging risk signals. The govern layer provides approval workflows: before an agent reaches end users, admins can review its capabilities, data access, and permissions, then publish or reject it. The secure layer includes shadow AI detection, which surfaces unmanaged agents — the ones running on personal accounts, unapproved platforms, or SaaS tools that slipped in without IT review.
+
+Registry sync, now in public preview, extends this to AWS Bedrock and Google Cloud, letting admins discover and inventory agents across multicloud deployments. The ambition is a single pane of glass for every AI agent in the enterprise, regardless of origin.
+
+This is genuinely useful infrastructure. The problem is what it doesn't do — and why that gap is going to be expensive.
+
+## What Governance Actually Measures
+
+The observe, govern, secure framework is IT management applied to agents. It answers the questions IT has always answered: who is using what, what permissions does it have, is it sanctioned?
+
+Those are legitimate questions. Shadow AI is a real problem — agents running outside organizational controls, with no audit trail, accessing data without governance review. An approval workflow that forces admins to assess data access and permissions before deployment is better than the alternative, which is agents sprawling across organizations with no oversight at all.
+
+But the framework rests on an implicit assumption: that an approved, inventoried, permissions-scoped agent is a trustworthy one. That assumption doesn't hold.
+
+Agent 365 can tell you how many hours an agent ran. It can't tell you what fraction of those hours produced correct results. The dashboard surfaces "emerging risk signals" — but risk in Agent 365 is defined in terms of access patterns and behavior anomalies, not output quality. An agent that consistently returns wrong answers, but does so within its sanctioned permissions, is from the governance layer's perspective operating normally.
+
+That is not a hypothetical edge case. [McKinsey's 2026 State of AI Trust report](https://www.mckinsey.com/capabilities/tech-and-ai/our-insights/tech-forward/state-of-ai-trust-in-2026-shifting-to-the-agentic-era) found executive confidence in fully autonomous AI agents dropped from 43% to 22% in a single year, even as agentic deployments accelerated. [47% of CISOs reported observing AI agents exhibiting unintended or unauthorized behavior](https://www.yuyjo.com/archives/62784) in production — and almost none of it was detected by identity or access controls. The agents were sanctioned. The agents were visible. The agents failed anyway.
+
+## The Missing Axis
+
+The governance layer measures two dimensions: identity (is this agent who it says it is, is it sanctioned) and access (what permissions does it have). Both are necessary. Neither is sufficient.
+
+The dimension that actually determines whether an agent is worth deploying is performance: does this agent do what it's supposed to do, correctly, across the distribution of tasks it will encounter in production?
+
+That question has no answer in the governance framework. It requires a different kind of measurement — domain-specific evaluation against representative tasks, adversarial testing on the edge cases that matter in your environment, and longitudinal tracking as models update and prompt configurations drift.
+
+The [37% gap between benchmark performance and production performance](https://www.technologyreview.com/2026/04/13/1135675/want-to-understand-the-current-state-of-ai-check-out-these-charts/) documented across enterprise AI deployments is not a governance failure. Governance didn't cause it and governance can't fix it. Teams deployed agents whose real-world performance they had never characterized because the tools for characterizing it weren't being used. The agents passed the governance review because the governance review doesn't evaluate performance. It evaluates permissions.
+
+## What the Approval Workflow Actually Reviews
+
+Agent 365's approval workflow asks admins to assess an agent's "capabilities, data access, permissions, and security and compliance posture." Admins review that information and publish or reject.
+
+What they're reviewing is the agent's self-description: what it claims to do, what it's configured to access. That's analogous to hiring someone based on their resume and a background check, with no interview and no reference calls. The resume might be accurate. The background might be clean. The person might still be completely wrong for the job.
+
+An agent can pass Agent 365's governance review cleanly — correct permissions, no compliance flags, published to the registry — and still fail on the actual task distribution it encounters in production. [Gartner's prediction that over 40% of agentic AI projects will be canceled by end of 2027](https://www.gartner.com/en/newsroom/press-releases/2025-06-25-gartner-predicts-over-40-of-agentic-ai-projects-will-be-canceled-by-end-of-2027) isn't tracking governance failures. It's tracking performance failures that surface after deployment, once the investment has been made and the gap between what the agent was supposed to do and what it actually does becomes impossible to ignore.
+
+[64% of companies with more than $1 billion in revenue have already lost more than $1 million to AI failures](https://www.cnbc.com/2026/04/19/siiicon-valley-ai-agent-openclaw-problems.html). Most of those failures involved agents that were approved, inventoried, and operating within assigned permissions.
+
+## The Layer That Comes Next
+
+Microsoft built the control plane. It's the right piece of infrastructure for this stage of enterprise AI adoption, and the timing is right — organizations are running enough agents that an unmanaged fleet is genuinely dangerous from a security and compliance standpoint. You need to know what agents you have before you can evaluate them.
+
+But governance is a prerequisite for the trust problem, not a solution to it. Agent 365 builds the inventory. Performance measurement has to happen somewhere else.
+
+What the evaluation layer looks like in practice: domain-specific benchmarking against representative tasks from the actual work environment — not vendor demos or general capability evaluations. Competitive comparison across agent options before procurement: if you're evaluating three agents for a legal review workflow, you need to know how they actually compare on legal review tasks, not what their spec sheets say. And continuous monitoring after deployment, because agent performance can degrade as data distributions shift and underlying models are updated without notice.
+
+Agent 365 will tell you that your customer support agent has logged 10,000 runtime hours and stays within its permissions. It won't tell you whether the customers it interacted with received accurate information.
+
+The governance layer just shipped. That makes the performance layer more urgent, not less. Governance at scale means a much larger fleet of approved agents, operating with organizational imprimatur, none of whose reliability has been independently verified. The approval gave them legitimacy. It didn't give them quality.
+
+Gartner's 40% cancellation forecast is what happens when that gap isn't closed. The agents were visible. The agents were approved. The agents weren't reliable. The cancellations followed.
+
+---
+
+<MatrixPills />
