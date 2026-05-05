@@ -35,14 +35,25 @@ function isPrivateIp(ip: string): boolean {
   if (ip.startsWith("fc") || ip.startsWith("fd")) return true; // unique local
   if (ip.startsWith("fe80")) return true; // link-local
 
-  // IPv4-mapped IPv6 (e.g. ::ffff:127.0.0.1)
+  // IPv4-mapped IPv6 decimal form: ::ffff:127.0.0.1
   const v4Mapped = ip.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
   if (v4Mapped) {
     return isPrivateIp(v4Mapped[1]);
   }
 
+  // IPv4-mapped IPv6 hex form: ::ffff:7f00:0001 → 127.0.0.1
+  const v4MappedHex = ip.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i);
+  if (v4MappedHex) {
+    const hi = parseInt(v4MappedHex[1], 16);
+    const lo = parseInt(v4MappedHex[2], 16);
+    const dotted = `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
+    return isPrivateIp(dotted);
+  }
+
   return false;
 }
+
+const DNS_LOOKUP_TIMEOUT_MS = 3000;
 
 /**
  * Validate a URL is safe to fetch from the server.
@@ -94,7 +105,12 @@ export async function assertSafeUrl(endpoint: string): Promise<void> {
   // DNS resolution check — catches rebinding attacks where a domain resolves to a private IP
   if (!isIP(hostname)) {
     try {
-      const results = await lookup(hostname, { all: true });
+      const results = await Promise.race([
+        lookup(hostname, { all: true }),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("DNS resolution timed out")), DNS_LOOKUP_TIMEOUT_MS)
+        ),
+      ]);
       for (const result of results) {
         if (isPrivateIp(result.address)) {
           throw new Error("Agent endpoint DNS resolves to a private IP address");
@@ -104,7 +120,7 @@ export async function assertSafeUrl(endpoint: string): Promise<void> {
       if (err instanceof Error && err.message.includes("private IP")) {
         throw err;
       }
-      // DNS lookup failure — block by default (fail-closed)
+      // DNS lookup failure or timeout — block by default (fail-closed)
       throw new Error("Agent endpoint DNS resolution failed");
     }
   }

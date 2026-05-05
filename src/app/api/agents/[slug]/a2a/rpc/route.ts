@@ -1,21 +1,36 @@
 // POST /api/agents/[slug]/a2a/rpc — A2A JSON-RPC 2.0 endpoint
 import { NextResponse } from "next/server";
-import { getAuthContext } from "@/lib/auth";
+import { getAuthContext, checkPublicRateLimit } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { dispatchA2ARpc } from "@/lib/a2a/handler";
 import { A2AErrorCodes, type JSONRPCRequest } from "@/lib/a2a/types";
 
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-API-Key",
-};
+const CORS_METHODS = "POST, OPTIONS";
+const CORS_HEADERS = "Content-Type, Authorization, X-API-Key";
+
+const ALLOWED_ORIGINS = new Set([
+  "https://www.signalpot.dev",
+  "https://signalpot.dev",
+  ...(process.env.NODE_ENV === "development"
+    ? ["http://localhost:3000", "http://localhost:3002"]
+    : []),
+]);
+
+function getCorsHeaders(request: Request): Record<string, string> {
+  const origin = request.headers.get("origin");
+  const allowedOrigin = origin && ALLOWED_ORIGINS.has(origin) ? origin : null;
+  return {
+    ...(allowedOrigin ? { "Access-Control-Allow-Origin": allowedOrigin, "Vary": "Origin" } : {}),
+    "Access-Control-Allow-Methods": CORS_METHODS,
+    "Access-Control-Allow-Headers": CORS_HEADERS,
+  };
+}
 
 // Methods that can be called without authentication (read-only queries)
 const PUBLIC_METHODS = new Set(["tasks/get"]);
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: CORS });
+export async function OPTIONS(request: Request) {
+  return new NextResponse(null, { status: 204, headers: getCorsHeaders(request) });
 }
 
 export async function POST(
@@ -23,6 +38,11 @@ export async function POST(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await params;
+  const CORS = getCorsHeaders(request);
+
+  // Apply IP rate limit before any processing (covers public methods too)
+  const rateLimitResponse = await checkPublicRateLimit(request);
+  if (rateLimitResponse) return rateLimitResponse;
 
   // Parse JSON-RPC envelope first (before auth, so we can check if method is public)
   let rpcRequest: JSONRPCRequest;

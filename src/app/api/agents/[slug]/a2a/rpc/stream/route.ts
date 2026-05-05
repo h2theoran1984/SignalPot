@@ -56,6 +56,23 @@ export async function POST(
 ) {
   const { slug } = await params;
 
+  // Apply IP rate limit before opening any stream connection
+  const forwarded = request.headers.get("x-forwarded-for");
+  const ip = forwarded
+    ? forwarded.split(",").pop()!.trim()
+    : request.headers.get("x-real-ip") || "unknown";
+  const { checkIpRateLimit } = await import("@/lib/rate-limit");
+  const rateCheck = await checkIpRateLimit(ip);
+  if (!rateCheck.success) {
+    return new Response(
+      sseError(null, -32429, "Rate limit exceeded"),
+      {
+        status: 429,
+        headers: { "Content-Type": "text/event-stream", "Retry-After": String(Math.ceil((rateCheck.reset - Date.now()) / 1000)) },
+      }
+    );
+  }
+
   const auth = await getAuthContext(request);
   if (!auth) {
     return new Response(

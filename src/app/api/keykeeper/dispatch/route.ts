@@ -53,9 +53,13 @@ export async function POST(request: NextRequest) {
   }
 
   const provided = request.headers.get("x-signalpot-internal") ?? "";
-  const keyBuf = Buffer.from(INTERNAL_KEY);
-  const providedBuf = Buffer.from(provided);
-  if (keyBuf.length !== providedBuf.length || !timingSafeEqual(keyBuf, providedBuf)) {
+  const keyBuf = Buffer.from(INTERNAL_KEY, "utf8");
+  // Always compare a same-length buffer to prevent key-length leakage via timing.
+  // Copy as much of provided as fits; excess bytes are ignored in the comparison
+  // but the length check below catches length mismatches without short-circuiting.
+  const cmpBuf = Buffer.alloc(keyBuf.length, 0);
+  Buffer.from(provided, "utf8").copy(cmpBuf);
+  if (!timingSafeEqual(keyBuf, cmpBuf) || provided.length !== INTERNAL_KEY.length) {
     return NextResponse.json(
       { error: "Forbidden — internal endpoint" },
       { status: 403 }

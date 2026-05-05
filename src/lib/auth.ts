@@ -38,10 +38,11 @@ export async function getAuthContext(
     );
     if (!rateCheck.success) return null; // Caller should check and return 429
 
-    // Resolve org context: key's org_id takes precedence, then X-Org-Id header
+    // Resolve org context from the key's own org_id only.
+    // API keys are scoped at issuance — X-Org-Id header is not trusted for key auth.
     const orgContext = await resolveOrgContext(
       verified.profileId,
-      verified.orgId || request.headers.get("x-org-id")
+      verified.orgId
     );
 
     return {
