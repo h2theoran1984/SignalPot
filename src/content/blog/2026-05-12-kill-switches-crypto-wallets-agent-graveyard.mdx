@@ -1,0 +1,64 @@
+---
+title: "Kill Switches, Crypto Wallets, and the 70% Graveyard Nobody's Governing"
+date: "2026-05-12"
+description: "This week, a ServiceNow keynote opened with an AI agent that deleted a production database in 9 seconds. Then AWS announced agents can now make autonomous payments via Stripe and Coinbase. The industry's response: build better kill switches and control towers. The problem they're not addressing: why 70% of enterprise agent pilots never make it to production in the first place."
+tags: ["AI agents", "enterprise AI", "agent governance", "agent reliability", "agent verification", "multi-agent systems", "2026"]
+author: "SignalPot Team"
+slug: "kill-switches-crypto-wallets-agent-graveyard"
+---
+
+Two things happened this week that belong in the same sentence.
+
+On May 6, [Fortune reported](https://fortune.com/2026/05/06/servicenow-kill-switch-ai-agents-bill-mcdermott/) that ServiceNow CEO Bill McDermott opened his Knowledge 2026 keynote with a story: an AI agent that had been granted elevated permissions deleted an entire production database — customer records, reservations, every backup — in 9 seconds. McDermott's thesis: "Governance isn't a feature. It's the whole ball game. Because without it, your whole company can come down." Then he announced [ServiceNow's expanded AI Control Tower](https://newsroom.servicenow.com/press-releases/details/2026/ServiceNow-expands-AI-Control-Tower-to-discover-observe-govern-secure-and-measure-AI-deployed-across-any-system-in-the-enterprise/default.aspx): a five-pillar framework to discover, observe, govern, secure, and measure every AI agent deployed anywhere in the enterprise — across AWS, Azure, Google Cloud, SAP, Oracle, Workday, and 25 other integrations.
+
+Three days later, [AWS announced Amazon Bedrock AgentCore Payments](https://aws.amazon.com/blogs/machine-learning/agents-that-transact-introducing-amazon-bedrock-agentcore-payments-built-with-coinbase-and-stripe/), built with Coinbase and Stripe. Agents can now hold wallets, execute stablecoin micropayments via Coinbase's x402 protocol, and transact autonomously during task execution — buying API access, data feeds, and paywalled content without any human in the payment loop. Session-level spending limits apply. The x402 protocol handles wallet auth and proof delivery. The agent never breaks its reasoning loop.
+
+So: in the same week, enterprises learned their AI agents can delete production databases in 9 seconds, and that AI agents can now spend real money autonomously. The industry's immediate response has been to build better controls for agents that are already running. That response is sensible. It's also addressing the wrong end of the problem.
+
+## The Governance Rush
+
+ServiceNow isn't alone. [Microsoft Agent 365](https://futurumgroup.com/insights/microsoft-agent-365-turns-shadow-ai-into-a-governed-asset-class/) hit general availability this month, providing a unified plane to discover and govern AI agents across Microsoft and partner ecosystems — including a deepened integration with ServiceNow AI Control Tower. [Cognizant launched Secure AI Services](https://news.cognizant.com/2026-05-07-Cognizant-Launches-Secure-AI-Services-to-Help-Enterprises-Safely-Scale-Agentic-Systems) on May 7, targeting exactly the same problem: helping enterprises secure, govern, and scale agentic systems that are already deployed.
+
+The pattern is consistent across all of them: discover what agents are running, observe how they're behaving, enforce policies, kill the ones that go off-script. A circuit breaker for the production layer. This infrastructure is being built because the production layer needs it — the 9-second database deletion story is real, and it's not the only one. The governance tooling being built now is the right tooling.
+
+But it's being built for 11% of enterprises.
+
+## The Graveyard
+
+The [AI Agent Conference unveiled its Agentic List 2026](https://www.agentconference.com/agenticlist/2026) this week — 120 companies selected from over 5,000 nominations for their production impact in agentic AI. The framing was explicit: experimentation is over. The list weighted production adoption above everything else. Real deployments only.
+
+That's a meaningful signal. And it sits next to a number that is harder to explain away: according to [multiple enterprise adoption surveys](https://siliconangle.com/2026/05/11/agentic-ai-deployment-enters-production-reality-aiagentconference/), roughly 79% of organizations report some level of AI agent adoption. Only 11% are running agents in production. Between those two numbers is a graveyard of pilots that never graduated.
+
+That's not a governance problem. The agents that failed didn't fail because they lacked kill switches or audit trails. They failed because teams built agents, evaluated them on demo tasks, shipped them into real environments, and discovered — in production — that the demo performance didn't transfer. Wrong outputs on edge cases. Integration failures that only appeared at volume. Reliability that looked fine on controlled inputs and unraveled on the actual task distribution.
+
+[Gartner projects that over 40% of agentic AI projects will be canceled by end of 2027](https://www.gartner.com/en/newsroom/press-releases/2025-06-25-gartner-predicts-over-40-of-agentic-ai-projects-will-be-canceled-by-end-of-2027). The reasons cited — inconsistent output quality, integration complexity, unclear accountability — are evaluation failures in disguise. Teams didn't know what they had before they deployed it.
+
+## The Wrong End of the Problem
+
+The governance tools being built right now are post-deployment tools. ServiceNow AI Control Tower discovers agents once they're running. Microsoft Agent 365 governs agents once they're registered. AgentCore Payments sets spending limits on agents once they're transacting. All of these assume you've already crossed the threshold into production.
+
+The 70% that never cross that threshold don't need a kill switch. They need a performance record.
+
+This is the structural gap the current tooling wave isn't addressing. Before you deploy an agent that can delete a database or execute payments, the relevant question isn't "how do I govern it after it goes wrong?" It's "how do I know whether it performs reliably before I put it in a workflow that touches production data or real money?"
+
+That question requires something different from governance infrastructure. It requires domain-specific evaluation: running the agent against a representative distribution of the tasks it will actually encounter, in the environment where it will actually run, before deployment. Not vendor-provided benchmarks designed to demonstrate capability on controlled inputs. Performance data from your actual domain, your actual edge cases, your actual integration stack.
+
+The 9-second database deletion story is a governance failure. But the 70% pilot graveyard is a verification failure. The agents in the graveyard never needed a kill switch — they needed someone to ask, before deployment, whether they were actually reliable enough to run.
+
+## What the Agentic Economy Actually Requires
+
+The AgentCore Payments announcement is striking not because autonomous agent payments are surprising — they've been coming for a while — but because of what they demand from the agents doing the transacting.
+
+When an agent can authorize a payment, "it worked in the demo" is a dangerous bar. The x402 protocol handles wallet authentication and transaction execution automatically. The agent doesn't pause to ask for human approval. It evaluates a resource, decides the cost is within scope, and pays. If the agent's judgment about what's in scope is wrong — if it misunderstands the task, over-fetches data, or enters a loop — the spending limits are the only guardrail.
+
+Spending limits are a circuit breaker, not a reliability guarantee. A well-configured agent that makes the wrong judgment calls on every transaction can stay within budget while producing completely wrong outputs. The limit catches the financial runaway. It doesn't catch the agent that consistently makes bad decisions on the task you deployed it for.
+
+The governance tools being announced this week are the right tools for the 11% in production. The field still needs a verification layer for the 89% that wants to get there.
+
+Every organization evaluating agentic AI right now is making the same decision: how much confidence do I have in this agent's performance before I put it in a production workflow? The honest answer, for most agents in most enterprises, is: not enough to measure, because the measurement infrastructure doesn't exist yet.
+
+That's the gap. Not the kill switch layer — that's getting built. The question of whether the agent you're about to deploy is actually reliable on the work you need it to do.
+
+---
+
+<MatrixPills />
