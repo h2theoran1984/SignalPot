@@ -1,0 +1,64 @@
+---
+title: "A 7B Model Beat GPT-5. It Didn't Solve Anything — It Just Knew Who to Call."
+date: "2026-05-16"
+description: "Sakana AI's RL Conductor outperforms GPT-5, Claude Sonnet 4, and Gemini 2.5 Pro individually on hard reasoning benchmarks — not by being smarter, but by knowing which frontier model to delegate each problem to. The implication for multi-agent AI is bigger than the benchmark score."
+tags: ["AI agents", "multi-agent systems", "agent orchestration", "agent reliability", "enterprise AI", "benchmarks", "2026"]
+author: "SignalPot Team"
+slug: "sakana-conductor-orchestration-beats-frontier"
+---
+
+Last month, [Sakana AI published results](https://sakana.ai/learning-to-orchestrate/) that should have reframed how the industry talks about AI capability. A 7-billion parameter model outperformed GPT-5, Claude Sonnet 4, and Gemini 2.5 Pro individually on GPQA-Diamond and LiveCodeBench — two of the hardest reasoning and coding benchmarks in use. The twist: it didn't answer a single question. It decided who should.
+
+The model is called the [RL Conductor](https://venturebeat.com/orchestration/how-sakana-trained-a-7b-model-to-orchestrate-gpt-5-claude-sonnet-4-and-gemini-2-5-pro). It doesn't compete with the frontier models it coordinates. It routes work to them. Given a problem, it decomposes the task, selects which worker agent is most likely to handle it correctly, manages the communication, and synthesizes the result. The solving happens at the frontier. The intelligence lives in the delegation.
+
+Results: 87.5% on GPQA-Diamond. 83.93% on LiveCodeBench. Both above what any single frontier model achieves alone. Trained on two H100s in 200 reinforcement learning iterations, built on Qwen2.5-7B. Sakana has now shipped this as a commercial product — [Fugu](https://sakana.ai/fugu-beta/), in beta, with a standard OpenAI-compatible API. Fugu Ultra benchmarks at 95.1 on GPQA-Diamond and 93.2 on LiveCodeBench v6, edging out Opus 4.6, Gemini 3.1, and GPT 5.4 individually.
+
+## Orchestration Is the New Intelligence Layer
+
+The standard framing for AI capability is the arms race: bigger models, better reasoning, higher benchmark numbers. The Conductor inverts that. It shows that above a certain threshold of individual model capability, the bottleneck is no longer the solver — it's the selector.
+
+Three of the most capable AI systems ever built are being outperformed by a coordination layer that's roughly 100x smaller than any of them. Not because the coordination layer is more intelligent, but because it allocates problems to the right solver at the right time.
+
+This is well-understood in organizational design: a smart coordinator with a team of specialists beats a team of equally capable generalists with no coordination. What Sakana has done is learn that coordinator end-to-end through reinforcement learning, rather than hand-coding routing rules that go stale. [As Elvis Saravia noted at ICLR](https://substack.com/note/c-253563458), the Conductor is simultaneously learning *how* to communicate between agents and *which* agent to communicate with — two problems most multi-agent systems treat separately.
+
+The architecture matters because it generalizes. Fugu's commercial implementation runs across whatever worker pool you connect to it. The orchestration pattern is not tied to a specific set of frontier models. That makes it infrastructure, not a demo.
+
+## What the Benchmark Doesn't Show You
+
+Here is what 87.5% on GPQA-Diamond doesn't tell you.
+
+The Conductor's routing decisions were learned from training data. It learned which worker agent is best for which problem class by observing performance across a controlled distribution of tasks. That knowledge is baked in at training time. In a production deployment, your task distribution is not GPQA-Diamond. It's whatever comes through your pipeline — contract analysis, customer escalations, code review, inventory queries — with the specific edge cases and data distributions that characterize your environment and nobody else's.
+
+There's a second problem. Worker agents drift. A model update ships. A fine-tune shifts behavior. A system prompt gets revised. The agent that was best at a class of tasks six weeks ago may not be best today. The Conductor's trained routing preferences reflect the performance profiles of its workers at training time. They don't update automatically as those agents change.
+
+[CIO's analysis of agentic systems in production](https://www.cio.com/article/4134051/agentic-ai-systems-dont-fail-suddenly-they-drift-over-time.html) makes the pattern explicit: agentic systems don't fail suddenly — they drift. The routing layer that was calibrated correctly at launch is increasingly routing to stale performance profiles. You discover this when something downstream is already wrong.
+
+This is not a criticism of Sakana's research. The Conductor paper is rigorous and the benchmark results are real. It's a structural property of any learned routing system: the routing is only as current as the performance data it was trained on.
+
+## The Infrastructure Gap This Exposes
+
+The orchestration layer is getting commoditized fast. [Microsoft Agent 365](https://futurumgroup.com/insights/microsoft-agent-365-turns-shadow-ai-into-a-governed-asset-class/), generally available since May 1, gives enterprise IT a control plane for discovering, governing, and securing AI agents across Microsoft, AWS, and Google Cloud. Amazon Bedrock AgentCore is running at scale. The [A2A protocol](https://www.prnewswire.com/news-releases/a2a-protocol-surpasses-150-organizations-lands-in-major-cloud-platforms-and-sees-enterprise-production-use-in-first-year-302737641.html) now has 150 supporting organizations and is embedded in every major cloud platform. Getting agents to talk to each other and delegate work is a solved problem at the infrastructure level.
+
+The Conductor makes the argument that smart routing is where the value lives. That's correct. But smart routing requires current, domain-specific performance data on the agents being routed to.
+
+An orchestration layer routing on historical benchmark scores from a controlled evaluation is better than random selection. An orchestration layer routing on current, verified performance across the task types in your actual deployment is something categorically different — and it's the second kind that produces pipelines you can actually rely on in production.
+
+[The gap between benchmark performance and real-world production performance across enterprise AI deployments](https://www.arcade.dev/blog/5-takeaways-2026-state-of-ai-agents-claude/) averages around 37%. That gap exists for individual agents. In an orchestrated system, it compounds across every delegation hop. If your Conductor is routing based on benchmark scores and your production task distribution diverges meaningfully from those benchmarks — which it almost certainly does — you're stacking a selection error at each step.
+
+[Agentic AI entering production reality](https://siliconangle.com/2026/05/11/agentic-ai-deployment-enters-production-reality-aiagentconference/) is the story the industry told this month at AI Agent Conference. The practitioners who showed up weren't complaining about model capability. They were complaining about the gap between what their agents do in controlled environments and what they do when real work hits them.
+
+## What the Next Race Is
+
+The Conductor is not the end state of orchestration research. It's proof that the routing layer matters more than any individual solver at the system level. The immediate commercial implication is Fugu — an API you can call today that will outperform any single frontier model on hard tasks.
+
+The deeper implication runs forward. Orchestration as an architectural pattern is established. Every major cloud provider is building for it. The race is no longer about whether to orchestrate — it's about what to orchestrate *on*.
+
+An orchestration layer is only as intelligent as the performance data it uses to make routing decisions. That means the competitive edge in multi-agent AI is shifting from model capability toward model characterization: knowing, with specificity and currency, how each agent in your pool actually performs across the task classes that matter in your environment.
+
+This isn't a benchmark problem. GPT-5, Claude Sonnet 4, and Gemini 2.5 Pro are all capable of extraordinary things. The question a smart Conductor needs to answer isn't "how capable is this agent in general?" It's "how does this agent perform on tasks that look like *this one*, in conditions like *these*, right now?"
+
+Sakana proved that the intelligence is in the routing. The question is what you're routing on.
+
+---
+
+<MatrixPills />
