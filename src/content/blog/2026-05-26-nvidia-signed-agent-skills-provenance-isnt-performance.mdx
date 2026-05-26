@@ -1,0 +1,74 @@
+---
+title: "NVIDIA Signed Its Agent Skills. Provenance Isn't Performance."
+date: "2026-05-26"
+description: "NVIDIA launched Verified Agent Skills on May 22 — cryptographic signing, SkillSpector risk scanning, and machine-readable skill cards for every capability in their catalog. It's the most serious trust infrastructure anyone has shipped for the agent ecosystem. It also solves a different problem than the one that's killing enterprise deployments."
+tags: ["AI agents", "agent verification", "NVIDIA", "enterprise AI", "trust", "agent governance", "skill cards", "2026"]
+author: "SignalPot Team"
+slug: "nvidia-signed-agent-skills-provenance-isnt-performance"
+---
+
+On May 22, NVIDIA shipped something that doesn't have a lot of precedent in the AI agent ecosystem: [Verified Agent Skills](https://developer.nvidia.com/blog/nvidia-verified-agent-skills-provide-capability-governance-for-ai-agents/), a framework that puts cryptographic signatures, security scanning, and machine-readable provenance metadata on every agent capability in their catalog.
+
+This is real infrastructure, not a governance whitepaper. It's the first serious attempt by a major AI platform to treat agent skills the way software supply chains have been treating packages since the SolarWinds era — as artifacts that need to be verified, not just shipped.
+
+It solves a real problem. It doesn't solve the problem that's currently causing 89% of enterprise AI pilots to fail. Understanding the gap between those two things is where the actual work is.
+
+## What NVIDIA Built
+
+[The Verified Agent Skills framework](https://www.gate.com/news/detail/nvidia-launches-verified-agent-skills-framework-on-may-22-to-improve-ai-21305456) runs every published skill through a pipeline before it reaches developers. The components:
+
+**SkillSpector**, an [open-source security scanner](https://github.com/nvidia/skillspector) that evaluates skills for two categories of risk. First, conventional software risks: vulnerable dependencies, suspicious scripts, dangerous code patterns, credential access, and data exfiltration paths. Second, agent-specific risks: hidden instructions, prompt injection, trigger abuse, excessive agency, tool poisoning, and mismatches between a skill's declared purpose and its actual bundled behavior. Scanning coverage is grounded in [OWASP's LLM Top 10](https://owasp.org/www-project-top-10-for-large-language-model-applications/) and MITRE ATLAS.
+
+**Skill Cards**, machine-readable attestation documents that travel with every verified skill. Each card describes what the skill is intended to do, who created it, how it's licensed, what dependencies it requires, and what limitations or risks have been identified along with possible mitigations. This is self-description with receipts.
+
+**Cryptographic signing**, where NVIDIA's root certificate covers every file and subdirectory in a skill directory, giving developers a concrete verification path via the [OpenSSF Model Signing standard](https://openssf.org/). If the skill has been modified since it left NVIDIA's pipeline, the signature breaks. You know.
+
+The skills build on the [agentskills.io open specification](https://agentskills.io), meaning the same SKILL.md works across Claude Code, Codex, and Cursor — one verified capability, portable across agent environments.
+
+[NVIDIA's own announcement on X](https://x.com/NVIDIAAI/status/2057496919425900834) put it plainly: "Skills make your agent more capable, but can also introduce vulnerabilities. Verified skills give you transparency into what a skill does, where it came from, what risks it carries, and whether it's been modified."
+
+That's an accurate description of what this solves.
+
+## What Provenance Verification Actually Gives You
+
+If you've spent time in software security, the Verified Agent Skills framework maps cleanly to concepts you already know. SkillSpector is a SAST scanner adapted for agentic risk. Skill Cards are software bills of materials (SBOMs) for agent capabilities. Cryptographic signing is code signing applied to instructional packages.
+
+These tools answer a specific and important question: **Is this skill what it claims to be?** Has it been tampered with? Does it carry hidden risks that weren't disclosed? Does its actual behavior match its declared purpose?
+
+That question matters. [The OWASP Top 10 for LLMs](https://owasp.org/www-project-top-10-for-large-language-model-applications/) documents how real and exploitable agent-specific attack surfaces are — prompt injection, supply chain compromise, and excessive agency aren't theoretical. SkillSpector scanning for those categories before a skill reaches the catalog is meaningful security work.
+
+Giving enterprises a cryptographic chain of custody for the skills they deploy matters even more as agent supply chains get more complex. A skill published by NVIDIA, running in your environment, powering a task your customers depend on — you need to know that chain hasn't been broken. Now you can verify it.
+
+## The Question It Doesn't Answer
+
+Here is the question that NVIDIA's framework, correctly and by design, does not answer: **Does this skill actually work well for your task?**
+
+A cryptographically signed, SkillSpector-cleared skill card tells you the skill is what it says it is, from who it says it's from, doing what it claims. It does not tell you the skill's success rate on your specific workload. It does not tell you how the skill performs when your data has a distribution the developers didn't anticipate. It does not tell you how it degrades on edge cases, or how it behaves when the inputs are adversarial, or whether it outperforms the alternative skill you could have chosen instead.
+
+These are performance questions, not provenance questions. They're answered by measurement, not by signing.
+
+This distinction matters because the failure modes are different. A skill that fails the provenance check is a security risk — it might have been tampered with, might carry hidden instructions, might do something other than what it claims. That's a binary gate: pass or don't ship.
+
+A skill that passes the provenance check but performs poorly in production is a reliability risk — it does what it claims, but what it does isn't good enough for the task at hand. That's not a binary gate. It's a continuous measurement problem. It requires running the skill against representative tasks in your environment, comparing it against alternatives, and building performance history over time.
+
+[Research across enterprise AI deployments](https://www.beri.net/article/stanford-ai-index-2026-agents-66-percent-success) has documented a consistent 37% gap between benchmark performance and real production performance. That gap isn't explained by supply chain compromise or hidden instructions. It's explained by the mismatch between how a skill was evaluated before release and what it actually encounters in your environment.
+
+## Two Layers of Trust, One Usually Missing
+
+The broader pattern here is that the agent trust problem has always had two layers, and they're often conflated.
+
+Layer one: **provenance and integrity** — Is this agent or skill what it claims to be? Is it from a trusted source? Has it been scanned for known security risks? Has it been modified since it was certified? NVIDIA just built serious infrastructure for this layer.
+
+Layer two: **operational performance** — Does this agent or skill actually do its job well? On what task types? At what success rate? Compared to what alternatives? Under what conditions does it fail?
+
+The first layer is a prerequisite. You can't trust an agent whose provenance is unknown or whose integrity can't be verified. NVIDIA's framework advances that layer meaningfully, and making SkillSpector open-source means other ecosystems can adopt the same scanning approach.
+
+The second layer is where enterprise deployments are currently breaking. The [89% enterprise AI pilot failure rate](https://www.beri.net/article/stanford-ai-index-2026-agents-66-percent-success) isn't driven by supply chain attacks on compromised skills. It's driven by agents that passed vendor evaluations and failed in production — because vendor evaluations test the happy path, and production finds everything else.
+
+NVIDIA built the authentication layer for agent skills. The missing layer is the performance record — the verified operational history that tells you whether the authenticated, scanned, signed skill in your stack is actually the right tool for the specific job you're giving it.
+
+Both layers need to exist. Right now, one of them just got significantly better infrastructure. The other one is still mostly up to you.
+
+---
+
+<MatrixPills />
