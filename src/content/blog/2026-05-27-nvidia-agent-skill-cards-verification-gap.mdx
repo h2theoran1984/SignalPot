@@ -1,0 +1,74 @@
+---
+title: "NVIDIA's Verified Agent Skill Cards Are Real. So Is the Gap They Don't Fill."
+date: "2026-05-27"
+description: "NVIDIA just shipped verified skill cards for AI agents — machine-readable provenance records with security scanning, cryptographic signing, and risk documentation. It's the clearest signal yet that the industry has accepted agent verification as a first-class infrastructure problem. It also proves exactly which part of the problem remains unsolved."
+tags: ["AI agents", "NVIDIA", "agent verification", "agent trust", "enterprise AI", "skill cards", "agent governance", "2026"]
+author: "SignalPot Team"
+slug: "nvidia-agent-skill-cards-verification-gap"
+---
+
+On May 22, NVIDIA [published a framework for verified agent skills](https://developer.nvidia.com/blog/nvidia-verified-agent-skills-provide-capability-governance-for-ai-agents/) — portable instruction sets that teach AI agents how to use NVIDIA's CUDA-X libraries, Blueprints, and developer tools. Each skill ships with a machine-readable **skill card**: a structured trust record documenting what the skill does, who built it, what its dependencies are, what its known limitations and risks are, and what mitigations exist. Security scanning runs through a tool called SkillSpector, checking both instruction safety and supply-chain integrity. Cryptographic signing is on the roadmap. The catalog lives on [GitHub](https://github.com/NVIDIA/skills), updates daily, and already works natively in Claude Code, Codex, and Cursor.
+
+This is NVIDIA — the company that builds the hardware most of the world's AI runs on — deciding that the software trust problem in AI agents was serious enough to build infrastructure for it.
+
+Pay attention to what that signal means.
+
+## Why NVIDIA's Move Is Different
+
+NVIDIA doesn't need to care about agent trust metadata. They sell GPUs. Their business is compute throughput, not capability provenance. If the market were operating fine without verified skill cards, there would be no reason to build them.
+
+The fact that NVIDIA built them anyway tells you something concrete: enterprise customers deploying AI agents are scared enough about what's running in their systems that the chipmaker's developer relations team decided this was worth shipping. That's a demand signal, not a product roadmap exercise.
+
+This joins a pattern that's been building for months. [ServiceNow expanded its AI Control Tower](https://newsroom.servicenow.com/press-releases/details/2026/ServiceNow-expands-AI-Control-Tower-to-discover-observe-govern-secure-and-measure-AI-deployed-across-any-system-in-the-enterprise/default.aspx) to govern agents across any system in the enterprise — regardless of where they were built. [Kore.ai launched Artemis](https://www.helpnetsecurity.com/2026/05/22/kore-ai-unveils-ai-native-platform-for-enterprise-multiagent-systems/), an AI-native platform that enforces governance, observability, and operational control before any agent goes live. [Capgemini announced today](https://www.capgemini.com/news/press-releases/2026-capital-markets-day-capgemini-poised-to-capture-the-full-value-of-the-Agentic-AI-revolution/) that its entire 2028 growth strategy is built around being a trusted partner for agentic AI transformation — specifically calling out "appropriate governance" and "a definition of how humans and AI agents operate together at scale" as prerequisites for any of it to work.
+
+The industry is not debating whether agent trust infrastructure needs to exist. It's racing to build it.
+
+NVIDIA's contribution is the capability provenance layer: can you trust that this skill does what it claims to do, was built by who it claims was built by, and has been scanned for the supply-chain risks you'd care about? Those are real questions with real consequences, and skill cards answer them well.
+
+## The Two Trust Questions That Are Not the Same
+
+Here's the distinction that gets compressed when people talk about "agent trust" as if it's a single problem.
+
+**Question one: Can I trust this agent's code?** This is provenance, supply-chain integrity, and security — the same category of problem that SBOM (Software Bill of Materials) solves for traditional software, applied to agent capabilities. Does this skill do what its documentation says? Was it built by a legitimate party? Has it been scanned for injected instructions or malicious dependencies? NVIDIA's skill cards answer this question.
+
+**Question two: Can I trust this agent's outputs?** This is performance, reliability, and accuracy in your specific context. When you delegate a task from your domain — your data distribution, your edge cases, your operational requirements — does this agent actually handle it correctly? How does it perform at volume? Where does it degrade? How does it compare to the alternatives?
+
+Skill cards are a software supply chain solution. They tell you the provenance of what you're deploying. They don't tell you how it will behave when it runs.
+
+This is not a criticism of NVIDIA's approach. Capability provenance is an important first layer. The Meta Sev-1 incident earlier this year [illustrated the cost of skipping it](https://techcrunch.com/2026/03/18/meta-is-having-trouble-with-rogue-ai-agents/) — an agent with legitimate credentials caused a data exposure event not through an identity exploit, but through plausible-sounding wrong guidance that a human followed downstream. But even a cryptographically signed skill card with a clean SkillSpector scan doesn't tell you whether that agent is accurate on tasks like yours.
+
+The [37% gap between benchmark performance and production performance documented across enterprise AI deployments](https://www.technologyreview.com/2026/04/13/1135675/want-to-understand-the-current-state-of-ai-check-out-these-charts/) is what happens when the second question goes unanswered. An agent ships with a clean provenance record and vendor-controlled benchmarks. It goes into production. The tasks aren't quite what the benchmark tested. The data distribution is slightly different. The edge cases accumulate. The failure rate in production is materially different from what the capability declaration implied.
+
+[Gartner predicts that more than 40% of agentic AI projects will be canceled by end of 2027](https://www.gartner.com/en/newsroom/press-releases/2025-06-25-gartner-predicts-over-40-of-agentic-ai-projects-will-be-canceled-by-end-of-2027) — due to escalating costs, unclear business value, and inadequate risk controls. [McKinsey finds](https://www.mckinsey.com/capabilities/tech-and-ai/our-insights/tech-forward/state-of-ai-trust-in-2026-shifting-to-the-agentic-era) that while nearly two-thirds of enterprises have experimented with AI agents, fewer than 10% have scaled them to deliver measurable value. Those numbers aren't primarily a provenance problem. They're a performance verification problem.
+
+## The Stack That's Emerging
+
+The trust infrastructure for AI agents is being assembled in layers, and they map cleanly onto the problems each layer is designed to solve.
+
+**Layer one: Connectivity.** The [A2A protocol](https://www.prnewswire.com/news-releases/a2a-protocol-surpasses-150-organizations-lands-in-major-cloud-platforms-and-sees-enterprise-production-use-in-first-year-302737641.html) — now at 150+ organizations, integrated into Azure, AWS, and Google Cloud — specifies how agents discover each other, authenticate, and delegate work across vendor and organizational boundaries. This layer answers: *can these agents communicate?* It is functional and in production.
+
+**Layer two: Capability provenance.** NVIDIA's verified skill cards, MCP server metadata, and Agent Card extensions specify what an agent claims to do and whether those claims have been scanned and attested. This layer answers: *can you trust the packaging of what's being deployed?* It is being built now.
+
+**Layer three: Performance verification.** Domain-specific evaluation against representative task distributions, head-to-head competitive benchmarking, adversarial testing on edge cases, and longitudinal reliability tracking. This layer answers: *does this agent actually perform well at what I need it to do, compared to the alternatives, in my environment?* It is the layer where the most deployment failures are occurring — and where the least standardized infrastructure exists.
+
+The third layer is not just nice to have for academic completeness. In multi-agent systems, the performance verification gap compounds. When an orchestrating agent routes work to a specialist without verified performance history, a 70% reliable specialist doesn't degrade the pipeline by 30%. It degrades it by more than that — because the orchestrator incorporates the specialist's outputs into the next delegation, and errors propagate downstream.
+
+[Portal26's launch of runaway-agent token controls last month](https://siliconangle.com/2026/04/23/portal26-launches-agentic-token-controls-cap-runaway-ai-agent-spend/) is a symptom of this problem. A kill switch is a reasonable circuit breaker — but the reason agents are entering runaway loops in production isn't that nobody set a budget limit. It's that agents with undocumented failure modes are being deployed into pipelines with no prior performance baseline.
+
+## What "Verified" Needs to Mean
+
+NVIDIA's skill cards are a genuine contribution, and the ecosystem needs them. But the word "verified" is doing a lot of work in a lot of product announcements right now, and it's worth being precise about what each layer actually verifies.
+
+Provenance verification confirms the agent came from a legitimate source and hasn't been tampered with. Security scanning confirms the agent doesn't contain known malicious instructions. Capability declarations confirm the agent claims to handle a stated class of tasks. None of these verify that the agent handles *your* tasks reliably, at production load, with your data.
+
+That verification requires running the agent. Against representative samples of the actual work you'll delegate to it. Under adversarial conditions. And comparing the results against alternatives — not against a vendor-published benchmark that was designed to demonstrate capability rather than measure production reliability.
+
+The infrastructure for doing this systematically — at the scale required by multi-agent pipelines where routing decisions happen in milliseconds — is the gap that NVIDIA's skill cards make more visible. They provide the provenance record. They point to where the performance record needs to go.
+
+When Capgemini's CEO says today that agentic AI transformation requires "trusted partners" with strong governance foundations, the trust he's describing isn't just supply-chain integrity. It's performance confidence. The ability to walk into a boardroom and say: this agent handles this class of work at this reliability level, independently verified, and here is the data.
+
+The first two layers of the trust stack are being built. The third is where the work is.
+
+---
+
+<MatrixPills />
