@@ -1,0 +1,70 @@
+---
+title: "Microsoft Just Shipped the Governance Layer for AI Agents. Here's What It Still Can't Tell You."
+date: "2026-06-03"
+description: "At Build 2026, Microsoft released ACS — an open behavioral governance standard for AI agents — alongside ASSERT, an open-source evaluation framework. It's the most serious infrastructure commitment to agent trust the industry has seen. Here's why it still doesn't answer the hardest question."
+tags: ["Microsoft", "ACS", "agent governance", "agent evaluation", "enterprise AI", "Build 2026", "ASSERT", "AI agents", "2026"]
+author: "SignalPot Team"
+slug: "microsoft-acs-assert-agent-governance-gap"
+---
+
+At Build 2026 on Monday, Microsoft released something that will become a default in how enterprise AI agents get shipped: the [Agent Control Specification](https://devblogs.microsoft.com/foundry/build-2026-open-trust-stack-ai-agents/) — an open, royalty-free YAML/JSON standard that defines what an AI agent is allowed to do, what it must not do, when a human needs to approve an action, and what must be logged. Alongside it came ASSERT (Adaptive Spec-driven Scoring for Evaluation and Regression Testing) — an open-source framework for testing whether agents actually comply with their declared policies.
+
+These aren't peripheral developer tools. ACS ships as an SDK with [native plugins for LangChain, OpenAI Agents SDK, Anthropic Agents SDK, AutoGen, CrewAI, Semantic Kernel, and Microsoft.Extensions.AI](https://windowsnews.ai/article/build-2026-microsofts-agent-first-platform-beyond-windows.421937). It's enforced at the runtime level — before input, before tool calls, after tool returns, before final output. Microsoft also announced [Windows Secure Runtime for AI Agents](https://blogs.windows.com/windowsdeveloper/2026/06/02/windows-platform-security-for-ai-agents/): OS-level containment via the Microsoft Execution Container (MXC) SDK, agent identity primitives, and enterprise manageability through Group Policy or MDM. [Microsoft Agent 365](https://www.microsoft.com/en-us/security/blog/2026/05/01/microsoft-agent-365-now-generally-available-expands-capabilities-and-integrations/), now GA, sits above all of it as the cross-cloud discovery and governance control plane — spanning Microsoft, AWS, and Google Cloud.
+
+In one conference, Microsoft effectively published the spec for the behavioral governance layer of the agentic stack. That's not a product launch. That's a platform move.
+
+## What ACS Actually Is
+
+ACS is behavioral policy as code. You declare, in a machine-readable file that ships with your agent, what the agent is permitted to do. Customer service agents can be blocked from issuing refunds over $500 without human approval. Finance agents can be required to log every external API call. Agents can be forced to include transparency statements before responding.
+
+The governance team writes the policy. The agent runtime enforces it. The compliance audit trail is baked in.
+
+What makes this different from the ad-hoc guardrail implementations that have been standard practice for the last two years is portability and auditability. Today, agent constraints are scattered across prompts, system instructions, hard-coded tool permission checks, and post-hoc filtering layers — typically tied to the specific framework the agent was built in. They're nearly impossible to audit across a portfolio of agents, and they don't survive migration across frameworks or environments. ACS centralizes policy into a single, readable spec that travels with the agent and is enforced by a standard runtime regardless of which LLM or orchestration framework is underneath.
+
+ASSERT is the testing counterpart: a framework for writing and running policy compliance tests against your agents before deployment. The pairing is deliberately analogous to how modern software teams use linters and test suites — write the spec, verify the implementation matches it.
+
+## Why This Is a Real Step Forward
+
+The honest answer is that agents have been going into enterprise production without behavioral governance infrastructure that any security team would accept for a traditional software deployment. The [Microsoft Security Blog's Build recap](https://www.microsoft.com/en-us/security/blog/2026/06/02/microsoft-build-2026-securing-code-agents-and-models-across-the-development-lifecycle/) frames this directly: agent governance has graduated from a Responsible AI team conversation to a security team requirement.
+
+ACS fixes that. It's cross-framework, enforcement is at the runtime layer, and the policy file is an artifact that can be reviewed, versioned, and audited like any other piece of infrastructure. ASSERT makes it testable before it ships.
+
+The Windows Secure Runtime adds the execution containment layer — which addresses the class of risk where a legitimately-signed, policy-compliant agent escapes its sandboxed scope through misconfigured resource access. Containment, identity, and manageability together mean that enterprise IT can apply the same access controls to AI agents that they apply to processes and services.
+
+This is the governance layer. It's real, it's serious, and it's about to become table stakes.
+
+## What ACS Can't Verify
+
+Here's the constraint worth sitting with.
+
+ACS verifies that an agent operates within declared policy. ASSERT verifies that an agent passes its compliance test suite. Windows Secure Runtime verifies the agent executes within containment boundaries. Agent 365 verifies the agent is visible and governed across your cloud estate.
+
+None of these verify that the agent does its job well.
+
+A customer service agent can be fully ACS-compliant — it will never issue unauthorized refunds, logs every interaction, and always includes a disclosure statement — and still quietly misclassify customer intent 25% of the time, generate unhelpful responses to complex queries, or route escalations incorrectly. An ACS policy file defines the walls the agent must stay within. It doesn't tell you anything about what the agent does inside those walls.
+
+ASSERT is worth examining carefully, because it looks like an evaluation framework but isn't quite. Policy compliance testing verifies that an agent's behavior matches its declared constraints. That's different from task performance evaluation, which measures whether an agent succeeds at the actual work being delegated to it. Running ASSERT on a finance agent will tell you whether it respects the constraint "don't make external API calls without logging." It won't tell you whether its journal entry classification is accurate at production data distributions.
+
+The distinction matters because behavioral compliance and task performance are independent variables. An agent can fail one while passing the other in either combination. The governance stack Microsoft just shipped tells you about the first. The second is the gap that [NOWAI-Bench](https://newsroom.servicenow.com/press-releases/details/2026/ServiceNow-extends-agentic-AI-governance-from-desktops-to-data-centers-with-NVIDIA/default.aspx), [NVIDIA's verified skill cards](https://developer.nvidia.com/blog/nvidia-verified-agent-skills-provide-capability-governance-for-ai-agents/), and SAP's Autonomous Enterprise announcement are all circling from different angles — and where the most enterprise deployments are failing.
+
+[Gartner's prediction that 40%+ of agentic AI projects will be canceled by end of 2027](https://www.gartner.com/en/newsroom/press-releases/2025-06-25-gartner-predicts-over-40-of-agentic-ai-projects-will-be-canceled-by-end-of-2027) isn't primarily about governance failures. It's about organizations discovering, after deployment, that the correctly-governed agent still doesn't perform at the level the vendor benchmark implied on the tasks that actually matter to their business.
+
+## The Trust Stack, Mapped
+
+What the last two weeks have clarified is that the infrastructure for trusting AI agents is a multi-layer problem, with each layer now visibly under construction.
+
+**Connectivity** — The [A2A protocol](https://www.prnewswire.com/news-releases/a2a-protocol-surpasses-150-organizations-lands-in-major-cloud-platforms-and-sees-enterprise-production-use-in-first-year-302737641.html), now at 150+ organizations and integrated into all three major clouds, answers the question: can these agents communicate? Functional.
+
+**Provenance** — NVIDIA's verified skill cards, ACS packaging, and MCP server metadata answer: was this agent built by who it claims, scanned for supply-chain risks, does its packaging match its documentation? Being built.
+
+**Behavioral governance** — ACS, ASSERT, Windows Secure Runtime, Agent 365 answer: does the agent operate within declared policy, in a contained execution environment, with a governance audit trail? Just shipped.
+
+**Performance verification** — Domain-specific task evaluation, competitive benchmarking, adversarial testing, production reliability tracking. Does this agent actually do the job well, compared to alternatives, on the tasks I'll give it in my specific environment? The gap.
+
+Microsoft's Build announcements are the clearest signal yet that behavioral governance is serious infrastructure — not optional tooling for the responsible AI team. The rest of the stack is following. The performance verification layer is where enterprise deployment failures are accumulating, and it's the last one without a dominant platform solution.
+
+When you can describe an agent's policy compliance with precision but not its task reliability, you know exactly which wall is still missing.
+
+---
+
+<MatrixPills />
