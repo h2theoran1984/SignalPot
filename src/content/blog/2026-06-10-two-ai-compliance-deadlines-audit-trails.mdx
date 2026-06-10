@@ -1,0 +1,80 @@
+---
+title: "Two AI Compliance Deadlines Land This Summer. Audit Trails Won't Save You."
+date: "2026-06-10"
+description: "Colorado's AI Act goes live June 30. The EU AI Act's high-risk provisions kick in August 2. Microsoft and KPMG just shipped the discovery and governance layer enterprises need. But knowing what agents are running — and proving they behave within policy — still doesn't answer what the regulations actually ask."
+tags: ["AI compliance", "EU AI Act", "Colorado AI Act", "enterprise AI", "agent governance", "AI agents", "2026"]
+author: "SignalPot Team"
+slug: "two-ai-compliance-deadlines-audit-trails"
+---
+
+Colorado's AI Act goes live in 20 days. The EU AI Act's high-risk provisions kick in August 2 — 53 days from today.
+
+[McKinsey's 2026 AI trust report](https://agentmarketcap.ai/blog/2026/04/07/mckinsey-ai-trust-2026-agentic-governance-framework) found that only one in three enterprises has governance maturity adequate for the AI agents they are already deploying. That number has likely shifted since April — but not in the direction you'd hope. Agent surface area in enterprise software is projected to reach 40% penetration by end of 2026, up from under 5% in 2025. The agents are multiplying faster than the governance is.
+
+Yesterday, [Microsoft and KPMG announced the global rollout of Agent 365](https://news.microsoft.com/source/2026/06/09/kpmg-and-microsoft-scale-trusted-enterprise-ai-agents-globally-through-deployment-of-agent-365-and-copilot/) — Microsoft's governance control plane for AI agents, now bundled into Microsoft 365 E7 at $15/user/month. The pitch: discover every agent running in your environment, including the ones nobody authorized. Apply policy controls. Create audit trails. Satisfy this summer's compliance requirements.
+
+It's the right infrastructure. It's also not enough.
+
+## The Shadow Agent Problem
+
+The shadow IT problem of the 2010s looked bad. Organizations discovered they were running three times more SaaS tools than IT had approved — a billing mess, a data governance nightmare, an M&A due diligence landmine.
+
+The shadow agent problem is structurally worse. An unauthorized SaaS subscription is a cost and access control issue. An unauthorized AI agent that makes consequential decisions — about customer credit, employee hiring, insurance pricing, medical triage, or housing applications — is a liability in a regulated environment and a potential violation of the compliance frameworks arriving this summer.
+
+[Agent 365 can surface these agents](https://www.microsoft.com/en-us/security/blog/2026/05/01/microsoft-agent-365-now-generally-available-expands-capabilities-and-integrations/). It scans Windows devices, Azure, AWS Bedrock, and Google Cloud for unmanaged agents and pulls them into a governed control plane, where IT can apply Microsoft Entra, Defender, and Intune policies and enforce audit logging. That discovery capability needed to exist. Six months ago it didn't.
+
+But discovery answers one question: *what is running?*
+
+The regulations are asking a different question.
+
+## What Colorado and the EU Actually Require
+
+Colorado SB 24-205 applies to deployers of "high-risk AI systems" — AI that makes or materially influences consequential decisions about employment, credit, housing, insurance, healthcare, or legal matters. The requirements include impact assessments, disclosure obligations, and active safeguards against algorithmic discrimination.
+
+The EU AI Act's high-risk provisions, taking effect August 2, require conformity assessments, technical documentation, human oversight mechanisms, and demonstrated accuracy, robustness, and cybersecurity.
+
+None of those requirements are satisfied by knowing the agent exists and having a policy file that constrains its behavior.
+
+An agent can be fully discovered and registered in Agent 365, compliant with its behavioral policy spec via [ACS](https://devblogs.microsoft.com/foundry/build-2026-open-trust-stack-ai-agents/), and logged and auditable in every interaction — and still fail the substantive compliance test: *does it make accurate, equitable decisions at the reliability level you're claiming for it?*
+
+Colorado and the EU AI Act are both outcome-oriented frameworks. They don't ask whether your agent is governed. They ask whether it causes harm. An agent that systematically miscategorizes loan applications from certain neighborhoods — or generates biased HR screening recommendations — passes every governance check and fails every compliance audit. The audit trail records that the decisions were made. It doesn't record whether they were correct.
+
+## The Distinction That's Being Missed
+
+[TRiSM research published this month](https://arxiv.org/pdf/2506.04133) makes the underlying problem precise: a model that performs acceptably on document summarization introduces categorically different risks when it autonomously executes multi-step workflows inside enterprise systems. Evaluation frameworks built for static models don't transfer to agentic deployments.
+
+This isn't a new observation. It's the same structural gap that [the DeepSWE benchmark debate exposed](https://signalpot.dev/blog/deepswe-clean-benchmark-ai-coding-agents): even a clean, uncontaminated benchmark can't tell you whether an agent performs at the level you need on your actual workload. The top score on the most rigorous public coding agent benchmark is 70%. Your fintech codebase with ten years of accumulated domain patterns is not that benchmark.
+
+The compliance version of that problem: your conformity assessment requires evidence of accuracy and fairness in your deployment context — your data, your user population, your edge cases. Vendor benchmark scores don't satisfy that requirement. Neither does an audit trail proving the agent ran and produced outputs. The documentation regulators will ask for is: does this system work correctly, and how do you know?
+
+## The Timeline Problem
+
+[Salesforce's Agentforce multi-agent orchestration goes live June 15](https://www.digitalapplied.com/blog/ai-agent-marketplaces-2026-discovery-distribution). Within days, thousands of enterprises will have a conductor agent routing tasks to specialist agents as a default CRM feature. That's agents making consequential decisions about customer interactions, at CRM scale, across every Salesforce customer.
+
+That surface area enters compliance scope this week.
+
+Colorado goes live in twenty days. The EU high-risk deadline is fifty-three days out.
+
+The enterprises most exposed are the ones who deployed agents into production without structured performance evaluation — which is most enterprises. Not because they were negligent. Because independent performance verification has lagged significantly behind deployment tooling and governance infrastructure. There are robust frameworks for discovering agents, constraining agents, and auditing agents. The framework for independently verifying that an agent does its job correctly, on your specific workload, at the reliability level required by law, is still the missing layer.
+
+## What to Do Before the Deadlines
+
+**Inventory first, evaluate second.** Agent 365 and equivalent discovery tools are the prerequisite. Not the solution.
+
+**Classify by regulatory scope.** Identify which agents make consequential decisions under Colorado SB 24-205 and EU high-risk categories: hiring, credit, healthcare, housing, insurance, legal. These are your compliance surface area. Know exactly which agents fall in scope before the deadline, not after.
+
+**Run task-specific performance evaluation on production data.** Not vendor benchmarks. Not the demo environment. Representative samples from your actual deployment — your data distributions, your edge cases, your user population. The accuracy rates, error distributions, and failure mode documentation produced by that evaluation are what a conformity assessment or algorithmic impact assessment actually requires.
+
+**Where you can't produce that documentation, restrict autonomy.** Human-in-the-loop requirements exist for exactly this reason. An unverified agent with mandatory human review before consequential outputs is a defensible position. An unverified agent running autonomously is not.
+
+**Build evaluation into your deployment process now.** You have weeks, not days. That's enough time to get structured about this if you start now. It won't be enough time if you're still working through discovery when the deadlines land.
+
+The governance layer Microsoft shipped at Build 2026 is real infrastructure. Deploy it. But compliance requires answering what the regulations actually ask — and they're asking about outcomes, not audit trails.
+
+Twenty days to Colorado. Fifty-three to the EU.
+
+The easy part was discovering what's running.
+
+---
+
+<MatrixPills />
