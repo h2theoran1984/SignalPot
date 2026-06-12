@@ -1,0 +1,74 @@
+---
+title: "Six Agencies Named Five Agent Risk Categories. The Market Has Infrastructure for Four of Them."
+date: "2026-06-12"
+description: "On May 1st, CISA and allied agencies from five countries published the first joint government guidance on agentic AI — naming five specific risk categories. Six weeks later, enterprise infrastructure has built tooling for four of them. The one that's still open is the one that matters most."
+tags: ["CISA", "Five Eyes", "agentic AI", "behavioral risk", "agent verification", "enterprise AI", "governance", "trust", "2026"]
+author: "SignalPot Team"
+slug: "five-eyes-agent-risk-behavioral-gap"
+---
+
+Six agencies. Five governments. One shared conclusion: agentic AI has a specific, nameable risk surface, and most enterprises are deploying into it without a complete picture of what that surface looks like.
+
+On May 1st, CISA and allied cybersecurity agencies from the US, UK, Australia, Canada, and New Zealand published ["Careful Adoption of Agentic AI Services"](https://www.cisa.gov/resources-tools/resources/careful-adoption-agentic-ai-services) — the first joint government guidance on agentic AI deployment from the Five Eyes coalition. It's worth reading not for the prescriptions but for the diagnostic. The document names five specific risk categories that are structural to agentic AI — present in any deployment, not just poorly secured ones.
+
+Six weeks later, the enterprise infrastructure market has built tooling for four of them. The fifth is still largely open. That fifth category is behavioral misalignment. It's also the most operationally consequential one.
+
+## What the Guidance Actually Names
+
+The Five Eyes document organizes agentic AI risk into five distinct categories:
+
+**Privilege escalation.** Agents granted excessive access can cause outsized damage when compromised. The blast radius of a misconfigured agent with broad permissions dwarfs a typical software vulnerability, because the agent can act — not just exfiltrate.
+
+**Design and configuration flaws.** Poor setup creates security gaps before a system goes live. Permissions, boundaries, and data access configured carelessly at deployment determine the attack surface before any adversary arrives.
+
+**Behavioral misalignment.** Agents may act unpredictably, pursue goals in unintended ways, or be manipulated through prompt injection, data poisoning, or goal drift. The guidance treats this as both a security problem and an operational reliability problem — which is the right framing.
+
+**Structural cascading failures.** Interconnected multi-agent systems can trigger failures that propagate across an organization's infrastructure. The interconnectedness that makes multi-agent architectures powerful also obscures where failures originate and makes remediation harder.
+
+**Accountability opacity.** The complexity and autonomy of agentic systems makes it difficult to trace decisions, audit actions, or assign responsibility when actions occur autonomously at scale.
+
+This is the most complete public taxonomy of agentic AI failure modes published to date. And it doubles as a scorecard for the infrastructure market.
+
+## The Market's Response to Four of Five
+
+In the six weeks since the guidance was published, the enterprise AI infrastructure sector has moved fast — if not uniformly.
+
+**Privilege escalation** has tooling. Microsoft's [Agent Control Specification](https://devblogs.microsoft.com/foundry/build-2026-open-trust-stack-ai-agents/), released at Build 2026, gives developers policy-as-code for agent permissions, scope, and access boundaries. [Agent 365](https://news.microsoft.com/source/2026/06/09/kpmg-and-microsoft-scale-trusted-enterprise-ai-agents-globally-through-deployment-of-agent-365-and-copilot/) enforces those policies across cloud environments from a single control plane. Access control, at least for formally governed deployments, is being addressed.
+
+**Design and configuration flaws** have tooling. ASSERT — Microsoft's behavioral compliance testing layer — checks agent behavior against declared policy at deployment time. Enterprises with mature governance programs can validate configurations before agents go live.
+
+**Structural cascading failures** have governance approaches. A2A protocol governance layers constrain agent scope and blast radius. [NVIDIA's Project Arc with ServiceNow](https://blogs.nvidia.com/blog/servicenow-autonomous-ai-agents-enterprises/) brings auditability and workflow intelligence to multi-step agent interactions, with containment and governance native to the orchestration layer.
+
+**Accountability opacity** has partial infrastructure. Audit logs, compliance reports from ASSERT, and the emerging Big Four governance engagement model — [KPMG's formalized enterprise agent governance practice](https://news.microsoft.com/source/2026/06/09/kpmg-and-microsoft-scale-trusted-enterprise-ai-agents-globally-through-deployment-of-agent-365-and-copilot/) is the most visible example — provide accountability infrastructure, at least for the agents whose deployments are formally managed.
+
+Four out of five, in six weeks. That's a faster market response than the guidance's authors probably expected.
+
+## Why Behavioral Misalignment Is Different
+
+Behavioral misalignment is the category where governance infrastructure reaches its edge.
+
+Policy files tell an agent what it is allowed to do. They constrain scope and access. They enforce behavioral boundaries. What they cannot do is tell you whether the agent produces correct outputs on the tasks it is authorized to perform.
+
+That's a performance question, not a governance question. An agent operating fully within its declared policy — correct permissions, correct scope, compliant with every ACS rule — can still produce wrong answers, stale analysis, misattributed diagnoses, and recommendations that quietly erode enterprise outcomes. Policy compliance and task accuracy are orthogonal dimensions. You can have both, either, or neither.
+
+The guidance specifically flags two sub-types of behavioral misalignment: adversarial manipulation (prompt injection, data poisoning) and non-adversarial goal drift — agents pursuing objectives in ways designers didn't intend, without any external attack. The second type is harder to detect because it doesn't look like a security incident. It looks like normal operation. Tickets close. Interactions contain. Logs are clean. The outputs are wrong.
+
+You cannot monitor for this with access logs. You cannot test for it fully at deployment time, because it manifests in response to production data distributions that no static test suite covers completely. It surfaces in the long tail — the edge cases, the ambiguous inputs, the tasks that fall between classification buckets. Detecting it requires continuously comparing actual agent behavior against expected behavior: which means you need a baseline, and you need to measure against it continuously.
+
+None of the current governance infrastructure does this.
+
+## The Deployment Acceleration Problem
+
+The behavioral misalignment gap would be tolerable if enterprise agent deployment were moving cautiously. It isn't. [94% of enterprises are running agents in some production capacity](https://www.businesswire.com/news/home/20260407749542/en/Agentic-AI-Goes-Mainstream-in-the-Enterprise-but-94-Raise-Concern-About-Sprawl-OutSystems-Research-Finds), and the tools for building and deploying them are multiplying faster than the infrastructure to verify what they actually do. Every new agent deployment creates a new behavioral misalignment surface. Governance infrastructure makes that surface auditable. It doesn't make it measurable.
+
+The [37% gap between benchmark performance and production performance](https://agentmarketcap.ai/blog/2026/04/07/mckinsey-ai-trust-2026-agentic-governance-framework) documented in McKinsey's enterprise AI research isn't driven by privilege escalation or misconfigured access controls — both of which are now getting infrastructure solutions. It's driven by agents that perform well in controlled conditions and drift in production. By models that update silently and take their hosted agents with them. By task distributions that shift after deployment without triggering any governance alarm.
+
+The Five Eyes guidance named this risk accurately. It also, implicitly, named the infrastructure gap that remains. Privilege has policy. Configuration has compliance testing. Cascading failures have containment runtimes. Accountability has audit logs. Behavioral misalignment has monitoring dashboards and the hope that someone will notice when the outputs start degrading.
+
+That gap closes when performance verification becomes infrastructure — continuous, automated, and operating on the actual production task distribution, not just the deployment-time test suite. It closes when "is this agent behaving correctly" is answerable without a formal audit engagement. It closes when competitive benchmarking is the default, not the exception, so enterprises can evaluate whether their agents are degrading against a baseline rather than discovering it after the fact.
+
+Six weeks in, the scorecard stands at four out of five. Governments named the risk surface. The market moved fast on the four categories that policy and governance can address. The hardest one — the one that requires knowing what correct behavior looks like in production and measuring against it continuously — is still open.
+
+---
+
+<MatrixPills />
