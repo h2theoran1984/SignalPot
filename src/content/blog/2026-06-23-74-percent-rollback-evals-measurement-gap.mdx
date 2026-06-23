@@ -1,0 +1,78 @@
+---
+title: "74% of Enterprise AI Agents Got Rolled Back. The Best Teams Rolled Back More."
+date: "2026-06-23"
+description: "A Sinch study found 74% of enterprises rolled back a live AI agent this year. The rollback rate among the most mature governance teams is 81%. That gap is not an anomaly — it's the entire story about what enterprise AI evaluation currently looks like."
+tags: ["AI agents", "enterprise AI", "agent reliability", "evals", "agent governance", "agent verification", "rollback", "2026"]
+author: "SignalPot Team"
+slug: "74-percent-rollback-evals-measurement-gap"
+---
+
+Earlier this month, [Sinch released a study of 2,527 enterprise leaders](https://sinch.com/news/sinch-releases-ai-production-paradox/) with a headline that got loud fast: 74% of enterprises have already rolled back or shut down a live AI customer communications agent after deployment.
+
+Tech press called it the AI Production Paradox. Coverage ranged from "AI doesn't work" to "this is why you need to move slowly." Everyone focused on the 74%.
+
+The number buried three paragraphs deeper is more interesting.
+
+Among enterprises with the most mature AI governance — centralized observability, defined rollback triggers, staffed operations teams — the rollback rate is **81%**.
+
+The companies doing this best are rolling back more.
+
+## That Is Not an Anomaly
+
+It's a measurement story.
+
+When you don't have monitoring infrastructure, you don't catch failures. The agent answers inconsistently, gives wrong information, integrates unreliably under load. Users work around it. Support tickets spike. Downstream quality erodes. But nothing tells you to stop the agent — because nothing is watching.
+
+When you have monitoring infrastructure, you catch failures before they compound. You have pre-defined rollback triggers. You know what good looks like, which means you know when you're no longer seeing it. You roll back faster, because you can afford to — you'll redeploy once you understand the failure mode.
+
+The 81% rollback rate among mature teams isn't evidence that good governance creates fragile deployments. It's evidence that good governance creates the visibility to find problems that less mature teams are simply living with. [Sinch makes this explicit](https://sinch.com/ai-production-paradox/): a fast, informed rollback is a sign of control, not failure.
+
+Which means the 74% aggregate is almost certainly an undercount. The enterprises not rolling back their agents aren't all running agents that work. Some of them just don't know enough to know when to stop.
+
+## The Part Aaron Levie Said Out Loud This Week
+
+On June 22, Box CEO Aaron Levie posted an argument that landed with precision in this context: [*"Almost all AI model and agent progress is downstream from evals."*](https://www.benzinga.com/markets/tech/26/06/60036338/box-ceo-aaron-levie-says-its-all-evals-when-it-comes-to-ai-progress)
+
+Not *some* progress. Almost all of it. And he extended the argument explicitly to the enterprise layer: agent improvements in the applied AI layer aren't primarily coming from better models — they're coming from better evaluation of what agents actually do on the work you need them to do.
+
+When the CEO of an enterprise software company with over 100,000 customers says this publicly in June 2026 — not in a research paper, not in a safety framework — it tells you something about what's showing up in customer conversations. The deployment phase is behind us. The measurement problem is now the revenue problem.
+
+Garrett Lord made the follow-on point concisely: companies can't move AI beyond pilots not because the technology isn't capable, but because they lack consistent ways to measure performance. "If you want production-quality agents that can actually do the work, it starts with evals."
+
+## What the Agents Are Actually Doing
+
+The Sinch rollback data tells you what happens when verification happens after the fact. Earlier this year, Palo Alto Networks' Unit 42 ran a different kind of audit — a proactive behavioral integrity check across 49,943 agent skills in the OpenClaw registry.
+
+[The finding was stark](https://unit42.paloaltonetworks.com/ai-agent-supply-chain-risks/): 80% of skills showed at least one mismatch between their declared behavior and their actual behavior. The analysis surfaced 250,706 behavioral deviations and produced a 137-cluster taxonomy of failure modes, including four compound threat categories: exfiltration chains, remote code execution chains, code obfuscation, and data lineage violations.
+
+This isn't primarily a security story, though the security implications are real. The deeper finding is that the ecosystem's primary failure mode is specification immaturity — 81.1% of the behavioral deviations trace to developer oversight, not adversarial intent. The skills do something slightly different from what their documentation says. Not because someone intended that. Because nobody checked.
+
+When agents can't trust what the skills they're calling actually do, the reliability properties you test in staging don't transfer to production. And most enterprises aren't running the kind of behavioral verification that would surface this. They're relying on documentation and vendor attestation, neither of which tells you what the skill does when it runs.
+
+The result is what Sinch measured: organizations discovering in production what they could have discovered before deployment, rolling back when failures become visible enough to act on.
+
+## What Evaluation Actually Requires
+
+The industry has reached rough consensus that evals matter. Levie's post, the Sinch study, the governance tooling from ServiceNow and Microsoft, the Gartner forecasts pointing to [$206 billion in AI agent spending this year](https://paul-okhrem.com/enterprise-ai-agents-statistics-2026/) — all of it points in the same direction. That debate is over.
+
+What's still unsettled is what evaluation actually means at the enterprise level, and most organizations are answering that question with the wrong tools.
+
+Vendor-published benchmarks are not evals. They're capability demonstrations designed to show what an agent can do under favorable conditions, on task distributions that favor the model. Your production workload is not average. The document extraction pipeline, the multi-step reasoning chain, the customer data categorization workflow — these have their own error distributions, edge case profiles, and performance characteristics that no vendor benchmark was designed to measure.
+
+What evaluation looks like when done correctly: task samples drawn from your actual production distribution, run against the agents you're evaluating, graded against criteria you've validated, compared against alternatives, gated before deployment so a regression can't reach production. Not a one-time pre-launch check — a continuous measurement loop. The cycle that the 81% teams are running, and that the teams absorbed silently in the 74% are not.
+
+## The Floor, Not the Ceiling
+
+Containment frameworks, governance tooling, observability platforms — all real, all necessary. But they all assume you know what correct behavior looks like. You cannot contain behavior you haven't measured. You cannot monitor against standards you haven't defined. You cannot make an informed rollback decision without knowing what the agent was supposed to do.
+
+Evaluation infrastructure is upstream of all of it.
+
+When Levie says it's all evals, he's not making an abstract point about model training. He's describing what's already visible at the companies successfully scaling past the pilot stage: the measurement infrastructure is the foundation. Reliability, governance, trust, the ability to make confident decisions about which agents to keep — all of it is downstream.
+
+The 74% figure is real. The enterprises missing from it are not all doing well.
+
+The difference is whether they can see it.
+
+---
+
+<MatrixPills />
