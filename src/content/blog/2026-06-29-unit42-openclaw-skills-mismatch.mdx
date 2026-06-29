@@ -1,0 +1,76 @@
+---
+title: "Your Enterprise Runs 1,600 Agents. Four in Five of Their Skills Don't Do What They Claim."
+date: "2026-06-29"
+description: "Palo Alto Networks Unit 42 scanned 49,943 agent skills on the OpenClaw registry and found 80% have behavioral mismatches — gaps between what the skill claims to do and what it actually does. IBM forecasts enterprises will run 1,600 agents each by year end. Do the math."
+tags: ["AI agents", "agent verification", "enterprise AI", "agent security", "supply chain", "Unit 42", "OpenClaw", "agent governance", "2026"]
+author: "SignalPot Team"
+slug: "unit42-openclaw-skills-mismatch"
+---
+
+IBM published a forecast this month: by the end of 2026, enterprises will run approximately [1,600 AI agents each](https://beam.ai/agentic-insights/ibm-says-enterprises-will-run-1600-ai-agents-by-year-end-70-cant-govern-the-ones-they-have). Not pilots. Agents in production, making decisions across workflows, accessing live systems, touching real data.
+
+In roughly the same window, Palo Alto Networks Unit 42 quietly published the results of what happens when someone actually goes and looks at the skills powering those agents.
+
+They scanned every skill on the [OpenClaw registry](https://unit42.paloaltonetworks.com/ai-agent-supply-chain-risks/) — 49,943 in total. Four in five showed at least one behavioral mismatch: a gap between what the skill declares it does and what it actually does when it runs.
+
+Those two data points belong in the same sentence. And most coverage isn't putting them there.
+
+## What Unit 42 Actually Found
+
+The research isn't a theoretical vulnerability report. It's an empirical scan of a real marketplace at real scale.
+
+The methodology is specific: Unit 42 built what they call [Behavioral Integrity Verification (BIV)](https://www.cybersecurity-insiders.com/unit-42-ai-agent-skills-supply-chain-security-behavioral-integrity-verification/) — a framework that compares a skill's declared capabilities against its actual behavior by examining three surfaces simultaneously: the metadata describing what the skill does, the executable code that runs when it fires, and the natural-language instructions guiding agent behavior. Mismatches across those three surfaces are the finding.
+
+Of 49,943 skills scanned: 39,933 — 80% — showed at least one mismatch. Of those, 18.9% traced to adversarial intent, with 60% of that subset targeting data theft and espionage. The remaining mismatches were categorized as non-malicious but still operationally significant: skills that claimed to do one thing and actually did something adjacent, something narrower, or something with undocumented side effects. [Antiy CERT independently confirmed 1,184 malicious skills](https://pluto.security/blog/supply-chain-risks/) on a separate registry called ClawHub.
+
+The 5% of skills containing multi-stage attack chains is the number that tends to get highlighted. It shouldn't be. Five percent of 49,943 is roughly 2,500 skills that function as supply chain weapons — that's alarming. But the 75% that have non-malicious mismatches is the number that will cause more production incidents.
+
+## The Innocent Mismatch Problem
+
+There's a tendency in coverage of this research to frame the behavioral mismatch finding as a security story. It is that. It's also something else, and the something else is more operationally consequential for most enterprises.
+
+When a skill's declared behavior and actual behavior diverge without adversarial intent, you don't get a data theft event. You get something harder to detect: an agent that performs differently than you expected, in ways that don't generate security alerts.
+
+A skill that claims to handle order reconciliation for a distribution window and actually handles it with a subtly different date logic doesn't look like a breach. It looks like a bad week. The inventory discrepancy lands downstream. The reporting is slightly off. The finance team escalates. Nobody immediately traces it to a skills mismatch two layers back in an agent pipeline that nobody audited at install time.
+
+This is the non-malicious version of the behavioral integrity problem, and it's structural. A developer installs a third-party skill into a production agent. [As TechRadar notes](https://www.techradar.com/pro/ai-agent-skills-are-becoming-the-next-enterprise-supply-chain-risk-heres-how-to-govern-them), that skill immediately gains privileged access to credentials, file systems, and shell commands. No standardized tooling exists to verify what the skill actually does before it runs. No performance baseline exists to detect when it starts doing something different.
+
+At 1,600 agents per enterprise, even a conservative mismatch rate produces a fleet where hundreds of integrated skills are operating outside their declared behavior — silently, at production scale.
+
+## Governance Can't Fix a Verification Problem
+
+The dominant enterprise response to agent risk in 2026 is governance. IBM, Microsoft, ServiceNow, Capgemini — the entire stack of enterprise AI vendors is selling control planes, observability layers, audit logs, and policy enforcement. The infrastructure is real and necessary.
+
+It also assumes something that the OpenClaw research shows enterprises don't have: a behavioral baseline for what the agents are supposed to do.
+
+Governance tells you what an agent did. It can alert you when an agent acts outside a policy boundary. What it can't do is tell you whether the agent's actual behavior on a given task matches what the task required — because that comparison requires a prior specification of correct behavior. Which requires evaluation. Which requires running the agent against representative task distributions before you've committed it to a production pipeline.
+
+The [72% of enterprises that have moved AI agents to production](https://agenticaiinstitute.org/agentic-ai-enterprise-adoption-2026-governance-gap/) but retain only 36% with centralized governance aren't primarily facing a governance gap. They're facing a verification gap that governance infrastructure can't backfill. The audit log shows the agent ran. It doesn't show whether the skill performed correctly when it did.
+
+## The Compound Risk in Multi-Agent Systems
+
+The Unit 42 finding is already serious in isolation. In multi-agent pipelines it compounds.
+
+When an orchestrating agent delegates to a specialist, errors from a mismatch don't stop at the specialist. They propagate downstream: into the orchestrator's next routing decision, into the output that reaches the next agent in the chain, into the human decision eventually downstream of the whole pipeline. A skill that operates 20% outside its declared behavior in a three-agent sequence doesn't degrade the output by 20%. It degrades it in ways that are nonlinear, invisible to any single component, and extremely difficult to attribute after the fact.
+
+This is why [NVIDIA's verified skill card](https://developer.nvidia.com/blog/nvidia-verified-agent-skills-provide-capability-governance-for-ai-agents/) framework, built around SkillSpector and cryptographic signing, is a necessary piece of infrastructure — and still not sufficient. Attestation that a skill came from a legitimate source and hasn't been tampered with tells you about provenance. It doesn't tell you whether it's operating within its declared behavioral envelope on your tasks, in your pipeline, with your data distribution.
+
+Verification that matters is task-level. It's what this agent actually produces when given work that looks like the work you're delegating to it. Verified at install. Re-verified when behavioral drift is a concern. Compared against alternatives, not just against the skill's own marketing copy.
+
+## The Number That Should Be Driving the Roadmap
+
+Eighty percent is a market research finding. It's also a production architecture finding for any enterprise installing skills at scale.
+
+Most organizations have no current inventory of which agent skills are installed across their fleet, let alone which skills have been independently evaluated for behavioral alignment. The [60% governance gap](https://agenticaiinstitute.org/agentic-ai-enterprise-adoption-2026-governance-gap/) — organizations without mature governance models for the agents already running — doesn't account for the subset of those agents running skills that don't behave as documented.
+
+IBM's 1,600-agents figure is a scale forecast. Unit 42's 80% figure is a quality forecast. Put them together and you get a fairly specific picture of what the enterprise AI infrastructure problem looks like by December: a large, fast-growing, poorly inventoried fleet of agents, most of them running skills that have never been independently verified, overseen by governance tooling that can log actions without being able to evaluate whether those actions were correct.
+
+The solution isn't to slow down deployment. It's to build the evaluation infrastructure in parallel with the deployment — establishing task-level performance baselines for the agents and skills you're running before the fleet gets too large to audit meaningfully.
+
+The governance layer is being built. The containment layer is being built. The behavioral verification layer — what correct performance actually looks like on your real work — is the one most enterprises don't have and aren't building.
+
+Unit 42 just quantified what that gap looks like when you scan 49,943 skills and measure the difference between declaration and reality. The number is 80%.
+
+---
+
+<MatrixPills />
