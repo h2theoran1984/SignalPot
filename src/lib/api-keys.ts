@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { log } from "@/lib/logger";
 
 const KEY_PREFIX = "sp_live_";
 
@@ -47,7 +48,9 @@ export async function verifyApiKey(key: string): Promise<{
       .from("api_keys")
       .update({ last_used_at: new Date().toISOString() })
       .eq("key_hash", hash)
-  ).catch((err) => console.error("Failed to update last_used_at:", err));
+  ).catch((err) =>
+    log.warn("api_key_last_used_update_failed", { err, keyPrefix: data.key_prefix })
+  );
 
   return {
     profileId: data.profile_id,
