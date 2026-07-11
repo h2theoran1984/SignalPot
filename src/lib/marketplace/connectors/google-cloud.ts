@@ -8,6 +8,9 @@
 //   GCP_MARKETPLACE_SERVICE_NAME — from Producer Portal billing integration
 
 import { jwtVerify, importX509 } from "jose";
+import { log } from "@/lib/logger";
+
+const gcpLog = log.scope("marketplace.gcp");
 import type {
   MarketplaceConnector,
   MarketplaceAgentProfile,
@@ -96,7 +99,7 @@ async function verifyGCPToken(token: string): Promise<GCPSignupJWT | null> {
     const kid = header.kid as string | undefined;
 
     if (!kid) {
-      console.warn("[gcp-connector] JWT missing kid in header");
+      gcpLog.warn("jwt_missing_kid", {});
       return null;
     }
 
@@ -105,13 +108,13 @@ async function verifyGCPToken(token: string): Promise<GCPSignupJWT | null> {
     const key = keys.get(kid);
 
     if (!key) {
-      console.warn(`[gcp-connector] No matching public key for kid: ${kid}`);
+      gcpLog.warn("jwt_unknown_kid", { kid });
       return null;
     }
 
     const audiences = getExpectedAudiences();
     if (audiences.length === 0) {
-      console.warn("[gcp-connector] Missing expected webhook audience");
+      gcpLog.warn("webhook_audience_not_configured", {});
       return null;
     }
 
@@ -123,13 +126,13 @@ async function verifyGCPToken(token: string): Promise<GCPSignupJWT | null> {
     });
 
     if (!payload.sub) {
-      console.warn("[gcp-connector] JWT missing sub claim");
+      gcpLog.warn("jwt_missing_sub", {});
       return null;
     }
 
     return payload as unknown as GCPSignupJWT;
   } catch (err) {
-    console.error("[gcp-connector] JWT verification failed:", err);
+    gcpLog.error("jwt_verification_failed", { err });
     return null;
   }
 }
@@ -141,7 +144,7 @@ async function verifyGCPToken(token: string): Promise<GCPSignupJWT | null> {
 async function getAccessToken(): Promise<string | null> {
   const keyBase64 = process.env.GCP_SERVICE_ACCOUNT_KEY;
   if (!keyBase64) {
-    console.warn("[gcp-connector] GCP_SERVICE_ACCOUNT_KEY not set");
+    gcpLog.warn("service_account_key_not_set", {});
     return null;
   }
 
@@ -170,13 +173,13 @@ export const googleCloudConnector: MarketplaceConnector = {
     const token = authHeader.replace(/^Bearer\s+/i, "");
 
     if (!token) {
-      console.warn("[gcp-connector] Webhook missing Authorization header");
+      gcpLog.warn("webhook_missing_authorization", {});
       return false;
     }
 
     const payload = await verifyGCPToken(token);
     if (!payload) {
-      console.warn("[gcp-connector] Webhook JWT verification failed");
+      gcpLog.warn("webhook_jwt_verification_failed", {});
       return false;
     }
 
@@ -295,8 +298,12 @@ export const googleCloudConnector: MarketplaceConnector = {
           }
         );
       } catch (err) {
-        console.error("[gcp-connector] Procurement API approval failed:", err);
-        // Don't throw — we still want to activate internally
+        // Don't throw — we still want to activate internally. But an unapproved
+        // Procurement account will be auto-canceled by Google, so a human must re-approve.
+        gcpLog.critical("procurement_approval_failed", {
+          err,
+          externalCustomerId: input.externalCustomerId,
+        });
       }
     }
 

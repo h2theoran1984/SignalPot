@@ -8,6 +8,7 @@
 //   AZURE_MARKETPLACE_APP_SECRET — Client secret for the app registration
 //   AZURE_MARKETPLACE_PUBLISHER_ID — Publisher ID from Partner Center
 
+import { log } from "@/lib/logger";
 import type {
   MarketplaceConnector,
   MarketplaceAgentProfile,
@@ -28,6 +29,8 @@ const METERING_API_VERSION = "2018-08-31";
 // Azure AD Token Acquisition
 // ─────────────────────────────────────────────────────────────────
 
+const azureLog = log.scope("marketplace.azure");
+
 let cachedToken: { token: string; expiresAt: number } | null = null;
 
 async function getAzureToken(): Promise<string | null> {
@@ -36,7 +39,7 @@ async function getAzureToken(): Promise<string | null> {
   const appSecret = process.env.AZURE_MARKETPLACE_APP_SECRET;
 
   if (!tenantId || !appId || !appSecret) {
-    console.warn("[azure-connector] Missing Azure Marketplace credentials");
+    azureLog.warn("credentials_not_configured", {});
     return null;
   }
 
@@ -58,7 +61,7 @@ async function getAzureToken(): Promise<string | null> {
     });
 
     if (!res.ok) {
-      console.error("[azure-connector] Token acquisition failed:", res.status);
+      azureLog.error("token_acquisition_failed", { status: res.status });
       return null;
     }
 
@@ -70,7 +73,7 @@ async function getAzureToken(): Promise<string | null> {
 
     return cachedToken.token;
   } catch (err) {
-    console.error("[azure-connector] Token error:", err);
+    azureLog.error("token_request_failed", { err });
     return null;
   }
 }
@@ -145,7 +148,7 @@ export const azureConnector: MarketplaceConnector = {
     // SaaS Fulfillment API. If the operation doesn't exist, the webhook is forged.
     const token = await getAzureToken();
     if (!token) {
-      console.error("[azure-connector] Cannot verify webhook: no Azure token");
+      azureLog.error("webhook_verify_no_token", {});
       return false;
     }
 
@@ -155,7 +158,7 @@ export const azureConnector: MarketplaceConnector = {
       const operationId = body.operationId ?? body.id;
 
       if (!subscriptionId || !operationId) {
-        console.warn("[azure-connector] Webhook missing subscriptionId or operationId");
+        azureLog.warn("webhook_missing_ids", {});
         return false;
       }
 
@@ -171,13 +174,13 @@ export const azureConnector: MarketplaceConnector = {
       );
 
       if (!res.ok) {
-        console.warn(`[azure-connector] Webhook verification failed: operation lookup returned ${res.status}`);
+        azureLog.warn("operation_lookup_failed", { status: res.status });
         return false;
       }
 
       return true;
     } catch (err) {
-      console.error("[azure-connector] Webhook verification error:", err);
+      azureLog.error("webhook_verification_error", { err });
       return false;
     }
   },
@@ -277,7 +280,12 @@ export const azureConnector: MarketplaceConnector = {
       );
 
       if (!success) {
-        console.warn("[azure-connector] SaaS activation API call failed — proceeding with internal activation");
+        // Azure cancels subscriptions that are never acknowledged via the Fulfillment
+        // API — a human must retry the activation or the customer loses the sub.
+        azureLog.critical("saas_activation_failed", {
+          externalSubscriptionId: input.externalSubscriptionId,
+          planId: input.planId,
+        });
       }
     }
 

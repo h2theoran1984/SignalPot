@@ -3,6 +3,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { readSecret, storeSecret } from "@/lib/keykeeper/vault";
 import { getProvider } from "@/lib/keykeeper/providers";
 import { notify } from "@/lib/notifications";
+import { log } from "@/lib/logger";
+
+const breachLog = log.scope("inngest.keykeeper-breach-watch");
 
 const HIBP_API_KEY = process.env.HIBP_API_KEY;
 
@@ -71,7 +74,7 @@ export const keykeeperBreachWatch = inngest.createFunction(
           // Rate limit: HIBP requires 6 second delay between requests
           await new Promise((resolve) => setTimeout(resolve, 6100));
         } catch (err) {
-          console.error(`[breach-watch] HIBP check failed for ${domain}:`, err);
+          breachLog.error("hibp_check_failed", { err, domain, provider });
         }
       }
 
@@ -198,8 +201,12 @@ export const keykeeperBreachWatch = inngest.createFunction(
 
           rotated++;
         } catch (err) {
-          const message = err instanceof Error ? err.message : "Unknown error";
-          console.error(`[breach-watch] Emergency rotation failed for ${secret.name}: ${message}`);
+          breachLog.error("emergency_rotation_failed", {
+            err,
+            secretName: secret.name,
+            provider: secret.provider,
+            ownerId: secret.owner_id,
+          });
 
           await notify(
             admin,

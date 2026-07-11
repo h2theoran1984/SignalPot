@@ -1,3 +1,7 @@
+import { log } from "@/lib/logger";
+
+const envLog = log.scope("env");
+
 const warnedKeys = new Set<string>();
 
 export function getEnv(name: string): string | undefined {
@@ -17,7 +21,7 @@ export function requireEnv(name: string, context?: string): string {
 export function warnOnce(key: string, message: string): void {
   if (warnedKeys.has(key)) return;
   warnedKeys.add(key);
-  console.warn(message);
+  envLog.warn(key.replace(/-/g, "_"), { message });
 }
 
 function toUrl(value: string): URL | null {

@@ -11,7 +11,10 @@ import { dispatchPushNotifications } from "@/lib/a2a/handler";
 import { trackAgentCall } from "@/lib/telemetry";
 import { assertSafeUrl } from "@/lib/ssrf";
 import { signCallbackToken } from "@/lib/arena/callback-auth";
+import { log } from "@/lib/logger";
 import type { Agent } from "@/lib/types";
+
+const engineLog = log.scope("arena.engine");
 
 /** Championship voting window. */
 const VOTING_PERIOD_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -240,7 +243,7 @@ async function callAgent(
     const message = err instanceof Error
       ? `${err.name}: ${err.message}`
       : "Agent unreachable";
-    console.error(`[arena] Agent ${side} (${agent.slug}) failed after ${durationMs}ms:`, message);
+    engineLog.error("agent_call_failed", { err, agentSlug: agent.slug, side, durationMs, matchId, jobId });
 
     await admin
       .from("jobs")
@@ -297,7 +300,7 @@ export async function setupMatch(matchId: string): Promise<{
     .single();
 
   if (!match || match.status !== "pending") {
-    console.warn("[arena] Match not found or not pending:", matchId);
+    engineLog.warn("match_not_pending", { matchId, status: match?.status ?? "not_found" });
     return null;
   }
 
@@ -406,7 +409,7 @@ export async function fireAgentCall(
   if (agent.slug === "sparring-partner") {
     // Run in background — don't await
     handleSparringAndCallback(capability, prompt, jobId, callbackUrl, admin).catch((err) => {
-      console.error(`[arena] Sparring partner fire-and-forget failed:`, err);
+      engineLog.error("sparring_fire_and_forget_failed", { err, jobId, matchId });
     });
     return { jobId };
   }
@@ -444,7 +447,7 @@ export async function fireAgentCall(
       },
     },
   }, jobId, callbackUrl, admin).catch((err) => {
-    console.error(`[arena] Fire-and-forget failed for ${agent.slug}:`, err);
+    engineLog.error("fire_and_forget_failed", { err, agentSlug: agent.slug, jobId, matchId });
   });
 
   return { jobId };
@@ -701,12 +704,12 @@ export async function executeMatch(matchId: string): Promise<void> {
     .single();
 
   if (matchError || !match) {
-    console.error("[arena] Match not found");
+    engineLog.error("match_not_found", { err: matchError, matchId });
     return;
   }
 
   if (match.status !== "pending") {
-    console.warn("[arena] Match is not in pending state, skipping");
+    engineLog.warn("match_not_pending", { matchId, status: match.status });
     return;
   }
 

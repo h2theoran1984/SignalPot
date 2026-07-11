@@ -4,6 +4,9 @@ import { getAuthContext, hasScope } from "@/lib/auth";
 import { updateAgentSchema, stripSensitiveAgentFields } from "@/lib/validations";
 import { canManageAgent, canDeleteAgent } from "@/lib/rbac";
 import { logAuditEvent, getClientIp } from "@/lib/audit";
+import { log } from "@/lib/logger";
+
+const agentsLog = log.scope("agents");
 
 // GET /api/agents/[slug] — Single agent detail with trust graph neighbors
 export async function GET(
@@ -135,7 +138,7 @@ export async function PATCH(
         { status: 409 }
       );
     }
-    console.error("Agent update error:", error);
+    agentsLog.error("agent_update_failed", { err: error, slug });
     return NextResponse.json(
       { error: "Failed to update agent" },
       { status: 500 }

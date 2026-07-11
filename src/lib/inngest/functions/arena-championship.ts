@@ -5,6 +5,9 @@
 
 import { inngest } from "@/lib/inngest/client";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { log } from "@/lib/logger";
+
+const championshipLog = log.scope("inngest.arena-championship");
 
 export const arenaChampionship = inngest.createFunction(
   {
@@ -132,7 +135,7 @@ export const arenaChampionship = inngest.createFunction(
           .single();
 
         if (error || !match) {
-          console.error(`[championship] Failed to create bout for ${bout.capability}:`, error?.message);
+          championshipLog.error("bout_create_failed", { err: error, capability: bout.capability });
           continue;
         }
 

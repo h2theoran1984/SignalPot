@@ -6,6 +6,9 @@ import { inngest } from "@/lib/inngest/client";
 import { wrapResponse } from "@/lib/envelope";
 import { validateOutput } from "@/lib/schema-validator";
 import { scoreSuccessfulResult } from "@/lib/risk";
+import { log } from "@/lib/logger";
+
+const jobsLog = log.scope("jobs");
 
 // GET /api/jobs/[id] — Get a job by ID
 export async function GET(
@@ -171,10 +174,7 @@ export async function PATCH(
     });
 
     if (!validationResult.valid) {
-      console.warn(
-        `[jobs/${id}] Output validation failed:`,
-        validationResult.errors
-      );
+      jobsLog.warn("output_validation_failed", { jobId: id, errors: validationResult.errors });
     }
 
     // --- Response envelope (9a) ---

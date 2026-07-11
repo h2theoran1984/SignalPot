@@ -6,6 +6,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { checkPublicRateLimit } from "@/lib/auth";
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
+import { log } from "@/lib/logger";
+
+const advisorLog = log.scope("tools.prompt-advisor");
 
 const anthropic = new Anthropic();
 
@@ -106,7 +109,7 @@ Analyze this prompt and provide your assessment with an improved version.`,
     try {
       raw = JSON.parse(text);
     } catch {
-      console.error("[prompt-advisor] Model returned invalid JSON");
+      advisorLog.error("model_returned_invalid_json", {});
       return NextResponse.json(
         { error: "Analysis produced invalid output — please try again" },
         { status: 502 }
@@ -115,7 +118,7 @@ Analyze this prompt and provide your assessment with an improved version.`,
 
     const validated = advisorResponseSchema.safeParse(raw);
     if (!validated.success) {
-      console.error("[prompt-advisor] Response schema mismatch:", validated.error.flatten());
+      advisorLog.error("response_schema_mismatch", { issues: validated.error.flatten() });
       return NextResponse.json(
         { error: "Analysis produced unexpected output — please try again" },
         { status: 502 }
@@ -130,7 +133,7 @@ Analyze this prompt and provide your assessment with an improved version.`,
       },
     });
   } catch (err) {
-    console.error("[prompt-advisor] Error:", err);
+    advisorLog.error("request_failed", { err });
     return NextResponse.json(
       { error: "Analysis failed — please try again" },
       { status: 500 }

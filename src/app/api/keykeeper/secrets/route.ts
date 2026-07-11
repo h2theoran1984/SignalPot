@@ -5,6 +5,9 @@ import { readSecret, storeSecret } from "@/lib/keykeeper/vault";
 import { getProvider } from "@/lib/keykeeper/providers";
 import { notify } from "@/lib/notifications";
 import { z } from "zod";
+import { log } from "@/lib/logger";
+
+const secretsLog = log.scope("keykeeper.secrets");
 
 /**
  * GET /api/keykeeper/secrets
@@ -206,10 +209,7 @@ export async function POST(request: NextRequest) {
       message: `${secret.name} rotated successfully. New key is active and verified.`,
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    console.error(
-      `[keykeeper/secrets] Rotation failed for ${secret.name}: ${message}`
-    );
+    secretsLog.error("rotation_failed", { err, secretName: secret.name });
 
     return NextResponse.json(
       { error: "Rotation failed. Your current key is still active." },
