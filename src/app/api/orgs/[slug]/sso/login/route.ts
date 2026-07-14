@@ -4,6 +4,9 @@ import { randomUUID } from "crypto";
 import { signState } from "@/lib/sso-state";
 import { assertSafeUrl } from "@/lib/ssrf";
 import { getAppOrigin } from "@/lib/env";
+import { log } from "@/lib/logger";
+
+const ssoLog = log.scope("sso.login");
 
 interface SsoConfig {
   enabled: boolean;
@@ -45,8 +48,7 @@ export async function GET(
   try {
     await assertSafeUrl(discoveryUrl);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unsafe discovery URL";
-    console.error("[sso] Blocked unsafe issuer discovery URL:", message);
+    ssoLog.error("unsafe_discovery_url_blocked", { err });
     return NextResponse.json({ error: "Unsafe identity provider URL" }, { status: 400 });
   }
 
@@ -58,7 +60,7 @@ export async function GET(
     }
     discovery = await res.json();
   } catch (err) {
-    console.error("[sso] Failed to fetch OIDC discovery document:", err);
+    ssoLog.error("oidc_discovery_fetch_failed", { err });
     return NextResponse.json({ error: "Failed to reach identity provider" }, { status: 502 });
   }
 

@@ -4,6 +4,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { RESERVED_SLUGS, AVAILABLE_MODELS, DEFAULT_MODEL } from "./constants";
+import { log } from "@/lib/logger";
 import type { AgentIntent } from "./intent";
 import type { CapabilitySchema } from "./schema";
 
@@ -132,8 +133,12 @@ export async function registerAgent(
     });
 
   if (pvError) {
-    console.error(`[architect] Failed to seed prompt version for ${slug}/${schema.name}:`, pvError.message);
     // Non-fatal — agent still works, just can't run Middle Out until manually seeded
+    log.scope("architect.register").warn("prompt_version_seed_failed", {
+      err: pvError,
+      slug,
+      capability: schema.name,
+    });
   }
 
   return agent as RegisteredAgent;

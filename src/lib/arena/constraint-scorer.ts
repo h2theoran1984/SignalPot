@@ -3,6 +3,9 @@
 // Scores on 4 axes: accuracy, speed, cost, reliability.
 
 import Anthropic from "@anthropic-ai/sdk";
+import { log } from "@/lib/logger";
+
+const scorerLog = log.scope("arena.constraint-scorer");
 
 // ============================================================
 // Types
@@ -263,7 +266,7 @@ Return ONLY valid JSON — an object mapping challenge index to constraint score
     }
     return result;
   } catch (err) {
-    console.error("[constraint-scorer] Batch judge call failed:", err);
+    scorerLog.error("batch_judge_failed", { err });
     // Return neutral scores on failure
     const result = new Map<string, Map<string, number>>();
     for (const p of partials) {
@@ -418,7 +421,7 @@ function parseJsonWithRepair(jsonStr: string): unknown[] {
     }
   }
 
-  console.error("[constraint-scorer] All JSON repair attempts failed. Raw (first 1000 chars):", jsonStr.slice(0, 1000));
+  scorerLog.error("json_repair_failed", { raw: jsonStr.slice(0, 1000) });
   return [];
 }
 
@@ -666,7 +669,7 @@ Return ONLY valid JSON array:
     });
   } catch (apiErr) {
     const errMsg = apiErr instanceof Error ? apiErr.message : String(apiErr);
-    console.error("[constraint-scorer] Anthropic API call failed:", errMsg);
+    scorerLog.error("anthropic_call_failed", { err: apiErr });
     throw new Error(`Sonnet API call failed: ${errMsg}`);
   }
 
@@ -692,7 +695,7 @@ Return ONLY valid JSON array:
   const parsed = parseJsonWithRepair(jsonStr);
 
   if (!Array.isArray(parsed) || parsed.length === 0) {
-    console.error("[constraint-scorer] Parsed result is empty or not an array. Raw response:", text.slice(0, 500));
+    scorerLog.error("judge_response_not_array", { raw: text.slice(0, 500) });
     return [];
   }
 

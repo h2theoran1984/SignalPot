@@ -3,6 +3,9 @@
 // Non-blocking: failures are logged but never throw.
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { log } from "@/lib/logger";
+
+const telemetryLog = log.scope("telemetry");
 
 interface BeaconEvent {
   agentId: string;
@@ -40,7 +43,7 @@ export function trackAgentCall(event: BeaconEvent): void {
       });
     } catch (err) {
       // Swallow — telemetry should never break the main flow
-      console.error("[telemetry] beacon failed:", err instanceof Error ? err.message : err);
+      telemetryLog.warn("beacon_failed", { err, agentId: event.agentId, event: event.event });
     }
   })();
 }
