@@ -1,0 +1,70 @@
+---
+title: "TD Bank Cut Mortgage Processing from 15 Hours to 3 Minutes. Speed Is Not Accuracy."
+date: "2026-05-22"
+description: "TD Bank's Layer 6 team just deployed a production agentic AI that reduces mortgage pre-adjudication from 15 hours to under 3 minutes. The speed claim is quantified and real. The accuracy claim is asserted and undeclared. In a regulated domain where errors affect borrowers, that gap is the one worth closing."
+tags: ["AI agents", "enterprise AI", "agent reliability", "fintech", "agent verification", "2026"]
+author: "SignalPot Team"
+slug: "td-bank-mortgage-agent-speed-vs-accuracy"
+---
+
+[TD Bank announced something genuinely significant yesterday.](https://stories.td.com/ca/en/news/2026-05-21-td-launches-agentic-ai-to-transform-real-estate-secured-lend) Layer 6, the bank's in-house AI R&D center, has deployed an agentic AI system that reduces mortgage pre-adjudication from an average of 15 hours to under three minutes. That's not a demo result from a controlled test environment. It's a production deployment, running today, on real mortgage and HELOC applications at one of North America's largest banks.
+
+The speed number is designed to be the headline, and it should be. A 99.7% reduction in processing time for a task that sits on the critical path of every home purchase the bank finances is a real operational change, not a marginal improvement. This is the kind of deployment that will show up in conference presentations for years.
+
+But the announcement says something else that deserves more scrutiny: the agent also provides "more accurate results and thereby reducing both risk and the unit cost on adjudication."
+
+That sentence contains two claims. The first — more accurate — is asserted. It is not demonstrated with a number, a methodology, or a baseline.
+
+## What the Agent Actually Does
+
+This is not a chatbot fielding questions about mortgage rates. [TD's agent classifies client documents, extracts key information, calculates client income, validates figures against select policy requirements, performs consent checks, and searches for discrepancies](https://www.canadianmortgagetrends.com/2026/05/td-launches-agentic-ai-for-mortgage-and-heloc-applications/) before generating a summary memo for a human underwriter to review.
+
+That's a multi-step pipeline doing real analytical work on documents that determine whether a person gets approved for a home loan. Each step — document classification, income calculation, policy validation, discrepancy detection — is its own failure surface. Each can produce a plausible-looking wrong answer that the downstream step accepts without question, because it has no independent ground truth to check against.
+
+TD has built human oversight into the process: applications not instantly approved by the agent are routed to human underwriters. That's the right instinct. But the architecture also means that some applications are being summarized and approved without a human reviewing the underlying analysis — which means the agent's accuracy on that subset is the only thing standing between the bank and a lending decision built on an error in step three.
+
+## "More Accurate" Than What?
+
+That's the question the announcement doesn't answer.
+
+More accurate than a human underwriter performing the same 15-hour process? Plausible — human document review at volume has well-documented error rates, particularly on complex income calculations across multiple income sources. More accurate on the applications where the agent is confident enough to approve without routing to a human? Consistent with having a routing mechanism at all. If the agent routes when uncertain, then the cases it handles autonomously are by definition the ones it's most confident about — which isn't the same as the ones it's most accurate on.
+
+More accurate across the full distribution of applications, including the ambiguous ones with non-standard income, anomalous documentation, or policy edge cases?
+
+That question doesn't have a public answer. And it's the one that matters.
+
+TD mentions its "Trustworthy AI team," which evaluates models on privacy, security, fairness, accountability, and explainability before deployment and continues monitoring after. That's a meaningful institutional commitment. It's also post-deployment monitoring of a system already running on live applications. Monitoring tells you whether performance is degrading relative to a baseline. It doesn't tell you whether the baseline was right to begin with, or whether the baseline was established against a representative sample of the hard cases.
+
+## The Cascade Ahead
+
+TD describes this as [the first step in an end-to-end transformation of its real estate secured lending operations](https://www.fintech.ca/2026/05/21/td-deploys-agentic-ai-for-mortgage-lending/), with plans to introduce agentic AI across every stage from document submission to the release of mortgage or HELOC funding.
+
+That's where the compound reliability math becomes structural.
+
+A pre-adjudication summary memo is one step in a longer chain. An agent pipeline covering every stage of the mortgage process — document intake, income verification, policy validation, adjudication, funding — where each stage operates at 95% accuracy, and where each stage's output is the next stage's input, compounds downward with every link added. Seven stages at 95% accuracy each gives you around 70% end-to-end accuracy. That math doesn't change because the individual agents are good at their individual tasks. It changes only when you measure the full chain against the distribution of cases that actually arrive.
+
+The 37% gap between benchmark performance and production performance [documented across enterprise AI deployments](https://www.technologyreview.com/2026/04/13/1135675/want-to-understand-the-current-state-of-ai-check-out-these-charts/) compounds the same way. Individual steps evaluated in controlled conditions perform differently than individual steps evaluated against the real distribution of TD's loan applications, which spans routine W2 earners, self-employed borrowers with irregular income across multiple sources, and every variation in between.
+
+## The Timing Is Not a Coincidence
+
+The same week TD announced this deployment, [Experian launched Agent Trust](https://www.experian.com/blogs/news/2026/04/30/experian-agent-trust/) — a "Know Your Agent" (KYA) framework establishing verifiable identity for AI agents making financial transactions. The framework issues real-time Agent Trust Tokens that bind a verified consumer to the agent acting on their behalf, with dynamic behavioral trust scores maintained over time. Akamai joined the ecosystem [on May 15](https://www.experianplc.com/newsroom/press-releases/2026/experian-expands-agent-trust-partner-ecosystem-with-akamai-to-ad/) to advance secure agent-driven commerce.
+
+That's good work addressing a real problem. Identity verification — knowing that the agent is who it claims to be, authorized by the person it claims to represent — is necessary infrastructure for agentic finance.
+
+But it's not sufficient. Know Your Agent answers: *is this agent authorized?* The question nobody has answered at scale is: *is this agent right?* Those are different questions with different answers and different tooling requirements. The mortgage agent at TD is authorized. It's running in production, vetted by a Trustworthy AI team, monitored after deployment. None of that answers what its accuracy is on an income calculation for a self-employed borrower with irregular revenue across three sources, which is exactly the case where an error is most expensive and least likely to be caught by a reviewer working from an AI-generated summary memo.
+
+Identity infrastructure and performance verification are both necessary. The industry has been investing heavily in the first. The second remains largely unbuilt.
+
+## The Standard the Deployment Deserves
+
+TD Bank's deployment is real and marks something worth paying attention to. A major regulated financial institution running production agentic AI on mortgage underwriting — not in a sandbox, not in a limited pilot — represents a genuine shift in how the industry is willing to use this technology. The speed numbers are real. The operational efficiency argument is real. The plans for end-to-end expansion are serious.
+
+What's missing is the data that would let anyone — outside TD or inside it — verify the accuracy claim. Speed is quantified because speed is easy to measure: you time the process before and after. Accuracy requires running the agent against a representative task distribution, including the hard and unusual cases, and publishing the results. It requires knowing not just average performance but failure modes — which types of applications the agent gets wrong, and why.
+
+In a domain where errors have real consequences for borrowers, that information is not a disclosure detail. It's the thing that separates a deployment you can stand behind from a speed story that might not survive its first regulatory audit.
+
+The agent processes mortgage applications in three minutes. The question worth asking next is: which three minutes of work is it actually doing correctly?
+
+---
+
+<MatrixPills />
