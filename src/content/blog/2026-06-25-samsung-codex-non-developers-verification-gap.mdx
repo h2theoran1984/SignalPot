@@ -1,0 +1,64 @@
+---
+title: "Samsung Gave Codex to Non-Developers. That Changes the Verification Problem."
+date: "2026-06-25"
+description: "Samsung just deployed ChatGPT Enterprise and Codex to its entire workforce, explicitly including employees who've never written a line of code. Exactly one year after Gartner warned 40% of agentic AI projects will be canceled by 2027, the industry made the evaluation problem exponentially harder to solve."
+tags: ["enterprise AI", "AI agents", "agent verification", "OpenAI Codex", "Samsung", "governance", "agentic AI", "2026"]
+author: "SignalPot Team"
+slug: "samsung-codex-non-developers-verification-gap"
+---
+
+Samsung didn't quietly expand access to its engineering teams.
+
+[On June 21](https://openai.com/index/samsung-electronics-chatgpt-codex-deployment/), Samsung Electronics deployed ChatGPT Enterprise and Codex to its entire South Korean workforce and its global Device eXperience division — one of OpenAI's largest enterprise rollouts to date. The deployment explicitly targets employees with no software engineering background: marketing teams, product developers, manufacturing staff. Anyone who can describe what they want can now receive working code, automated workflows, and internal tools back.
+
+More than five million people use Codex every week. [Korea usage has grown nearly 800% since February](https://www.techtimes.com/articles/318831/20260622/samsung-chatgpt-enterprise-codex-reaches-non-developers-openais-biggest-korea-rollout.htm). Samsung's stated target is to complete training for its full global workforce — hundreds of thousands of people across manufacturing, marketing, logistics, and operations — by the end of 2026.
+
+This week, enterprise AI deployment stopped being primarily a developer story.
+
+## The Gartner Anniversary Nobody Mentioned
+
+One year ago today — June 25, 2025 — [Gartner published a prediction](https://www.gartner.com/en/newsroom/press-releases/2025-06-25-gartner-predicts-over-40-percent-of-agentic-ai-projects-will-be-canceled-by-end-of-2027): over 40% of agentic AI projects would be canceled by the end of 2027.
+
+The reasons Gartner cited weren't technical. They were organizational: costs that balloon 2–3× beyond estimates, goals too vague to measure ROI against, and governance frameworks that can't keep pace with autonomous systems making real decisions. Gartner also flagged "agent washing" — [only around 130 of the thousands of vendors claiming agentic capabilities](https://www.hpcwire.com/bigdatawire/this-just-in/gartner-predicts-over-40-of-agentic-ai-projects-will-be-canceled-by-end-of-2027/) were operating the genuine article — as a structural accelerant for misplaced enterprise bets.
+
+A year ago, that prediction felt like it was aimed at software teams that hadn't thought clearly about what they were building. Today it reads differently. Because Samsung's deployment isn't aimed at software teams.
+
+## What Changes When Non-Developers Run Agents
+
+The evaluation gap in enterprise AI is already well-documented. [Research puts the gap at 37% between benchmark performance and real-world production results](https://kili-technology.com/blog/ai-benchmarks-guide-the-top-evaluations-in-2026-and-why-theyre-not-enough) — aggregate benchmark scores correlate poorly with how an agent performs on your specific tasks, your specific data distribution, your specific edge cases. Most organizations don't have the infrastructure to track what their deployed agents are actually doing. The [governance data is stark](https://agenticaiinstitute.org/agentic-ai-enterprise-adoption-2026-governance-gap/): 72% of enterprises have AI agents in production, 36% have centralized governance for those agents.
+
+That gap was hard to close when the agent users were engineers and data scientists.
+
+It becomes structurally harder when the user population can't evaluate the output themselves.
+
+A developer who gets broken code from Codex notices. They run it. They see the error. The feedback loop is short and legible. A marketing manager who gets back a workflow tool built by Codex has no equivalent feedback mechanism. If it works for the demo cases, it looks fine. If it handles edge cases incorrectly — a business rule the prompt didn't capture, an unexpected input format, a downstream dependency the agent didn't know about — the failure surfaces in production, not in review. At Samsung's scale, a wrong assumption baked into a workflow prompt can propagate across thousands of uses before anyone has the frame of reference to recognize it as wrong.
+
+This isn't an argument against Samsung's deployment. Non-developer employees can genuinely benefit from AI agents. The productivity case is real. But the bet Samsung is making isn't just "Codex works." It's "Codex works reliably enough, on the specific tasks our non-developer employees bring it, with the prompting sophistication those employees apply, in an environment where we have the infrastructure to catch it when it doesn't."
+
+That second clause is where Gartner's 40% lives.
+
+## The Verification Problem Moves Upstream
+
+When developer teams run agents, the verification responsibility is distributed. Engineers notice failures. QA processes exist. Code reviews catch what prompts miss. The evaluation work is informal, imperfect, but present — embedded in how software development already works.
+
+When non-developer teams run agents, none of that ambient verification exists. The responsibility doesn't disappear. It moves upstream to whoever decided to deploy the agents in the first place.
+
+That means task-level performance baselines need to exist before non-developers start building on them — not after the first downstream failure. It means tracking not just whether an agent completed a workflow but what error rate the workflow carries across real usage conditions. It means knowing which task categories an agent handles reliably and which ones it degrades on before those categories become load-bearing in a marketing team's daily operations.
+
+[The failure modes Gartner identified](https://trullion.com/blog/why-over-40-of-agentic-ai-projects-will-fail/) — unclear ROI, inadequate risk controls, governance that can't keep up — all collapse to the same root cause: deploying before you have verified performance data on what the agent actually does in your environment, at your scale, for your users. That was true for developer deployments. It's more unforgiving for non-developer deployments, because the feedback loop for catching failures is longer and the consequences of missed edge cases accumulate quietly.
+
+## The Shape of the Bet
+
+Samsung's deployment represents something genuinely new in the enterprise AI story. Every major deployment wave so far — coding agents to developers, customer support agents to service teams, data agents to analysts — has reached user populations with at least partial domain expertise in what correct looks like. A developer knows what working code looks like. A support agent team knows what a resolved ticket looks like. An analyst knows when a data output smells wrong.
+
+The Samsung deployment extends AI agents to users for whom the primary output is software and automation they've never worked with before and can't intrinsically evaluate. That's a phase transition in who enterprise AI is for. It's not a bad transition — it's the logical extension of where this technology is going. But it requires the organizations making it to build the evaluation infrastructure that non-developer users can't provide themselves.
+
+Gartner's prediction will age well or badly depending on one variable: whether enterprises treat agent deployment as a technology decision or an operational one. Technology decisions ask "can this do what we need?" Operational decisions ask "do we have the infrastructure to verify it's doing what we need, at the rate we need, across the variance we'll actually see in production?"
+
+Samsung's bet on Codex is a technology decision made well. Whether it becomes an operational one — with the governance and verification infrastructure to match — will determine which half of Gartner's prediction it lands in.
+
+The agents are now in everyone's hands. The infrastructure to know whether they're working belongs to the organizations that deployed them.
+
+---
+
+<MatrixPills />
