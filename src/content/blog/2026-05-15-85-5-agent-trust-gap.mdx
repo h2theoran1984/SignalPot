@@ -1,0 +1,58 @@
+---
+title: "85% of Enterprises Are Running AI Agents. Only 5% Trust Them Enough to Ship."
+date: "2026-05-15"
+description: "At RSA Conference 2026, Cisco's president named the number that defines enterprise AI right now: 85% of companies are running agent pilots, but only 5% have moved to production. That 80-point gap isn't a confidence problem or a budget problem — it's a measurement problem. And it's the most important infrastructure gap in AI right now."
+tags: ["AI agents", "enterprise AI", "agent trust", "agent verification", "production AI", "2026"]
+author: "SignalPot Team"
+slug: "85-5-agent-trust-gap"
+---
+
+At RSA Conference 2026, Cisco President and Chief Product Officer Jeetu Patel put a number on the problem the entire industry has been dancing around. [Eighty-five percent of enterprises are running AI agent pilots. Only 5% trust them enough to move those agents into production.](https://venturebeat.com/security/85-of-enterprises-are-running-ai-agents-only-5-trust-them-enough-to-ship)
+
+That is an 80-point gap. And it has been growing as agent adoption accelerates.
+
+Patel's framing was about identity governance — the enterprise IAM stack was designed for humans, not autonomous systems, and it shows. That argument is correct and worth taking seriously. But if you stop there, you miss the deeper reason the gap is as wide as it is. Identity governance is one layer. The one that's almost entirely missing is performance verification: whether the agents you are piloting are actually reliable enough to operate on real workloads, with real data, without someone watching every step.
+
+## Why Pilots Stall
+
+The 80-point gap is not random. Teams do not stay in pilot because they ran out of budget or lost executive support. They stay in pilot because they cannot answer the questions that production deployment requires:
+
+What is this agent's failure rate on the tasks we actually care about — not the demo tasks, not the benchmark suite from the vendor, but the distribution of real work we'd hand it? Where does it break down — which inputs, which edge cases, which conditions? What happens in the scenarios that fall outside the training distribution? How does it behave when the context is ambiguous, the data is noisy, or the situation calls for judgment rather than retrieval?
+
+These are not philosophical questions. They are the questions a responsible deployment review asks, and most pilots cannot answer them. The evaluation that got the project funded was designed to demonstrate capability, not characterize failure modes. The agent was tested on clean inputs under controlled conditions. The performance evidence that production requires — failure rate across a representative task distribution, edge case behavior, reliability under realistic load — was never collected.
+
+That gap is survivable when one person is using one agent and can catch bad outputs in real time. It is not survivable when the agent is posting to shared Slack channels, updating customer records in Salesforce, or making decisions that downstream systems will act on before anyone reviews them. The feedback loop inverts. Failures propagate before anyone finds them. The blast radius of an uncharacterized failure mode in a production agent is not one retried prompt — it is every action taken on that agent's output downstream.
+
+## Identity Is One Layer
+
+Patel's point about enterprise IAM deserves full credit. [Enterprise identity infrastructure was built for human workers, not autonomous agents.](https://venturebeat.com/security/cisco-dickman-agentic-ai-trust-identity-governance-microsegmentation) Agents don't log in from a device. They don't have departments or managers or employment status. The existing IAM fabric has no native way to model an agent's identity, scope its permissions to specific task contexts, or detect when it is operating outside the boundaries of its original authorization.
+
+Cisco is building infrastructure for that layer. So is ServiceNow, which announced AI Control Tower governance extending from desktops to data centers [in its partnership with NVIDIA at Knowledge 2026](https://newsroom.servicenow.com/press-releases/details/2026/ServiceNow-extends-agentic-AI-governance-from-desktops-to-data-centers-with-NVIDIA/default.aspx). [Cognizant launched its Secure AI Services offering on May 7](https://news.cognizant.com/2026-05-07-Cognizant-Launches-Secure-AI-Services-to-Help-Enterprises-Safely-Scale-Agentic-Systems) specifically to move enterprises from "assumed trust" to "provable trust" across agentic deployments. The governance tooling category is being built in real time.
+
+But governance answers a different question than verification. Governance asks: *does this agent have the correct permissions and scope?* Verification asks: *does this agent do the right thing when it operates within that scope?* You can have perfect identity governance on an agent that generates plausible-sounding wrong outputs half the time. The authorization was clean. The output was garbage. The damage happened inside the governance perimeter, not because of a gap in it.
+
+That is the Meta Sev-1 incident from March, replayed. The agent was authorized. The agent authenticated. The agent posted advice to an internal forum that was wrong. An engineer followed it. [A data exposure event followed.](https://techcrunch.com/2026/03/18/meta-is-having-trouble-with-rogue-ai-agents/) No IAM system failed. The failure was in the gap between what the agent was authorized to do and what it was actually capable of doing reliably.
+
+## What the 5% Did Differently
+
+The teams that made it to production are worth studying carefully, because they are not outliers with unusual technology or unlimited resources.
+
+[Intuit's AI agents hit 85% repeat usage](https://venturebeat.com/orchestration/intuits-ai-agents-hit-85-repeat-usage-the-secret-was-keeping-humans-involved) — the number that indicates users actually trust the output enough to come back. Their approach: keep humans meaningfully in the loop through evaluation and early deployment, collect real performance data from real use, and expand autonomy incrementally as the evidence for reliability accumulates. Not trust by declaration. Trust earned through measurement over time.
+
+Providence, one of the largest health systems in the U.S., deployed an HR agent that now delivers measurable results — managers spending 90% less time on hiring steps, job requests 70% more accurate, internal transfers 12 days faster. Those numbers did not come from a clean demo. They came from an organization that evaluated the agent against the actual task distribution, identified where it worked and where it needed human judgment, and built the operational model around that reality.
+
+The common thread is not better models or more advanced infrastructure. It is measurement rigor before and during deployment. These teams built confidence through evidence, not assumption.
+
+## The Layer That Closes the Gap
+
+ServiceNow's release of [NOWAI-Bench](https://www.cxtoday.com/security-privacy-compliance/servicenow-ai-agent-governance-knowledge-2026/), an open benchmarking suite covering IT service management, customer service, and HR workflows — and the NVIDIA integration of that suite into NeMo Gym for automated model evaluation — is a signal that the ecosystem is starting to recognize measurement as infrastructure. Not an afterthought. Not something individual teams build from scratch. Infrastructure.
+
+[Salesforce's Second Annual Trusted AI Impact Report](https://www.salesforce.com/blog/2nd-annual-trusted-ai-impact-report/) frames the same shift: the enterprise AI companies advancing past pilot stage are operationalizing responsible AI, not just endorsing it as a principle. Operationalizing means measuring. It means performance data, not capability claims. It means knowing what your agent does on the inputs you actually have, not the inputs the vendor tested it on.
+
+The 80-point trust gap is not a mystery. Most of the 85% stuck in pilot do not have that data. They deployed on demo confidence, ran into production-edge behavior that the evaluation never characterized, and stopped. The 5% who shipped treated deployment as the beginning of measurement — and used what they measured to earn the organizational confidence that production requires.
+
+The governance layer is being built. The IAM gap is being addressed. The measurement layer — domain-specific performance verification, edge case characterization, longitudinal reliability tracking — is where the remaining gap actually lives. Closing that is what moves teams from 85% to something closer to the other 5%.
+
+---
+
+<MatrixPills />
