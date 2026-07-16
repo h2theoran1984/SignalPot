@@ -1,0 +1,76 @@
+---
+title: "Your Agent Evaluation Stops at the Platform Boundary. Your Agents Don't."
+date: "2026-06-22"
+description: "Last week, AWS completed the set: Amazon Bedrock AgentCore shipped enhanced observability and A/B testing at Summit NYC, joining Microsoft's ASSERT and Google's Vertex evaluation as the third major cloud to ship a formal agent evaluation layer. Every major cloud now has one. And every major cloud's evaluation layer goes dark the moment your agents cross platform boundaries — which is exactly where they fail most."
+tags: ["agent evaluation", "AWS", "Bedrock AgentCore", "A2A protocol", "multi-cloud", "enterprise AI", "agent verification", "Microsoft", "Google", "2026"]
+author: "SignalPot Team"
+slug: "agent-evaluation-platform-boundary-gap"
+---
+
+Last week, at AWS Summit NYC, Amazon [announced enhanced agent evaluation capabilities on Bedrock AgentCore](https://aws.amazon.com/blogs/aws/top-announcements-of-the-aws-summit-in-new-york-2026/) — trajectory insights across hundreds of agent sessions, A/B testing for agent improvements, and 13 built-in evaluators spanning response quality, safety, task completion, and tool usage. [AgentCore Evaluations went generally available in March](https://aws.amazon.com/about-aws/whats-new/2026/03/agentcore-evaluations-generally-available/); the Summit expanded what it can see.
+
+This completes a set.
+
+In the span of six weeks, three major cloud platforms shipped formal evaluation infrastructure for AI agents. Microsoft released [ACS and ASSERT at Build 2026](https://devblogs.microsoft.com/foundry/build-2026-open-trust-stack-ai-agents/) — a behavioral governance specification paired with a compliance testing framework. Google expanded Vertex AI evaluation for agents running on its infrastructure. Now AWS adds trajectory tracing and continuous quality scoring to Bedrock. Every cloud provider with a serious agentic platform has reached the same conclusion at roughly the same moment: you cannot run agents in production without measuring how they perform.
+
+That convergence is worth pausing on. Twelve months ago, the argument for agent evaluation was still being made. Now three of the world's largest infrastructure providers have independently built it into their platforms. The skeptical argument is over.
+
+What's still open is a harder problem.
+
+## What Each Platform Built
+
+The three evaluation layers are different in emphasis but similar in scope.
+
+Microsoft's ASSERT tests behavioral compliance — whether your agent does what its ACS policy file says it should. If your policy says the agent can't issue refunds over $500 without human approval, ASSERT verifies that before you ship. It's spec-driven evaluation, treating agent behavior the same way you'd treat a software contract.
+
+AWS's AgentCore Evaluations focuses on outcome quality in production. You get continuous scoring across 13 built-in evaluator dimensions, trajectory tracing from session through individual span, and A/B testing to measure whether a model or prompt change improves or degrades actual performance on real tasks. The [online evaluation mode](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/observability.html) samples live traces and scores them against quality, safety, and task-completion criteria in near real time.
+
+Google's Vertex evaluation leans toward safety and response quality scoring, integrated with the Gemini model stack and increasingly wired to A2A-compatible deployments.
+
+Together, they cover the main dimensions: policy compliance, task quality, safety, and performance regression. For an agent running entirely within a single platform, this is a serious measurement toolkit.
+
+## Where All Three Stop
+
+The problem isn't what any one of these systems measures. It's where each of them runs.
+
+AgentCore Evaluations observes sessions inside Amazon Bedrock. ASSERT tests agents at the ACS policy enforcement layer within Azure's ecosystem. Vertex evaluation monitors agents running on Google Cloud infrastructure.
+
+None of them can observe what happens when your agents leave their home platform.
+
+This is a structural limitation, not a product gap — and it matters more now than it did six months ago. The A2A protocol [has 150 organizations in production](https://www.prnewswire.com/news-releases/a2a-protocol-surpasses-150-organizations-lands-in-major-cloud-platforms-and-sees-enterprise-production-use-in-first-year-302737641.html), routing real tasks between agents built on different platforms and frameworks. An orchestrator agent running on Azure can delegate a subtask to a specialist agent deployed on Bedrock. That Bedrock agent calls a tool hosted on GCP, returns a result, and the Azure agent acts on it. The full workflow spans three evaluation environments — and none of them observed the full workflow. Each captured a fragment.
+
+The fragments aren't where the risk concentrates. The seams are.
+
+[Google DeepMind's internal analysis of one million coding agent tasks](https://deepmind.google/blog/securing-the-future-of-ai-agents/) found that most failures come from overzealous agents going out of scope, misreading task boundaries, or confidently executing something adjacent to what was requested. These failure modes aren't randomly distributed. They concentrate at handoffs — exactly the moments when one agent's output becomes another agent's input across a system boundary that neither platform was designed to observe.
+
+AgentCore tells you how your Bedrock agent performed within Bedrock. ASSERT tells you whether it complied with its Azure policy file. Neither tells you how the end-to-end cross-platform workflow performed as a unit.
+
+## The 80-Point Gap
+
+[VentureBeat's enterprise survey](https://venturebeat.com/security/85-of-enterprises-are-running-ai-agents-only-5-trust-them-enough-to-ship) found that 85% of enterprises are running AI agents while only 5% trust them enough to ship freely. That gap — 80 percentage points of running-but-not-trusted — isn't explained by enterprises lacking access to evaluation tools. They have three sophisticated evaluation systems available from their cloud providers, all baked into the platforms they're already paying for. The gap exists because the evaluation is platform-bounded and the deployment isn't.
+
+Platform-native evaluation works for agents that stay inside the platform perimeter. Those agents are increasingly rare. The agents enterprises are actually deploying live at the intersections of clouds, frameworks, third-party APIs, and multi-agent pipelines that no single vendor controls end to end.
+
+## The Instrument That's Still Missing
+
+Platform-native evaluation is useful for exactly what it can observe. The question is whether what it can observe matches what you actually need to measure.
+
+Bedrock AgentCore's A/B testing is a genuinely useful instrument — the ability to measure whether a model change or prompt adjustment improves live performance before full rollout is sound engineering practice. ASSERT's policy compliance testing is borrowed from how mature software teams handle interface contracts. These are real tools doing real work.
+
+They don't answer the question that drives enterprise hesitation. Not "did my agent comply with its policy file" or "did it score well on safety evaluators in production" — but: does this agent reliably complete the specific work I need it to do, across the environment it actually runs in, at a failure rate I can build a production system around?
+
+That's a different measurement than what any cloud shipped last week. AgentCore Evaluations is a production monitoring layer. It tells you what happened to your agents today — after your users experienced it. Task-level verification answers what will happen to your agents on this work — before it touches a live customer, a production database, or a financial transaction.
+
+## Evaluation Is Infrastructure Now
+
+The clouds converging on evaluation in the first half of 2026 is the strongest market signal the category has ever received. When AWS, Microsoft, and Google independently ship evaluation layers for AI agents within six weeks of each other, the question of whether evaluation matters has been answered. That answer is now baked into the default infrastructure of the three platforms that run the majority of enterprise compute.
+
+What remains open — and what no platform can answer for you — is where the evaluation perimeter should sit.
+
+Platforms draw the boundary at their edge. The agents worth measuring don't stop there. The work that matters to your business almost certainly crosses those boundaries in ways that none of the three new evaluation systems were designed to see.
+
+Building evaluation infrastructure that follows the agent, not the platform, isn't an alternative to what AWS and Microsoft and Google shipped. It's what makes those investments legible at the scale enterprise AI is actually running at — across providers, across frameworks, on the specific tasks your business depends on getting right.
+
+---
+
+<MatrixPills />
