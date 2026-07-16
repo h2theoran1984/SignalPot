@@ -1,0 +1,72 @@
+---
+title: "Microsoft Just Gave Every Enterprise Agent a 600TB Memory. Performance Is Still Your Problem."
+date: "2026-06-14"
+description: "Microsoft's Work IQ APIs go GA on June 16, giving any developer access to an organization's emails, calendars, meetings, Teams chats, and files. That's a real milestone. It's also the infrastructure that will power the next wave of agent washing at enterprise scale — and it won't move the trust needle one millimeter."
+tags: ["Microsoft", "Work IQ", "enterprise AI", "agent washing", "agent verification", "AI agents", "benchmarks", "trust", "2026"]
+author: "SignalPot Team"
+slug: "microsoft-work-iq-agent-washing-context-trap"
+---
+
+In two days, Microsoft's [Work IQ APIs go generally available](https://www.microsoft.com/en-us/microsoft-365/blog/2026/06/02/announcing-the-new-work-iq-apis/).
+
+The pitch is direct: give AI agents semantic access to everything that happens inside a Microsoft 365 organization — email, calendar, meetings, Teams conversations, files, people data, collaboration patterns, line-of-business systems. Fortune 500 companies average over 600 terabytes of data flowing through M365. As of June 16, any developer can pipe all of it to an agent.
+
+That's a significant technical event. It's also the setup for the most expensive round of agent washing the enterprise market has seen yet.
+
+## What Work IQ Actually Does
+
+Work IQ is the [intelligence layer](https://devblogs.microsoft.com/microsoft365dev/work-iq-production-ready-intelligence-for-every-agent/) sitting between M365's raw data and the agents that want to reason over it. Instead of forcing agents to call dozens of individual Microsoft Graph endpoints and stitch together context themselves, Work IQ pre-aggregates organizational knowledge into agent-ready formats: who works with whom, what's currently in flight, what the calendar looks like, what decisions came out of last Tuesday's meeting.
+
+The performance claims are real: 2x faster than traditional APIs, 80% fewer tokens in coding harnesses. The access model is genuinely developer-friendly — available through A2A, a redesigned remote MCP server, and a standard REST API. If you're building an agent that needs to reason over organizational work context inside an M365 tenant, this is a serious piece of infrastructure.
+
+Microsoft's framing is "production-ready intelligence for every agent." That's accurate for one definition of production-ready.
+
+## The Part of the Story That Doesn't Follow
+
+Here is what Work IQ does not do.
+
+It does not make agents smarter. It makes context cheaper to access.
+
+Those are related problems, but they are not the same problem. An agent that previously hallucinated about your organization's project priorities will still hallucinate about your organization's project priorities — it will just hallucinate with more specific email subjects and calendar event names attached. Context access removes one constraint on agent quality. It does not install reasoning, judgment, or reliability where those things are absent.
+
+This distinction matters enormously right now, because the market is in the middle of a crisis of exactly this type.
+
+[Gartner estimates that only around 130 of the thousands of vendors claiming to offer agentic AI are actually delivering it.](https://www.gartner.com/en/newsroom/press-releases/2025-06-25-gartner-predicts-over-40-percent-of-agentic-ai-projects-will-be-canceled-by-end-of-2027) The rest are engaging in what Gartner calls "agent washing" — renaming chatbots, workflow tools, and automation pipelines as agentic AI without delivering the autonomous reasoning and goal-directed behavior that actually distinguishes an agent from a glorified if-then statement. The same report projects that more than 40% of agentic AI projects will be canceled by end of 2027 because of escalating costs, unclear business value, and inadequate risk controls.
+
+That number isn't a warning about the future. It describes what's already in progress.
+
+## The New Washing Cycle, Infrastructure Edition
+
+Before Work IQ, "enterprise AI agent" was a claim that required at least some technical credibility to sustain. Building real M365 integrations is genuinely hard. Connecting to Graph API, managing auth flows, handling rate limits, building semantic understanding of organizational structure — none of it is easy. The friction was a rough filter.
+
+Work IQ removes most of that friction. On June 16, a developer can hook into 600TB of live organizational context with a few API calls. The agent they wrap around it can be superficially indistinguishable from a serious system — it will cite real emails, reference real meeting decisions, surface real relationships between people and projects.
+
+Surface credibility is exactly what agent washing requires. The washed agent doesn't need to actually work well. It needs to look, during a demo or a pilot, like it understands your organization. Work IQ makes that look significantly more achievable.
+
+This is not Microsoft's fault. The infrastructure is genuinely useful, and serious agent builders will use it well. The problem is that it lowers the floor on agent washing without raising the ceiling on agent performance. Every vendor who previously couldn't fake enterprise context can now fake enterprise context. Every buyer who was already confused about which agents actually work is about to face a market where every agent demo feels like it knows your company.
+
+## The Question the Infrastructure Can't Answer
+
+The question that determines whether an agent deployment succeeds or gets canceled is not "can this agent access our M365 data?" That question has an answer now. The answer is yes, and the answer costs one Work IQ API key.
+
+The question is: on the workflows where this agent is deployed, how does it perform? Not in a demo. Not on handpicked examples. On the actual task distribution — the edge cases, the ambiguous requests, the situations where knowing what's in the email thread still requires judgment about what to do with it.
+
+That question doesn't have a universal answer. It has an answer specific to your deployment, your task types, your data patterns, your user expectations. And it requires evaluation against alternatives — because an agent's absolute performance number is nearly meaningless without something to compare it against. 45% on a task might be excellent if the previous approach worked 20% of the time. It might be a disaster if the alternative works 80%.
+
+[Enterprise trust in fully autonomous AI agents dropped from 43% in 2024 to 22% in 2025](https://arxiv.org/pdf/2602.21012), while deployment velocity accelerated. The direction of those two curves is explained by what happens when organizations move from pilots — where you pick favorable conditions — to production — where you hit the full distribution. The agents that looked impressive in context-rich demos failed on the tasks that didn't match the demo conditions. More context access doesn't change this dynamic. It slightly improves the demo conditions while leaving the production failure pattern intact.
+
+## What Changes on June 16, and What Doesn't
+
+On Monday, something real changes: building enterprise agents with meaningful organizational awareness becomes significantly easier. The developers who were blocked on context access — the ones building on solid agent architectures who just couldn't get to M365 data cleanly — gain a serious capability. That's worth acknowledging.
+
+What doesn't change: the inability to evaluate whether a given agent with organizational context access is actually performing on the tasks that matter.
+
+The Work IQ launch is going to accelerate agent deployment inside M365 environments. It's going to make the surface-level demo bar higher for every vendor, because every vendor can now demo against your real data. It's going to make the evaluation problem harder, because the plausible-looking agent just became much more common.
+
+The enterprises that avoid the 40% cancellation trap won't be the ones with the best M365 integrations. They'll be the ones that evaluate performance on their actual tasks before deployment rather than discovering the gap in production. That was true before June 16. It will be more true after.
+
+Context is not intelligence. The infrastructure to deliver organizational context to agents is finally here. The infrastructure to verify what agents do with it is what's still missing.
+
+---
+
+<MatrixPills />
