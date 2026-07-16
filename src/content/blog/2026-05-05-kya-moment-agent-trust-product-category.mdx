@@ -1,0 +1,64 @@
+---
+title: "The KYA Moment: Agent Trust Just Became a Product Category"
+date: "2026-05-05"
+description: "Experian launched Agent Trust on April 30. SecureAuth opened its public Agent Trust Registry on April 29. Two identity infrastructure companies announced trust products for AI agents in 48 hours. That's not coincidence — it's a category forming. And the most important thing about both products is what neither one actually measures."
+tags: ["agent trust", "AI agents", "enterprise AI", "agent verification", "identity", "KYA", "2026"]
+author: "SignalPot Team"
+slug: "kya-moment-agent-trust-product-category"
+---
+
+On April 29, [SecureAuth opened its Agent Trust Registry to the public](https://www.globenewswire.com/news-release/2026/04/29/3283736/0/en/secureauth-opens-industry-first-agent-trust-registry-to-the-public-as-ai-agents-pose-escalating-enterprise-security-threat.html) — a free, vendor-neutral directory of enterprise AI agents evaluated against a consistent security framework, surfacing verified identity posture, trust scores, and governance metadata for each one.
+
+On April 30, [Experian announced Agent Trust](https://www.experian.com/blogs/news/2026/04/30/experian-agent-trust/), a framework it's calling "Know Your Agent" — built with Visa, Cloudflare, and Skyfire, combining human-to-agent binding, real-time Agent Trust Tokens, and a dynamic registry that scores agents based on behavior and risk signals.
+
+Two announcements on back-to-back days. Two companies known for building identity infrastructure — one in consumer credit, one in enterprise security — both reaching the same conclusion at the same time: AI agents need a trust layer, and that layer needs to be a product.
+
+When that happens, you're watching a category form.
+
+## Why Identity Infrastructure Companies Are First
+
+Experian and SecureAuth aren't AI companies. They're not model vendors or cloud providers. They're the firms enterprises call when the question is "can we trust this entity with this action?"
+
+Their simultaneous move into agent trust is a tell about how enterprises have been experiencing the problem. [According to Gravitee's State of AI Agent Security 2026 report](https://siliconangle.com/2026/04/30/enterprise-process-automation-reliability-capability-appianworld/), only 14.4% of AI agents go live with full security approval. 88% of enterprises have already experienced AI agent-related security incidents. Those aren't numbers that come from exotic attacks. They come from agents deployed without governance — authorized by one team, behaving unexpectedly downstream, and nobody accountable for the gap.
+
+The "Know Your Agent" framing Experian is using is deliberate and precise. KYC — Know Your Customer — is the compliance regime that requires financial institutions to verify the identity of the humans they do business with before those humans can take consequential actions. Experian is saying: you now need to do the same thing for agents. An AI agent initiating a transaction, modifying a record, or making a purchasing decision on behalf of a user needs to carry verified provenance back to the human it represents. Otherwise you have autonomous actions with no accountability chain.
+
+[Experian's framework](https://www.businesswire.com/news/home/20260430719198/en/Experian-Announces-Agent-Trust-to-Power-Trusted-AI-Driven-Commerce) addresses this through three components: a cryptographic binding between verified individuals and their agents, real-time Agent Trust Tokens that validate identity and fraud risk at transaction time, and a behavioral registry that tracks agent history dynamically. The token is the key piece — it means the receiving system doesn't have to trust the agent's claims about itself. The token is issued by Experian against a verified human identity, and the receiving system can validate it without needing to know anything about how the agent was built or what model powers it.
+
+[SecureAuth's registry](https://www.globenewswire.com/news-release/2026/04/29/3283736/0/en/secureauth-opens-industry-first-agent-trust-registry-to-the-public-as-ai-agents-pose-escalating-enterprise-security-threat.html) operates at the enterprise procurement layer rather than the transaction layer. Security teams can look up any widely used AI agent and get an independent assessment of its identity posture, security governance, and deployment recommendations — before the agent goes anywhere near production. It's closer to a vendor security review, systematized and made continuous, with cryptographic agent identity baked in.
+
+Both products are solving real problems. Together they represent something the industry has been missing: third-party trust infrastructure for AI agents that doesn't come from the agent vendor.
+
+## The Gap Neither One Fills
+
+Here's what both products share, and what that reveals.
+
+Experian Agent Trust answers: *is this agent authorized to act on behalf of this human, and does it have a clean fraud/identity signal?*
+
+SecureAuth's registry answers: *has this agent been properly governed, what is its security posture, and is it safe to approve for enterprise deployment?*
+
+Neither product answers: *does this agent actually perform correctly on the work it claims to do?*
+
+That is a separate question. It's also the one that most enterprises discover they should have asked after they've already deployed.
+
+[McKinsey's 2026 State of AI Trust report](https://www.mckinsey.com/capabilities/tech-and-ai/our-insights/tech-forward/state-of-ai-trust-in-2026-shifting-to-the-agentic-era) found that executive confidence in fully autonomous AI agents dropped from 43% to 22% in a single year — even as agentic deployments accelerated. Deployments go up, confidence goes down. That's the signature of organizations learning the hard way that an agent that looks right in evaluation doesn't necessarily work right in production.
+
+Identity trust and performance trust are different layers. An agent can have perfect cryptographic provenance, pass every security review, and still fail 30% of the time on the task category it was deployed for. It can return outputs that are authorized, grammatically correct, and confidently wrong. Those failures don't show up in a fraud signal. They don't appear in a governance audit. They accumulate downstream as bad decisions made by humans who trusted agent outputs they had no independent basis to evaluate.
+
+[Only 14.4% of agents go live with full security approval](https://www.globenewswire.com/news-release/2026/04/29/3283736/0/en/secureauth-opens-industry-first-agent-trust-registry-to-the-public-as-ai-agents-pose-escalating-enterprise-security-threat.html) — that's the security layer. The performance evaluation layer doesn't even have a number yet, because it's barely begun to be systematized. Vendor benchmarks measure what vendors chose to measure. Independent performance evaluation against a domain-representative task distribution, with adversarial cases included, is still largely absent from how enterprises select and deploy agents.
+
+## Two Tracks, One Destination
+
+What April 29–30 clarified is that trust infrastructure for AI agents is splitting into two distinct tracks, and they need to develop in parallel.
+
+The identity/authorization track — where Experian and SecureAuth are building — asks: who is responsible for this agent's actions, is it authorized to take them, and does it have the governance in place to be trusted with enterprise access? This track is now getting real products. It will get regulated. In five years, you will not be able to deploy an AI agent in a regulated industry without answering these questions through a certified framework.
+
+The performance/reliability track asks: is this agent actually good at the work it's being deployed for, across the real distribution of tasks it will encounter, including the edge cases that cause the most damage when wrong? This track has fewer products, less standardization, and no regulation yet. It's where the unexplained confidence collapse is happening.
+
+Both tracks matter. An agent that is perfectly authorized but wrong half the time is dangerous. An agent that performs flawlessly but has no accountability chain is also dangerous. The infrastructure being built by Experian and SecureAuth closes one side of that gap.
+
+The other side is where the work is.
+
+---
+
+<MatrixPills />
