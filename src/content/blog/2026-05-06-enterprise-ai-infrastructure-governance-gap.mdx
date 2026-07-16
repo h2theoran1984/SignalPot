@@ -1,0 +1,76 @@
+---
+title: "Enterprise Declared AI Core Infrastructure. The Oversight Is Still Running on Faith."
+date: "2026-05-06"
+description: "JPMorgan just put $19.8 billion behind AI as non-negotiable infrastructure spend. OpenAI's enterprise revenue crossed 40%. The institutional bet has been placed. Meanwhile, 78% of tech leaders say AI adoption is outpacing their governance capabilities, and 52% of department-level AI initiatives are operating without formal oversight. That combination isn't just a management problem — it's a structural one."
+tags: ["AI agents", "enterprise AI", "governance", "agent verification", "agent trust", "2026"]
+author: "SignalPot Team"
+slug: "enterprise-ai-infrastructure-governance-gap"
+---
+
+In January, [JPMorgan Chase reclassified AI spending as "core infrastructure"](https://www.bankingexchange.com/news-feed/item/10520-jp-morgan-chase-reclassifies-ai-spending-as-core-infrastructure) — placing it alongside payment systems, data centers, and cybersecurity. The 2026 technology budget: approximately [$19.8 billion](https://www.artificialintelligence-news.com/news/jpmorgan-expands-ai-investment/), with 2,000 staff dedicated to AI development. This month, [OpenAI announced that enterprise now makes up more than 40% of its revenue](https://decrypt.co/363844/openai-enterprise-ai-revenue-agentic-workflows), on track to reach parity with consumer by the end of the year. [Frontier](https://openai.com/index/next-phase-of-enterprise-ai/), OpenAI's new enterprise offering, is already being used by Oracle, State Farm, and Uber to build, deploy, and manage agents company-wide.
+
+This is what irreversible institutional commitment looks like. Not experiments. Not pilots. Core infrastructure.
+
+And then there's what EY found when it surveyed 500 US technology executives in February.
+
+[78% said AI adoption is outpacing their organization's governance capabilities.](https://www.ey.com/en_us/newsroom/2026/03/ey-survey-autonomous-ai-adoption-surges-at-tech-companies-as-oversight-falls-behind) 52% of department-level AI initiatives are operating without formal approval or oversight. In the prior twelve months, 45% of technology executives said their organization experienced a confirmed or suspected leak of sensitive data due to employees using unauthorized third-party AI tools. 39% reported proprietary IP leaks for the same reason.
+
+Read those two paragraphs together. The financial commitment says: this is non-negotiable infrastructure. The governance data says: more than half the AI initiatives inside these organizations have no formal oversight at all.
+
+## What "Core Infrastructure" Actually Requires
+
+The reclassification JPMorgan made carries real meaning. Core infrastructure isn't a budget category — it's an accountability standard.
+
+Payment systems have uptime SLAs that justify 24/7 incident response. Databases have backup and recovery guarantees, audit trails, and access control frameworks that regulators can inspect. Cybersecurity gets mandatory review cycles and breach notification requirements. When something in core infrastructure fails, there is a defined process for understanding what happened, who was responsible, and how to prevent recurrence.
+
+Core infrastructure, in other words, requires the ability to *measure* it — continuously, against known baselines, with accountability when it underperforms.
+
+AI agents, as currently deployed across most enterprise environments, have almost none of that. They have vendor benchmarks that measure performance on controlled tasks designed to make the agent look capable. They have demo runs on the happy path. They have, in most cases, no domain-specific evaluation against the actual distribution of tasks the agent will encounter in production, no longitudinal tracking of how performance changes over time, and no formal mechanism for detecting when an agent that worked at deployment has started failing quietly.
+
+[A Writer report on enterprise AI adoption](https://writer.com/blog/enterprise-ai-adoption-2026/) found that 79% of organizations face challenges in adopting AI — a double-digit increase year-over-year, despite 59% of companies now investing over $1 million annually in AI technology. More money, more problems, and the problems are specific: integration complexity, inconsistent output quality at volume, absent monitoring tooling, and unclear organizational ownership.
+
+Those aren't model problems. They're accountability-infrastructure problems.
+
+## The 95% Number That Matters
+
+[MIT research found that 95% of enterprise GenAI pilots fail to reach production deployment](https://fortune.com/2025/08/18/mit-report-95-percent-generative-ai-pilots-at-companies-failing-cfo/) — compared to a 34% abandonment rate for traditional AI projects. The gap between those two numbers is enormous and almost never discussed. GenAI pilots fail at nearly three times the rate of traditional AI projects. The most common explanations — infrastructure costs running three to five times initial projections, poor data quality, organizational resistance — are accurate but incomplete.
+
+The deeper pattern: teams run pilots that demonstrate capability in controlled conditions, declare success, and then discover at production scale that the agent which performed well in the demo performs inconsistently against the real distribution of tasks, with real data, and real integration friction. The 37% gap between benchmark performance and production performance that researchers have documented across enterprise AI deployments doesn't mean the model is bad. It means the evaluation was wrong.
+
+When you declare something core infrastructure without the measurement infrastructure to back it up, you are making a bet that your demo is representative of your production environment. It almost never is.
+
+## The Specific Risk of Infrastructure Framing Without Infrastructure Accountability
+
+There's a particular danger in the current moment that isn't getting enough attention.
+
+When AI was experimental — a pilot, an innovation initiative, a skunkworks project — the organizational immune system kicked in. Pilots were contained. Failures were bounded. The blast radius of a bad AI output was limited because the humans downstream were appropriately skeptical. A "pilot" doesn't get unconditional trust.
+
+"Core infrastructure" gets unconditional trust. That's the point of the classification.
+
+When JPMorgan and organizations like it reclassify AI as infrastructure, they are — correctly, for the right long-term reasons — signaling to the organization that AI outputs should be acted on, not second-guessed. That's what makes agents useful at scale. The analyst who acts on the AI-generated summary, the underwriter who routes based on the AI-scored risk, the operations team that follows the AI-recommended intervention — they operate more efficiently because they've stopped treating every AI output as provisional.
+
+The EY finding that 45% of tech executives experienced confirmed or suspected data leaks due to unauthorized AI use is a preview of what happens when the "trust the infrastructure" posture extends to systems that haven't earned that trust through measurement. Employees extending trust to tools that weren't designed to receive it, at a scale that bypassed governance entirely. That's the output of the gap, not a cause of it.
+
+## The Measurement Layer That's Missing
+
+The enterprise AI ecosystem has made serious progress on the plumbing. Authentication (A2A protocol, now backed by 150+ organizations). Orchestration (Microsoft Copilot Studio, Amazon Bedrock AgentCore, Google Vertex AI Agent Builder). Logging, observability, token controls. These layers exist because they were built.
+
+What hasn't been built at the same pace: the layer that answers, before an agent gets promoted to production infrastructure, whether it actually performs at infrastructure standards.
+
+That layer requires domain-specific evaluation — not generic benchmarks, but tests designed around the actual tasks and data distributions the agent will encounter. It requires adversarial coverage of the edge cases that matter in your specific context. It requires ongoing monitoring of production performance against the baselines you established at deployment, with alerting when those baselines drift.
+
+None of that is exotic. All of it is what you already do for the other systems you call core infrastructure. The question isn't whether enterprise AI needs this layer. It's whether organizations build it before or after the failures that make it obviously necessary.
+
+The 95% GenAI pilot failure rate is the "after." The $19.8 billion infrastructure commitment is the moment that makes "before" the obviously better choice.
+
+## The Institutional Bet Has Been Placed
+
+JPMorgan isn't reversing the reclassification. OpenAI's enterprise revenue isn't going back to 30%. The institutional bet on AI as core infrastructure has been placed by organizations that have the resources to make it stick.
+
+What hasn't been placed is the equivalent bet on measurement. On verification. On the accountability infrastructure that makes core infrastructure worth trusting.
+
+The 78% of technology leaders who told EY that adoption is outpacing governance aren't confused about what they need. They know the gap exists. The question is whether the organizations making $19.8 billion bets treat that gap as urgently as the infrastructure bet that created it.
+
+---
+
+<MatrixPills />
