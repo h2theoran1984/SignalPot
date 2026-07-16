@@ -1,0 +1,58 @@
+---
+title: "Agents Are Inside the Firewall Now. The Trust Problem Just Changed Shape."
+date: "2026-05-23"
+description: "Anthropic's MCP tunnels and IBM's Forward Deployed Units landed within days of each other. Together they mark the moment enterprise AI agents moved fully inside the corporate perimeter — and surfaced a harder question than the one they solved."
+tags: ["AI agents", "enterprise AI", "MCP", "agent trust", "agent verification", "Anthropic", "IBM", "2026"]
+author: "SignalPot Team"
+slug: "agents-inside-the-firewall-trust-problem"
+---
+
+On May 19, Anthropic announced two new capabilities for Claude Managed Agents: a public beta of self-hosted sandboxes and a research preview of [MCP tunnels](https://thenewstack.io/anthropic-mcp-tunnels-sandboxes/). The technical summary is cleaner than most: a lightweight gateway you deploy inside your own infrastructure makes a single outbound connection. No inbound firewall rules. No public endpoints. Traffic is encrypted end to end. Your internal databases, private APIs, knowledge bases, and ticketing systems become tools that agents can call — without ever leaving your security perimeter.
+
+That is the enterprise security perimeter problem, solved.
+
+For two years, this was the argument security teams used to slow or block agentic AI deployments: we can't let an external agent orchestration service touch our internal systems. The argument was reasonable. Enterprise data lives behind firewalls for good reasons. Asking infrastructure to punch through them for an experimental technology is a hard ask. MCP tunnels makes the ask go away. The agent stays outside. The tunnel goes in. The perimeter stays intact.
+
+Anthropic has solved the last major plumbing problem in enterprise agent deployment. The question that surfaces on the other side of that solution is harder.
+
+## What Was Behind the Firewall Was Always the Real Work
+
+Five days before Anthropic's announcement, [IBM Consulting launched Forward Deployed Units](https://newsroom.ibm.com/2026-05-14-A-New-Way-to-Make-AI-Actually-Work-in-the-Real-World) — small senior pods built to pair human experts with AI agents for continuous delivery. The headline number: [six people alongside agents can now accomplish what previously required a thirty-person team](https://www.stocktitan.net/news/IBM/a-new-way-to-make-ai-actually-work-in-the-real-ethz3cjaq8bv.html). Not in a lab. FDUs are already running with Riyadh Air, Nestlé, Heineken, and Pearson, and IBM is expanding them across the US, Europe, and Asia Pacific.
+
+The framing IBM uses is worth noting: "humans are at the edges, with a digital workforce of specialized agents in the middle." The agents execute. The humans direct and review outputs at the boundaries. This is the deployment model that the enterprise AI wave has been converging on — not AI as a feature inside existing software, but AI as the operating core of delivery workflows, with humans as oversight layer.
+
+What these agents are doing in the middle is not decorative. They're accessing client codebases, generating test suites, writing technical documentation for regulated industries. The data isn't public. The stakes aren't low. And the access required to do the work is precisely the access that, until May 19, the security perimeter made structurally difficult to grant.
+
+MCP tunnels changes the calculus. Agents can now reach internal systems with full enterprise security controls intact. The FDU pattern — agents in the middle, humans at the edges — becomes viable at the scale IBM is already deploying it.
+
+## The Problem the Perimeter Was Hiding
+
+Here's what security teams will notice next.
+
+When the security perimeter was the barrier, the conversation stayed focused on access: can we safely let the agent in? That question has an engineering answer, and Anthropic just shipped it. The concern is addressed.
+
+The conversation that happens next is different: now that the agent is in — operating with real access to production systems, generating outputs that flow into delivery workflows — how do we know whether it's doing the right thing?
+
+This is the question that authentication was never built to answer. [As we covered when A2A crossed 150 supporting organizations](/blog/a2a-protocol-agent-trust-gap), the distinction between authentication and verification is structural. Authentication confirms that an agent is who it claims to be. Verification confirms that it does what you need it to do, correctly, in the specific domain where you've given it access.
+
+The Meta Sev-1 incident from March is the canonical illustration. [The agent had legitimate access and authenticated correctly through every security checkpoint](https://techcrunch.com/2026/03/18/meta-is-having-trouble-with-rogue-ai-agents/). It posted guidance on an internal forum that was plausible, wrong, and acted upon. The exposure didn't happen at the firewall. It happened after the agent was already inside, doing the work it was authorized to do, in a way that no IAM system was designed to detect.
+
+IBM's FDU model handles this through human oversight at the edges — experts reviewing outputs at the boundaries of agent workflows. That pattern works when you have the expertise to evaluate what agents are producing and the bandwidth to review it. Both of those assumptions narrow as the deployment scales, the domains diversify, and the throughput increases. Six people reviewing outputs across four client engagements is tractable. Six hundred agents running across forty engagements is a different surface area.
+
+[McKinsey's 2026 State of AI Trust report](https://www.mckinsey.com/capabilities/tech-and-ai/our-insights/tech-forward/state-of-ai-trust-in-2026-shifting-to-the-agentic-era) found that executive confidence in fully autonomous AI agents dropped from 43% to 22% in a single year, even as agentic deployments accelerated. That divergence makes sense when you understand the mechanism: confidence tracks real-world failure exposure, and real-world failures are what you get when agents operate inside systems they can access but haven't been evaluated against.
+
+## The Access Layer Is Built. The Evaluation Layer Is Next.
+
+The velocity of infrastructure built in the last twelve months is real. A2A for inter-agent communication. MCP for agent-to-tool connections. MCP tunnels for private network access. Self-hosted sandboxes for execution inside security perimeters. The networking and access infrastructure for enterprise AI agents is essentially complete.
+
+What isn't built at equivalent maturity is the layer that answers the question now surfacing: for the agent operating inside your firewall, with real access to your production systems, generating outputs that flow into your delivery workflows — what's the actual track record on tasks like this one?
+
+That isn't a security question anymore. It's an evaluation question. It requires domain-specific benchmarking against representative tasks, not capability demonstrations in controlled conditions. It requires performance history under production conditions, not demo scenarios. It requires longitudinal tracking, because an agent that performs correctly today may not perform correctly in six months as the underlying model updates, the data distribution shifts, and the workflows it's embedded in evolve.
+
+The 37% gap between benchmark performance and production performance documented across enterprise AI deployments compounds once agents are operating inside real systems on real data. You don't discover that gap at the firewall. You discover it downstream, after the agent has already generated the output, and something built on that output has already moved.
+
+MCP tunnels let agents through the firewall. The evaluation layer is what tells you whether what came through was worth letting in.
+
+---
+
+<MatrixPills />
