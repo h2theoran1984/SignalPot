@@ -1,0 +1,72 @@
+---
+title: "Enterprise AI Finally Has Identity Infrastructure. Now Comes the Harder Question."
+date: "2026-07-16"
+description: "Entrust launched the Agentic AI Trust Accelerator this week — the most serious industry attempt yet to answer 'who authorized this agent and what is it allowed to do?' Those are real questions. But authorization and performance are different problems, and only one of them is getting funded."
+tags: ["AI agents", "agent trust", "agent identity", "Entrust", "enterprise AI", "agent verification", "governance", "2026"]
+author: "SignalPot Team"
+slug: "entrust-agent-identity-trust-gap"
+---
+
+On July 14, [Entrust launched the Agentic AI Trust Accelerator](https://www.businesswire.com/news/home/20260714439454/en/Entrust-Launches-the-Agentic-AI-Trust-Accelerator-to-Help-Enterprises-Move-AI-Agents-From-Pilot-to-Production) — a co-development program designed to give enterprises the identity foundation that autonomous AI agents need before they can move from pilot to production.
+
+The gap it targets is real. Most organizations deploying AI agents right now cannot answer basic questions about them: who authorized this agent, what is it permitted to do, and how can we prove what it actually did afterward?
+
+Entrust describes its solution as a "trust plane": verifiable identity for both humans and agents, real-time authorization controls, cryptographic protection for the keys and certificates agents use, and proof-of-action records that create an auditable trail of what happened. [An IBM study found that 77% of CIOs and CISOs believe AI adoption is already running ahead of their governance capabilities](https://newsroom.ibm.com/2026-05-05-think-2026-ibm-delivers-the-blueprint-for-the-ai-operating-model-as-the-ai-divide-widens), with 59% pointing to security and compliance as the leading blockers to production deployment. The Accelerator is the most serious industry response to that gap yet.
+
+Here's what it doesn't answer.
+
+## What Identity Infrastructure Gets You
+
+The trust plane Entrust is building answers three questions.
+
+**Who is this agent?** Verifiable identity, cryptographically bound, so the agent can't be spoofed or hijacked without detection.
+
+**What is it allowed to do?** Real-time authorization controls that enforce approved roles, delegated authority, and scope limits before any action executes.
+
+**What did it do?** Proof-of-action records that survive audits, regulatory reviews, and incident investigations.
+
+These are necessary questions. For enterprises running agents in regulated environments — financial institutions, healthcare systems, any organization that touches public disclosures — the ability to answer them retrospectively is a compliance requirement, not a preference. [Entrust's initial focus on financial institutions](https://ffnews.com/news/entrust-launches-agentic-ai-trust-accelerator-to-secure-autonomous-ai-for-financial-institutions) is exactly right: a bank cannot run unauthorized processes against customer accounts.
+
+The cryptographic layer matters for infrastructure reasons beyond compliance. [JadePuffer — the autonomous ransomware agent documented by Sysdig two weeks ago](https://www.sysdig.com/blog/jadepuffer-agentic-ransomware-for-automated-database-extortion) — moved laterally through enterprise systems partly because agent frameworks were running with credentials exposed in environment variables, sitting on public ports with unpatched RCE vulnerabilities. Cryptographic key management for agent runtimes is infrastructure the industry has been deploying without.
+
+All of this is real progress. Now here's what the trust plane doesn't cover.
+
+## The Question Identity Can't Answer
+
+There's a fourth question that no identity infrastructure addresses:
+
+**Is this agent doing the work correctly?**
+
+An authorized agent that completes tasks wrongly is still a problem. An agent with a verified identity, scoped authorization, and cryptographically protected keys that hallucinates a contract clause, misclassifies a customer complaint, or makes a wrong credit risk assessment is still producing failures. Proof-of-action records tell you what the agent did. They don't tell you whether it was right.
+
+This is the distinction the current governance conversation keeps collapsing. "Governance" is being used to mean two different things simultaneously: *controlling what agents are permitted to do* and *verifying that agents are doing their work correctly*. Both matter. They require different infrastructure.
+
+Identity and authorization are control-plane problems. You need a layer that enforces who can act and what they're allowed to do before any action executes. Entrust is building that layer — and it's closer in architecture to enterprise PKI infrastructure than to performance testing.
+
+Performance verification is a measurement problem. You need baselines for what "correct" looks like on the actual task distribution the agent is running in production — not synthetic evaluations, but real operational work. You need to know when the agent's accuracy degrades as the underlying model updates. You need comparative data that tells you whether a different agent would do the job better on the specific work class that matters to the business.
+
+None of that is answered by knowing who the agent is.
+
+## Two Failure Modes, One Funding Trend
+
+[Gartner predicts that over 40% of agentic AI projects will be canceled by end of 2027](https://www.gartner.com/en/newsroom/press-releases/2025-06-25-gartner-predicts-over-40-percent-of-agentic-ai-projects-will-be-canceled-by-end-of-2027) — not because of authorization failures, but because organizations can't establish clear business value or adequate risk controls after deployment. Those projects presumably had some identity controls. They're being canceled because nobody could prove the agents were actually working.
+
+The 77% of CIOs who say AI adoption is outrunning their governance capabilities are describing at least two distinct problems. Some have no identity infrastructure and need the Entrust trust plane. Some have identity infrastructure and are still flying blind — their agents are running, authorized, and logged, and they have no operational baseline for whether the outputs are accurate enough to trust without human review.
+
+The pilot-to-production gap has two blocking conditions, not one. The first is identity and authorization: can we control what this agent is permitted to do, and prove what it did? The second is performance proof: can we demonstrate, with task-level data from real production workloads, that this agent is doing the work at an accuracy threshold that justifies autonomous operation? The first is what Entrust is solving. The second doesn't have a well-funded industry program behind it yet.
+
+## What Comes After Identity
+
+When Entrust's Accelerator graduates its first cohort of enterprises, those organizations will have agents with verifiable identities, scoped authorization, cryptographic key management, and proof-of-action logs. They'll have a far cleaner answer to "who did this, were they authorized, and what exactly happened?"
+
+They will not automatically have a better answer to "is this agent performing well enough to keep running without human review on this class of work?"
+
+Proof-of-action records will show auditors the chain of what happened. A performance measurement layer — which most of these organizations don't have — would have told them earlier whether the agent was delivering value before the question became a regulatory one.
+
+Identity makes agent failures auditable. Performance verification is how you make them rare.
+
+The industry is investing seriously in one of those. The other is where the next verification gap lives.
+
+---
+
+<MatrixPills />
