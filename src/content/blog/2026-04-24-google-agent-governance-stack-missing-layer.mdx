@@ -1,0 +1,64 @@
+---
+title: "Google Built the Agent Governance Stack. One Layer Is Still Missing."
+date: "2026-04-24"
+description: "At Google Cloud Next this week, Google unveiled the most complete platform-level answer to agent governance yet: Agent Identity, Agent Gateway, Agent Observability, Agent Registry, Agent Evaluation. The infrastructure is real and necessary. But platform-provided evaluation and independent domain verification are different things — and the $750M Google just committed to 120,000 partners is about to make that distinction matter a great deal."
+tags: ["AI agents", "Google Cloud", "agent governance", "enterprise AI", "verification", "agent observability", "2026"]
+author: "SignalPot Team"
+slug: "google-agent-governance-stack-missing-layer"
+---
+
+[Google Cloud Next ran this week](https://blog.google/innovation-and-ai/infrastructure-and-cloud/google-cloud/cloud-next-2026-sundar-pichai/), and the headline from the enterprise track is worth taking seriously. Vertex AI is effectively gone — absorbed and rebuilt as the [Gemini Enterprise Agent Platform](https://cloud.google.com/blog/products/ai-machine-learning/introducing-gemini-enterprise-agent-platform), a full-stack platform designed specifically for building, deploying, governing, and optimizing agents at enterprise scale. Google committed [$750 million to its 120,000-member partner ecosystem](https://www.googlecloudpresscorner.com/2026-04-22-Google-Cloud-Commits-750-Million-to-Accelerate-Partners-Agentic-AI-Development) to accelerate agentic AI development. GE Appliances told the crowd it has more than 800 Google AI agents running across manufacturing, logistics, and supply chain. KPMG reported 90% Gemini Enterprise adoption among employees, with more than 100 agents deployed in the first month.
+
+The message from Google was not subtle: agents are the architecture now. The question worth asking is what the architecture is actually missing.
+
+## What Google Built
+
+The Gemini Enterprise Agent Platform is the most complete attempt at agent governance infrastructure any major cloud provider has shipped. It's worth being specific about what's in it, because the individual components represent genuine progress on problems the industry has been kicking down the road.
+
+[Agent Identity](https://cloud.google.com/blog/products/ai-machine-learning/introducing-gemini-enterprise-agent-platform) assigns cryptographic IDs to every agent — whether built on the platform or sourced from a third party — and enforces least-privilege access at the agent level. Six months ago, most enterprise agent deployments had no portable identity mechanism at all. Agent Gateway enforces security policies at the network layer before an agent executes any action. Agent Observability provides full execution traces and real-time visibility into agent reasoning. Agent Registry gives IT teams a central catalog of approved agents available for distribution across the organization. Agent Evaluation runs simulations to test agent behavior before deployment.
+
+The $750M partner fund exists specifically to get this infrastructure into the hands of systems integrators, consulting firms, and software vendors — the firms that actually touch enterprise deployments. Deloitte [launched an Agentic Transformation Practice this week](https://www.deloitte.com/us/en/about/press-room/deloitte-launches-google-cloud-agentic-transformation-practice.html) specifically to support this. The effect is that Google's governance stack will ship as a default inside the vast majority of enterprise agent projects that start in 2026.
+
+That's meaningful. It means more agents with auditable identities, with policy enforcement baked into execution, with observable reasoning trails. The industry needed this layer, and the fact that it's being distributed at Google Cloud scale means it will actually get used.
+
+## The Measurement Gap
+
+Here's what Agent Evaluation does: it tracks whether an agent completed its assigned goals. An agent tasked with drafting a vendor risk summary either produces a summary or it doesn't. An agent tasked with flagging compliance anomalies either surfaces findings or it doesn't. If the agent completes the task, it passes evaluation. If the agent produces a wrong summary — one that mischaracterizes indemnification scope, misclassifies a compliance flag, or confidently omits the clause that matters — the goal was technically achieved, and the evaluation framework has no mechanism to surface that failure.
+
+Goal-completion tracking and domain-accuracy verification are different measurements. One tells you the agent ran. The other tells you whether the agent was right.
+
+Google's platform defines Agent Evaluation as helping ensure "agents always hit their goals." That framing is precise. An agent that hits its goal of generating a response has passed. An agent that generates the correct response for your specific domain, on the edge cases that cause the most damage, is a separate question the platform doesn't answer.
+
+## The Partner Ecosystem Problem
+
+This distinction gets sharper when you look at where the $750M is going.
+
+[Of the enterprises currently running AI agent pilots, 88% fail to reach production](https://www.digitalapplied.com/blog/88-percent-ai-agents-never-reach-production-failure-framework). Of the 14% that do reach production scale, [only 14.4% deployed with full security and IT approval](https://www.digitalapplied.com/blog/ai-agent-scaling-gap-march-2026-pilot-to-production). The research on what separates successful deployments from failed ones is consistent: successful scalers invested proportionally more in evaluation infrastructure and operational monitoring, and proportionally less on model selection and prompt engineering.
+
+That's the empirical case for taking evaluation seriously. But $750M distributed through 120,000 partners creates a specific dynamic that matters here. Each of those partners will ship agents with Google Cloud governance built in — Agent Identity assigned, Agent Observability configured, Agent Evaluation enabled. That's what the certification will say. Buyers will read "built on Gemini Enterprise Agent Platform" and reasonably infer that governance has been handled.
+
+What the certification doesn't cover: whether the agent is actually good at the domain-specific work it's being deployed to do. A vendor contract review agent built by a boutique legal tech firm, deployed on Google Cloud with full Agent Observability, still needs independent validation that it handles indemnification clauses correctly in unfamiliar contract structures. A financial close agent built by a regional accounting software company, certified on the platform, still needs to demonstrate performance against the edge cases that cause material misstatements.
+
+Platform certification tells you the agent was built correctly. It doesn't tell you the agent performs correctly on the work that matters to you.
+
+## The Principal-Agent Problem in Platform Evaluation
+
+There's a structural issue in platform-provided evaluation that isn't specific to Google. Every major cloud provider has an interest in agents that run on their infrastructure being certified as capable. Not because of bad intent — but because platform ecosystems depend on the agents within them succeeding. When the entity providing the evaluation is the same entity selling the platform and funding the partners building on it, the independence of that evaluation is compromised by design.
+
+Independent domain verification requires something the platform can't provide: comparative performance data across agents doing the same work, evaluated against representative domain benchmarks by parties with no financial stake in which agent wins. That's how you discover that Agent A from Vendor X handles foreign subsidiary consolidation correctly and Agent B from Vendor Y fails it in predictable ways. Platform observability can show you both agents ran. It cannot rank them on the work.
+
+[Google Cloud Next 2026: full-stack agent governance arrives](https://thenextweb.com/news/google-cloud-next-ai-agents-agentic-era) is the right headline for what happened this week. The platform covers identity, policy enforcement, observability, and goal-completion tracking. These are all necessary. None of them are sufficient to answer the question buyers need answered before committing to an agent in a high-stakes workflow.
+
+## What the Next 90 Days Look Like
+
+The $750M begins flowing this quarter. The Deloitte Agentic Transformation Practice is already staffing up. The 120,000 partners now have a funded mandate to ship agentic projects on Google Cloud.
+
+Enterprise buyers are about to encounter agents carrying the Gemini Enterprise Agent Platform certification in every sales process. The certification will be real — those agents will have auditable identities, policy controls, and observable execution. The evaluation gap will be invisible until something goes wrong in production, because it's not a gap that shows up in the platform dashboard.
+
+The industry has solved agent identity. It's making progress on agent observability. The open problem — is this specific agent accurate on this specific class of work, measured independently, against a baseline you can trust — is the layer that the $750M doesn't fund and the platform can't provide.
+
+The governance stack Google built this week is the right foundation. The question is what gets built on top of it.
+
+---
+
+<MatrixPills />
