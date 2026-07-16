@@ -1,0 +1,74 @@
+---
+title: "64% of Enterprise Teams Deployed AI Agents Before They Were Ready. Their Engineers Put It at 75%."
+date: "2026-05-02"
+description: "Monte Carlo surveyed 260 enterprise organizations and found nearly two-thirds deployed AI agents before feeling ready — and 53% already plan to significantly rebuild what they shipped. The real story is the gap between what executives reported and what their engineers knew."
+tags: ["AI agents", "enterprise AI", "agent reliability", "agent verification", "deployment", "2026"]
+author: "SignalPot Team"
+slug: "64-percent-deployed-before-ready"
+---
+
+[Monte Carlo dropped a report on April 28](https://www.globenewswire.com/news-release/2026/04/28/3282734/0/en/two-thirds-64-of-enterprise-leaders-and-engineers-rushed-ai-agents-before-they-were-ready-and-are-now-paying-the-price.html) that should be required reading for anyone currently running AI agents in production, planning to, or already watching their agents behave in ways they didn't anticipate.
+
+The top-line number: 64% of enterprise leaders and engineers at companies with 1,000 or more employees said their organizations deployed AI agents before they felt ready. That's not a fringe finding from a handful of early movers. This is the current state of enterprise AI deployment, across 260 organizations, most of them with agents already in production.
+
+Then there's the second number: 53% of those enterprises already expect to significantly rebuild or redesign AI agent systems they have already deployed. Not iterate. Not patch. Rebuild.
+
+Those two numbers together describe the current state of enterprise AI better than any analyst report published this year.
+
+## The Gap Inside the Gap
+
+The most interesting data point in the report isn't the 64%. It's what happens when you break down who said that.
+
+Among software developers and engineers — the people who actually built the agents, wrote the integration code, and know what the systems can and can't do — the number climbs to 75%. Three in four engineers believe their organizations shipped agents before they were ready.
+
+The executives and business leaders who set those deployment timelines reported a lower number. They saw 64%. The engineers who know the internals saw 75%.
+
+That's not a rounding error. That's a structural gap between the people making deployment decisions and the people who understand what they're deploying. Executives were seeing demos that looked good. Engineers were watching agents behave in ways that didn't match those demos when real data, real users, and real edge cases got involved.
+
+This is the pattern that produces 53% rebuild rates. When the people with operational knowledge don't have the organizational authority to slow down a premature deployment, the timeline compresses and the post-deployment repair budget expands. [The report found](https://www.hpcwire.com/aiwire/2026/04/28/monte-carlo-report-finds-64-of-enterprises-deployed-ai-agents-before-they-were-ready/) that when accountability for agent failures is shared explicitly between engineering and leadership, organizations report significantly lower rebuild expectations — 22% versus 70% among those where engineering alone bears responsibility for failures.
+
+A 22% rebuild rate when accountability is shared. A 70% rebuild rate when engineering is left holding it alone. The accountability structure baked in at deployment time is the single biggest predictor of whether you'll be rebuilding six months later.
+
+## What "Ready" Means (and Why Nobody Defined It)
+
+The survey found that 46% of respondents have agents in full production today, handling customer-facing or business-critical work. Another 39% are in limited production. That's 85% of a 260-organization sample with agents actively running.
+
+The reason 64% deployed before they felt ready isn't that they didn't care. It's that "ready" is genuinely hard to define, and in the absence of a clear definition, organizations default to a simpler question: does the demo work?
+
+The demo almost always works. It's designed to. A well-constructed demonstration against carefully chosen inputs will show an agent performing exactly as intended. The gap between demo performance and production performance is [documented at roughly 37% across enterprise AI deployments](https://www.beri.net/article/stanford-ai-index-2026-agents-66-percent-success) — not because vendors are being dishonest, but because the demo task distribution and the production task distribution are fundamentally different objects.
+
+"Ready" for a demo means: works on these inputs. "Ready" for production means: performs acceptably across the distribution of inputs the agent will actually encounter, including the ones nobody thought to test, the edge cases real users surface in their first week, and the failure modes that emerge at production load.
+
+The second definition requires measurement against real task distributions. It requires adversarial testing on edge cases. It requires knowing what the agent does when its input is ambiguous, malformed, or outside the distribution it was trained on — not just when it's the carefully constructed test case.
+
+Most organizations skip that process and discover it was load-bearing after shipping.
+
+## The Control Problem
+
+Beyond the rebuild rate, there's a finding in the Monte Carlo report that deserves more attention than it's getting.
+
+Nearly one-third of organizations said they could not disable or roll back a harmful AI agent within minutes. Fourteen percent said they could not do it at all.
+
+One in seven large enterprises cannot stop a misbehaving agent even if they want to. These are organizations with enough scale and resources to employ 1,000 people. They are running agents in production that they have no documented path to terminate.
+
+Only 47% of builders say their systems are easily traceable end-to-end when something goes wrong. The majority are stitching together multiple tools and logs, spending significant manual effort to locate failures after they've happened. Agent behavior — how tools are used, when control flow breaks down, what happens in agent-to-agent interactions — topped the list of visibility blind spots, flagged by 62% of builders.
+
+[Nearly two-thirds of those who rushed to deploy](https://e-commerce.news/story/survey-finds-firms-deploy-ai-agents-before-ready) also discovered that an AI agent had accessed data or systems they did not know it could reach. That's not a permissions configuration problem. That's a system put into production without a clear model of what it would do in environments its builders hadn't explicitly anticipated.
+
+## What's Actually Missing
+
+There's an emerging market for tools that help with what comes after. Monte Carlo is building one — the observability space is growing fast, and several useful products are shipping. But observability is the second problem. The first problem is putting agents into production that haven't been evaluated against the tasks they'll actually encounter.
+
+[Google recognized this at Cloud Next 2026](https://cloud.google.com/blog/topics/google-cloud-next/google-cloud-next-2026-wrap-up) in a telling way: Agent Identity, one of the platform's major agentic infrastructure announcements, assigns a unique cryptographic ID to every agent with auditable authorization policies. The infrastructure industry is building toward verifiable agents. The implication is that agents have been running without them.
+
+But verification isn't just about identity. An agent's cryptographic ID doesn't tell you whether it performs reliably on your domain-specific tasks, handles edge cases correctly, or degrades gracefully when inputs fall outside its tested distribution. That requires evaluation — real tasks, real conditions, real distributions. It's the part that can't be outsourced to the platform.
+
+The enterprises that avoid both the 53% rebuild rate and the uncontrollable-agent problem are not the ones who instrument most thoroughly after deployment. They're the ones who measure before deployment — who treat evaluation against representative, domain-specific tasks as a gate, not a retrospective exercise.
+
+The Monte Carlo numbers describe what happens when that step gets skipped in the name of speed: two-thirds deployed before ready, half expecting to rebuild, one in seven unable to stop agents they can no longer fully control.
+
+The rebuild is expensive. The evaluation is not.
+
+---
+
+<MatrixPills />
