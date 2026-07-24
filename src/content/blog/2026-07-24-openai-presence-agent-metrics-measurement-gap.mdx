@@ -1,0 +1,70 @@
+---
+title: "OpenAI Presence Launched With a Resolution Rate. Every Enterprise Agent Is Now Expected to Have One."
+date: "2026-07-24"
+description: "OpenAI launched Presence yesterday — a fully-managed enterprise agent platform that ships with one specific claim: 75% of inbound support issues resolved without human intervention. That number is more interesting than it looks. Not because of what it proves, but because of the norm it establishes."
+tags: ["AI agents", "OpenAI", "enterprise AI", "agent verification", "agent metrics", "benchmarks", "trust", "agent deployment", "2026"]
+author: "SignalPot Team"
+slug: "openai-presence-agent-metrics-measurement-gap"
+---
+
+On July 22, [OpenAI launched Presence](https://openai.com/index/introducing-openai-presence/) — a fully-managed platform for deploying AI agents inside enterprise workflows. Voice agents, chat agents, customer support, outbound sales, internal IT. They're moving from "we give you model access" to "we give you a working agent plus the engineers to keep it working."
+
+The product itself is notable. But the line buried in the announcement is the one that will age best:
+
+OpenAI's own Presence deployment — powering its English-language phone support — resolves 75% of inbound issues without human assistance. A Codex-driven improvement loop cut human handoffs by 15 percentage points over ten days after launch.
+
+That's not a marketing claim. That's an agent publishing its own performance record.
+
+## Why Publishing a Number Is the Real Move
+
+Enterprises have been deploying AI agents for two years. The ones that got good press published case studies: engineering hours saved, tickets deflected, first-draft completion rates. The ones that struggled published nothing. The overwhelming majority published neither.
+
+What OpenAI did with Presence is different in kind, not just degree. They didn't publish a case study after the fact. They shipped the platform with the metrics baked into the product announcement — here is the agent, here is what it accomplishes, here is the infrastructure we used to improve it. That's a product claim with an implied accountability structure.
+
+[VentureBeat noted](https://venturebeat.com/orchestration/openai-unveils-presence-a-new-platform-that-lets-enterprises-launch-and-manage-realtime-voice-agents-and-chatbots/) that Presence uses its own production phone support line (1-888-GPT-0090) as a live benchmark. Every improvement the Codex loop surfaces gets tested against a real workload with real measurement. The feedback cycle is short enough that the product can claim a 15-percentage-point improvement in 10 days.
+
+That's a different architectural posture than "we deployed an agent and it seems to be helping."
+
+## The Problem Is That OpenAI Can Do This. Most Organizations Can't.
+
+The 75% claim is possible because OpenAI controls every layer of the stack. They built the agent. They operate the support line. They collect the outcome data. They define what "resolved" means. The loop from deployment to measurement to improvement is closed — no external dependency, no data sharing agreement, no third-party to validate against.
+
+Early Presence customers — [BBVA exploring voice support for banking in Mexico, SoftBank testing Japanese-language conversations, IAG planning disaster-period support](https://www.streetinsider.com/Corporate+News/OpenAI+launches+Presence,+an+enterprise+AI+agent+deployment+product/26799256.html) — are buying deployment infrastructure, not measurement infrastructure. They get OpenAI's platform and OpenAI's engineers. What they build on top of it is their own agent, running on their own data, handling their own use case. The outcomes are theirs to measure and theirs to publish.
+
+Most of them won't. Not because they're hiding something, but because they haven't built the systems to do it.
+
+[IBM's data from Think 2026](https://newsroom.ibm.com/2026-05-05-think-2026-ibm-delivers-the-blueprint-for-the-ai-operating-model-as-the-ai-divide-widens) found that large enterprises will run over 1,600 AI agents on average by end of year. Seventy percent say their governance isn't fit for purpose. Only 18% maintain a current inventory of what agents they're running. These organizations are not equipped to publish resolution rates. They're still figuring out which agents they have.
+
+## The Norm Shift Happening Anyway
+
+None of that stops the expectation from forming.
+
+[Gartner predicts](https://www.gartner.com/en/newsroom/press-releases/2025-08-26-gartner-predicts-40-percent-of-enterprise-apps-will-feature-task-specific-ai-agents-by-2026-up-from-less-than-5-percent-in-2025) that 40% of enterprise applications will embed task-specific agents by end of 2026, up from less than 5% a year ago. When that much organizational function runs through AI agents, the question "what is this agent actually doing?" becomes impossible to avoid. Boards ask it. Regulators ask it. Employees ask it. And increasingly, the organizations that can answer it with a specific number rather than an anecdote will be the ones that hold the credibility.
+
+OpenAI launching Presence with a resolution rate makes it harder for every other enterprise AI deployment to skip the measurement conversation. You're not competing with OpenAI's support line. But you are now operating in an environment where a major AI lab has established that agent deployments come with performance records. That's the bar you're implicitly being compared against.
+
+The pattern tracks. [A week after Cisco announced its 90,000-employee rollout](/blog/cisco-90000-employees-agent-rollout-measurement-gap), the sharpest question being asked wasn't "does this agent work?" It was "how do you know?" One metric — the MD&A completion rate for finance — was the only thing Cisco had published for any function. At 90,000 people, that's not a measurement program; it's one data point standing in for thousands.
+
+OpenAI's number has the same limitation: it covers one deployment, one use case, one support channel. The value isn't that 75% is comprehensive. The value is that they published anything at all — and made "we measure this" part of the product rather than the press cycle.
+
+## The Infrastructure Gap
+
+The Codex improvement loop inside Presence is the part that deserves more attention than it's getting. OpenAI isn't just measuring their agent. They've built a closed feedback cycle where production data — escalations, handoffs, failed resolutions — automatically surfaces to a system that proposes changes, tests them, and deploys improvements. Fifteen percentage points in ten days is a product of that loop running on real workload data.
+
+That architecture doesn't exist for most enterprise agent deployments. You deploy an agent, you monitor for obvious failures, you iterate when someone files a ticket. There's no systematic mechanism to convert "this agent escalated" into "here's what the agent should have done differently." Without it, agents don't improve at the rate OpenAI's just demonstrated is achievable.
+
+[The Agentic AI Institute estimates](https://agenticaiinstitute.org/agentic-ai-enterprise-adoption-2026-governance-gap/) that 72% of enterprises now have agents in production, but a 60% governance gap remains — meaning most of those agents are running without the oversight infrastructure required to know whether they're performing well or deteriorating over time. Deployment happened. Measurement didn't follow.
+
+## What the Presence Launch Actually Signals
+
+OpenAI entering managed agent deployment is strategically obvious — margins are better, relationships are stickier, and the enterprise budget for "get AI working" has no ceiling right now. That's table stakes.
+
+What's less obvious is the normative shift embedded in shipping with metrics. OpenAI is implicitly arguing that a production AI agent without a performance baseline is not a production AI agent. It's a deployment without accountability. The industry will catch up to that framing.
+
+The organizations that will be well-positioned when it does aren't the ones with the most agents deployed. They're the ones who built the measurement layer before it became a mandate — who can answer "what does your agent accomplish?" with something more specific than "we think it's going well."
+
+That infrastructure doesn't come free with any platform right now. It's something each enterprise has to build, or find, or demand from their vendors. Presence makes it slightly easier to ignore that gap if you're an OpenAI customer. For everyone else, the gap is still entirely yours to close.
+
+---
+
+<MatrixPills />
