@@ -1,0 +1,60 @@
+---
+title: "OpenAI Presence Is a Real Product. Its Trust Architecture Has a Blind Spot."
+date: "2026-07-25"
+description: "On July 22, OpenAI launched Presence — an enterprise platform for deploying AI agents, complete with a Codex-powered loop that lets AI propose improvements to itself. The trust claim is in the product name. The verification infrastructure isn't in the launch post."
+tags: ["OpenAI", "AI agents", "enterprise AI", "agent trust", "agent verification", "self-improving agents", "Presence", "Codex", "2026"]
+author: "SignalPot Team"
+slug: "openai-presence-self-improving-agent-trust-benchmark"
+---
+
+Three days ago, [OpenAI launched Presence](https://openai.com/index/introducing-openai-presence/), an enterprise product for deploying AI agents that can answer questions, resolve customer issues, use company systems, take approved actions, and escalate to humans when needed. The product name says the quiet part loud: these are "trusted AI agents."
+
+One number backs the trust claim. OpenAI says Presence powers its own English-language phone support line and resolves 75% of inbound issues without human assistance. A second figure: a Codex-driven improvement process reduced human handoffs by 15 percentage points within ten days of launch.
+
+Both numbers are real. Both numbers describe OpenAI's own support line. And neither number answers the question every enterprise buyer actually needs answered before they deploy this at scale.
+
+## What Presence Actually Does
+
+Presence is OpenAI's move from selling model access to selling deployment infrastructure. The product layers GPT-5.6 reasoning on top of company-defined policies, guardrails, and escalation rules designed to keep agent behavior predictable as products, customers, and internal data shift over time. It supports voice and chat, targets customer support, outbound sales, and IT service request workflows.
+
+The architecturally interesting part isn't the voice channel or the guardrail framework. It's the feedback loop.
+
+When Presence runs in production, it generates signals: which queries resolved autonomously, which escalated, which took too long. [OpenAI's Codex assistant analyzes those signals and proposes updates](https://developers.openai.com/cookbook/examples/agents_sdk/agent_improvement_loop) — changes to prompts, routing rules, escalation policies. Human teams review the proposed changes and, if they approve, roll them into production. OpenAI credits that loop with the 15-point reduction in handoff rate on their support line in ten days.
+
+This is a genuinely useful architecture. Agents that don't adapt to production feedback will drift — failing noisier as the environment changes around them while their behavior stays fixed. The improvement loop is the right response to that problem.
+
+## What "Human Approval" Actually Checks
+
+Here's the part worth slowing down on.
+
+A Codex-generated diff appears in a human's review queue. It proposes, say, a change to the agent's escalation policy — adding a new intent pattern to the autonomous resolution path. The reviewer reads the diff, decides it seems directionally correct, and approves. Presence deploys the change.
+
+What did the review verify?
+
+It can verify that the proposal is grammatically coherent, that the logic follows from the failure signal Codex was responding to, that the change addresses the specific case that triggered it. What it cannot verify — without performance data — is whether that change is better across the full distribution of queries the agent will now handle. Codex analyzed a slice of production traffic. The change will affect every future query of that type. Human approval of an AI-proposed diff is a plausibility check. It is not a performance test.
+
+That distinction matters precisely because the improvement loop is where the trust claim lives. If the loop is the mechanism that makes Presence "trusted," the loop needs a verification layer underneath it. The question "did this change improve the agent?" needs to be answerable with data, not intuition — with before-and-after performance comparisons on a representative task sample, not with a human judgment call on a code diff.
+
+## The Benchmark Behind the Branding
+
+OpenAI is not doing anything unusual by launching an enterprise AI product with trust in the name and a resolution rate in the press materials. [Salesforce has containment rates for Agentforce](https://www.salesforce.com/news/press-releases/2025/09/17/agentforce-announcement/). ServiceNow publishes containment rates for Now Assist. Microsoft ships governance tooling for Copilot agents. Every major player in enterprise agent deployment is selling trust as a feature, backed by metrics that were defined by the vendor, tested on the vendor's use case, and optimized for the vendor's definitions.
+
+None of those metrics are fabricated. The 75% resolution rate Presence achieves on OpenAI's English-language support line is a real number measuring something real. But it was generated by OpenAI, on OpenAI's traffic, on OpenAI's definition of "resolved," using OpenAI's model. Its portability to your customer base, your workflows, and your definition of resolution is assumed, not demonstrated.
+
+[Gartner projects that 40% of enterprise applications will embed AI agents by end of 2026](https://www.gartner.com/en/newsroom/press-releases/2025-08-26-gartner-predicts-40-percent-of-enterprise-apps-will-feature-task-specific-ai-agents-by-2026-up-from-less-than-5-percent-in-2025), up from less than 5% a year ago. That pace means an enormous number of enterprise agent deployment decisions are being made right now, on metrics designed by the companies being evaluated. The buyers who benchmark independently before they deploy will know what they bought. Everyone else will have a resolution rate and a product branding.
+
+## The Missing Layer
+
+The Codex improvement loop is the right idea. What makes it trustworthy is not human approval of Codex's proposed diffs. It's performance benchmarks that measure what happened before and after each proposed change, across a task distribution that reflects the actual workload — not just the subset of interactions that triggered the improvement proposal in the first place.
+
+That measurement layer — pre-change baseline, post-change comparison, improved versus regressed by task type — is what separates "AI proposed a change and we approved it" from "we know the agent got better at the things that matter." It's the difference between a change management process and a trust architecture.
+
+Presence ships the loop. It hasn't published the measurement infrastructure that would make the loop's outputs verifiable by anyone outside OpenAI.
+
+When AI is improving AI, you need something that isn't AI to verify the result. That something is benchmarks. Competitive, task-level, independently reproducible benchmarks — not on OpenAI's traffic, but on yours.
+
+The improvement loop is table stakes for agents that don't fall apart over time. The verification infrastructure is what makes the loop trustworthy at scale.
+
+---
+
+<MatrixPills />
