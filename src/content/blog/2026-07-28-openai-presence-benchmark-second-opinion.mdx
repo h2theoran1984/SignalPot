@@ -1,0 +1,62 @@
+---
+title: "OpenAI Presence Shipped This Week With One Benchmark. They Measured It Themselves."
+date: "2026-07-28"
+description: "OpenAI launched Presence on July 22 — a full-stack enterprise agent platform that bundles model, deployment, and improvement into one vendor relationship. The headline metric is a 75% resolution rate on their own support line, measured by OpenAI. That number is interesting. The absence of any other number is the story."
+tags: ["AI agents", "OpenAI", "enterprise AI", "agent verification", "benchmarks", "agent trust", "deployment", "2026"]
+author: "SignalPot Team"
+slug: "openai-presence-benchmark-second-opinion"
+---
+
+On July 22, [OpenAI launched Presence](https://openai.com/index/introducing-openai-presence/) — an enterprise platform for deploying voice and chat AI agents. It handles customer support, outbound sales, and internal IT service requests. Each deployment is scoped to specific tasks, with enterprise-set policies on approvals and escalations. OpenAI's Forward Deployed Engineers install and maintain it. A tool called Codex monitors production data and proposes updates automatically.
+
+The headline metric: Presence resolves 75% of inbound issues on OpenAI's own English-language phone support line without human assistance. A Codex-driven improvement cycle cut human handoffs by a further 15 percentage points within 10 days of launch.
+
+75% is a genuinely interesting number. The fact that it's the only number published is more interesting still.
+
+## What OpenAI Just Built
+
+Presence is a vertical integration play. OpenAI now sells you the model, the agent runtime, the deployment team, the continuous improvement engine, and the performance data. Every piece of the stack comes from the same organization.
+
+That's not unprecedented — Salesforce does it with CRM, SAP does it with ERP, Cisco (as of this month) does it with their [90,000-employee agent rollout](https://fortune.com/2026/07/01/cisco-cfo-ai-agents-finance-employees-mark-patterson/). Vertical integration is a reasonable enterprise software strategy, and it often produces better implementation outcomes than stitched-together multi-vendor arrangements.
+
+But enterprise software has always had a measurement layer that sits outside the vendor. Salesforce doesn't measure your CRM success — your sales ops team does. SAP doesn't audit whether your ERP runs your finance function well — your controllers do. With Presence, OpenAI has positioned itself to own all four: the model, the delivery, the monitoring, and the improvement loop. That's a new structure for enterprise AI, and it carries a structural risk that's distinct from anything in traditional SaaS.
+
+The risk isn't that OpenAI is dishonest. It's that the feedback loop is entirely internal. When Codex proposes an update based on production data, OpenAI's system decides what's working. When Presence publishes a resolution rate, OpenAI's telemetry produces the number. There is no external check in the architecture — not because OpenAI designed one out, but because they haven't designed one in.
+
+## Why 75% on Your Support Line Isn't 75% on Mine
+
+The 75% resolution rate is measured on a specific task (inbound English-language phone support), on a specific organization (OpenAI's own customers), in an environment OpenAI built and controls. That is the most favorable possible measurement setup. The agent was trained on OpenAI's data, deployed by OpenAI's engineers, monitored by OpenAI's tools, and evaluated on OpenAI's support traffic.
+
+What's the resolution rate for a mid-market insurance company running claims triage? A healthcare provider handling prior authorization calls? A financial institution routing compliance inquiries? Those environments have different data distributions, different edge case profiles, different definitions of "resolved," and different failure mode costs. The 75% on OpenAI's support line is a proof of concept, not a deployment benchmark.
+
+This is not a criticism of OpenAI's engineering. Their teams are genuinely capable, and the product reflects it. The problem is categorical: a vendor-published metric on a vendor-managed use case is not the benchmark you need to make your deployment decision. It tells you the technology can work somewhere. It tells you nothing about whether it will work for your specific workload.
+
+[Gartner's prediction](https://www.gartner.com/en/newsroom/press-releases/2025-08-26-gartner-predicts-40-percent-of-enterprise-apps-will-feature-task-specific-ai-agents-by-2026-up-from-less-than-5-percent-in-2025) that 40% of enterprise applications will have embedded AI agents by end of 2026 — up from less than 5% in 2025 — is either coming true right now or it's not. We're five months into the year. Products like Presence are the vehicles for that adoption wave. And as that wave peaks, the industry needs to answer a question that 75% (measured internally) doesn't address: at what performance threshold does an enterprise agent become trustworthy enough to run without human review on a given workflow?
+
+## The Codex Loop and Who Owns the Feedback
+
+The most technically interesting part of Presence is the Codex-driven improvement cycle. The system monitors production data and escalations, proposes agent updates, and closes the loop between deployment and improvement automatically. That 15-percentage-point reduction in human handoffs within 10 days came from Codex, not from OpenAI engineers shipping hotfixes.
+
+That's impressive. It's also another layer of the stack that OpenAI owns.
+
+Every signal that shapes how Presence evolves — which escalations it sees, which completions it marks successful, which updates Codex proposes — lives inside OpenAI's infrastructure. Your deployment learns from your traffic, but OpenAI decides what the learning means. The model that results from that improvement cycle is OpenAI's model, updated on OpenAI's interpretation of your outcomes.
+
+Traditional software vendors can't do this. They can ship updates; they can't observe your production system and retrain against it. Presence can. That capability is powerful and also means that "your" agent is more entangled with OpenAI's continuous development process than any SaaS product you've deployed before.
+
+## What Independent Verification Actually Requires
+
+Getting the right answer here isn't complicated, but it requires intentionality:
+
+**Evaluate on your task distribution, not theirs.** The relevant benchmark is how Presence (or any agent) performs on the specific workflows you're deploying it for — your call types, your data, your edge cases, your definition of resolution. That evaluation needs to run before you commit, not after.
+
+**Set baselines before deployment.** The 15-percentage-point improvement in handoff reduction is compelling because it's measured against a baseline — the rate before the improvement cycle. Every enterprise deploying agents should have the equivalent: what's the current human resolution rate, what's the current cost per resolution, what does acceptable agent performance look like in your environment. You can't evaluate improvement without it.
+
+**Run independent evaluation.** If OpenAI measures Presence's performance, that's vendor telemetry. If your team measures it against the same workflows using your own success criteria, that's an evaluation. You need both, and you need them to agree before you scale.
+
+**Compare against alternatives.** 75% on one product against one use case doesn't tell you whether another agent would perform at 80% on yours for half the cost. Competitive benchmarking on real task distributions — not synthetic evals — is how you make that decision.
+
+OpenAI Presence is a serious enterprise product from a serious organization. The 75% number is real evidence that the technology works in the right conditions. The five months left in Gartner's 40% adoption window mean a lot of enterprises are about to make agent deployment decisions under pressure. The ones that do it well will have their own benchmarks, not just the vendor's.
+
+---
+
+<MatrixPills />
