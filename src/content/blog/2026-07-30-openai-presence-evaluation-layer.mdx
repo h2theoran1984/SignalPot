@@ -1,0 +1,62 @@
+---
+title: "OpenAI Built the Evaluation Layer. They're Running It."
+date: "2026-07-30"
+description: "On July 22, OpenAI launched Presence — the first major enterprise agent product to ship with a full evaluation lifecycle built in. Simulation testing, a Codex-powered improvement loop, FDE oversight, and one public metric: 75% autonomous call resolution. OpenAI just closed the verification gap. The question is who's holding the ruler."
+tags: ["OpenAI", "AI agents", "enterprise AI", "agent verification", "agent trust", "evaluation", "forward deployed engineering", "2026"]
+author: "SignalPot Team"
+slug: "openai-presence-evaluation-layer"
+---
+
+On July 22, [OpenAI launched Presence](https://openai.com/index/introducing-openai-presence/) — a product that deploys AI agents inside enterprise customer and employee workflows, delivered exclusively through OpenAI's own Forward Deployed Engineers and a short list of global systems integrators. No self-serve tier. No public pricing. [BBVA Mexico, SoftBank Corp, and Retail Insurance Australia](https://www.artificialintelligence-news.com/news/openai-presence-enterprise-ai-agents/) are the named early customers, spanning customer support, sales development, and IT service workflows.
+
+The headline metric: OpenAI runs its own English-language phone support line on Presence. 75% of inbound calls resolve without a human.
+
+That number is worth sitting with. In April, we wrote about OpenAI shipping sandboxed execution for its Agents SDK — a real containment improvement, and one we noted [answered the security question while leaving the reliability question open](/blog/openai-sandbox-not-a-report-card). In July, OpenAI is giving a specific answer to the reliability question: 75% autonomous resolution, on voice, for a real production workload. That's a more interesting product than the deployment mechanics suggest.
+
+## What Presence Actually Ships
+
+Presence isn't just FDE-assisted deployment. The product includes simulation testing, evaluation tools, approved action frameworks, guardrails, and a Codex-powered improvement loop that processes real production interactions to continuously update agent behavior. The FDE isn't there just to configure integrations and stand up pipelines. They're running an evaluation lifecycle: select workflows, establish permissions, test agents, move to production, then measure and improve.
+
+This is meaningfully different from the forward-deployed engineering wave we tracked earlier this month — the [$9 billion commitment by four labs](/blog/nine-billion-deployment-race-verification-gap) to embed engineers inside enterprises. That wave was deployment infrastructure. Presence is deployment infrastructure plus a managed evaluation cycle, running continuously, powered by the same Codex models that built a chunk of the software industry.
+
+The industry has been saying for two years that verification needs to be built into the delivery model, not bolted on after the fact. OpenAI just shipped a product where that's true.
+
+## The Structural Question
+
+Here's what's worth examining.
+
+OpenAI's evaluation loop runs on OpenAI's models, assessed by OpenAI's engineers, measured against metrics OpenAI selects, with results visible to OpenAI and the enterprise customer. The 75% call resolution number comes from OpenAI's own support line — OpenAI evaluating OpenAI's agent on OpenAI's workload.
+
+That doesn't make the number wrong. It makes it a number you can't independently verify, and a methodology you can't independently replicate.
+
+This is structurally familiar. SAP's consultants certify SAP implementations. Salesforce's delivery partners validate Salesforce deployments. The vendor and the validator have always shared organizational DNA in enterprise software. Nobody considered this a catastrophic problem because the failure modes were legible — if the CRM wasn't populating fields correctly, you could see it. The audit trail was readable.
+
+AI agents complicate this. "Did the agent resolve the call correctly?" is not a question with a simple audit trail. Resolution rate is one metric. What else is the system measuring? What did the 25% of escalated calls have in common? What is the false-positive rate on issues the agent marked closed but weren't? What's the distribution of task types that drove the 75%?
+
+None of that is visible from outside the product. The enterprise customer can see the headline. OpenAI can see everything underneath it.
+
+When the evaluation layer is vendor-controlled, the metric is real. The methodology is opaque.
+
+## What $234 Billion at Stake Creates
+
+Gartner flagged last week that $234 billion in enterprise software spending is at risk from agent AI — not because enterprises are spending more on AI, but because agents are beginning to displace the software they've been paying maintenance on for decades. When the CRM is partially displaced by an agent that manages customer interactions natively, the platform for verifying that the agent does the job correctly becomes more valuable than the platform the agent replaced.
+
+At that scale, the question of who runs the evaluation becomes structurally important. If the dominant enterprise agent products are vertically integrated — vendor-built, vendor-deployed, vendor-evaluated — enterprises end up with a single source of truth about whether their agents are working: the vendor's own metrics. That's workable when the agent is routing calls with a clean resolution rate. It becomes a harder governance question when the agent is managing procurement approvals, flagging compliance exceptions, or handling customer escalations.
+
+Gartner is also projecting that [40% of enterprise applications will have embedded agents by end of 2026](https://www.gartner.com/en/newsroom/press-releases/2025-06-25-gartner-predicts-over-40-percent-of-agentic-ai-projects-will-be-canceled-by-end-of-2027), up from under 5% in 2025. That's a lot of evaluation cycles to own.
+
+## The Gap That's Still Open
+
+The April post on OpenAI's sandbox ended with: "The containment layer is getting built. The verification layer is where the work is."
+
+Presence is the closest thing to a commercially deployed verification layer we've seen from a major lab. The simulation testing, the Codex improvement loop, the FDE evaluation cycle — these are real. The 75% metric is evidence they're measuring something and are confident enough in the number to publish it.
+
+The gap that's still open: independent evaluation. Not the vendor's improvement loop run on the vendor's models against metrics the vendor selected. Evaluation that the enterprise customer can run themselves, against their actual task distribution, with methodology they can read and replicate — and compare against alternatives without asking the incumbent for the data.
+
+The verification layer isn't just about whether the agent works. It's about whether you can know it works without being dependent on the vendor to tell you.
+
+OpenAI just built a very good answer to the first question. The second one is still open — and the further Presence scales, the more consequential the gap becomes.
+
+---
+
+<MatrixPills />
