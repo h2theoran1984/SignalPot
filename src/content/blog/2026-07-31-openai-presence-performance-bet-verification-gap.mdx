@@ -1,0 +1,65 @@
+---
+title: "OpenAI Presence Is Running on OpenAI's Own Phone Line. That 75% Changes the Conversation."
+date: "2026-07-31"
+description: "OpenAI Presence launched on July 22 as an enterprise agent platform with no self-serve tier, no public pricing, and one published performance claim: 75% of inbound calls to OpenAI's own English support line resolve without a human. That number is the most honest thing an AI lab has done in enterprise AI. It's also still not enough."
+tags: ["AI agents", "OpenAI Presence", "enterprise AI", "agent verification", "agent performance", "forward deployed engineers", "agent trust", "2026"]
+author: "SignalPot Team"
+slug: "openai-presence-performance-bet-verification-gap"
+---
+
+On July 22, [OpenAI launched Presence](https://openai.com/index/introducing-openai-presence/) — an enterprise platform for deploying AI agents across voice and chat channels. No self-serve tier. No public pricing. Deployments scoped individually per customer and led by OpenAI's own Forward Deployed Engineers alongside select global systems integrators. The platform combines model reasoning with company-defined policies, guardrails, and escalation logic designed to keep agents behaving predictably as business conditions change.
+
+This could have been a standard enterprise AI platform announcement — notable for what it signals about OpenAI's strategic direction, but not particularly surprising. Then they published a number.
+
+OpenAI runs its own English-language phone support line on Presence. According to [the launch announcement](https://openai.com/index/introducing-openai-presence/), 75% of inbound calls resolve without a human. That's not a benchmark result on a synthetic evaluation suite. It's not a controlled lab test. It's a production deployment, on real customer calls, where OpenAI's own paying customers are the ones evaluating every day whether the agent worked or didn't.
+
+That number is the most important thing in enterprise AI right now. And understanding why requires understanding what the industry has been publishing instead.
+
+## Why Eating Your Own Dog Food Changes the Stakes
+
+Every AI lab will tell you their agents are production-ready. Benchmark reports say so. Internal red teams say so. The forward-deployed engineer who spent six weeks with your team said so. What almost none of them have done is run their own enterprise-facing operation on their own agent stack and published a performance number their customers can test against in real time.
+
+When a company routes its own customer support calls through the same platform it's selling to enterprises, it has aligned its interests with the buyer's interests in a way that is structurally different from publishing a benchmark. If the agent fails OpenAI's own callers, OpenAI hears about it at the same time its enterprise prospects do. The feedback loop is closed. The cost of a bad answer isn't "this benchmark looks worse" — it's "OpenAI's own customers couldn't get support."
+
+This is what skin in the game looks like for an AI agent platform. It's rare. It matters.
+
+[Early customers named publicly](https://saassentinel.com/2026/07/23/openai-launches-presence-an-enterprise-platform-for-voice-and-chat-ai-agents/) include BBVA Mexico, SoftBank Corp, and Retail Insurance Australia — spanning customer support, sales development, and IT service. The delivery arm behind it is the [OpenAI Deployment Company](https://www.streetinsider.com/Corporate+News/OpenAI+launches+Presence,+an+enterprise+AI+agent+deployment+product/26799256.html), a consulting entity OpenAI launched in May 2026, backed by its acquisition of the consultancy Tomoro and a partnership with Bain & Company. This isn't OpenAI selling model access and wishing you luck on implementation. It's OpenAI owning the outcome.
+
+## What the 75% Actually Says
+
+The metric has a specific shape worth unpacking. 75% of inbound calls to OpenAI's English support line resolve without a human. That means:
+
+- 25% still escalate. On a high-volume support line, that number is carrying real operational weight.
+- OpenAI defines "resolved." The definition matters — a call that ends without escalation and one where the customer's problem was actually fixed are not always the same thing.
+- The task distribution is OpenAI's task distribution: API billing questions, rate limit issues, account access, integration problems. That is not your task distribution.
+- Resolution is measured at the call level, not at the answer accuracy level within a call.
+
+None of this makes 75% a meaningless number. A 75% containment rate on a real production support operation is a meaningful signal. If it were 40%, this announcement would look very different. If it were 95%, the entire industry would be moving. 75% says: this is working at a real level, with real headroom, on a real operation that OpenAI is accountable for.
+
+The issue isn't the metric. It's the question it leaves open.
+
+## The Structure of Self-Reported Evidence
+
+Presence is a managed platform with no self-serve tier and no public pricing. This means the only parties who can directly evaluate agent performance are OpenAI's own engineers and the customers in active deployments. What you get, from the outside, is what OpenAI chooses to publish.
+
+Right now, that's one metric from one use case — OpenAI's own support line. The BBVA Mexico deployment has no published performance data. SoftBank's sales development agents have no published qualification rate. The IT service workflows at Retail Insurance Australia have no published resolution benchmarks.
+
+That's not a criticism of Presence specifically. It's the structure of every enterprise AI platform on the market. [Cisco just deployed AI agents to 90,000 employees](https://fortune.com/2026/07/01/cisco-cfo-ai-agents-finance-employees-mark-patterson/) and has published one specific performance metric — the MD&A drafting figure from its finance team, for one function, internally measured and internally published. When [Gartner projects that 40% of enterprise applications will have embedded AI agents by end of 2026](https://www.gartner.com/en/newsroom/press-releases/2025-08-26-gartner-predicts-40-percent-of-enterprise-apps-will-feature-task-specific-ai-agents-by-2026-up-from-less-than-5-percent-in-2025) — up from less than 5% in 2025 — those agents are largely going into production with performance evidence that amounts to: the vendor says it's working, and here's the metric we chose to highlight.
+
+OpenAI publishing 75% is ahead of this baseline. It's a real number from a real deployment. It's still a self-selected data point published by the vendor about their own operation.
+
+## What Comes After the Deployment Wave
+
+[The forward-deployed engineering race that launched in May and June](https://techcrunch.com/2026/07/02/microsoft-launches-its-own-ai-deployment-company-with-2-5-billion-commitment/) — Microsoft committing $2.5 billion and 6,000 engineers, Amazon standing up a $1 billion FDE unit, Anthropic and OpenAI both following — is getting agents deployed at a pace the market hasn't seen before. Presence is the most explicit manifestation of that wave: a fully managed, high-touch delivery model where the lab owns the deployment and runs the outcome.
+
+That model is going to get agents working in production faster than anything that's come before. The closed feedback loop inside an OpenAI or Microsoft FDE engagement is genuinely better than a cold API contract. Enterprises with complex integration surfaces and not enough in-house AI engineering have needed exactly this.
+
+What FDE cannot change: the buyer's need for independent evidence about performance on their specific workload. The 75% tells you how Presence performs on OpenAI's support operation. It says nothing about how it performs on your customer support queue, your document processing workflows, your sales qualification pipeline. Those are different task distributions with different right-answer rates, different failure modes, and different thresholds for acceptable error.
+
+The question buyers are going to start asking — and should be asking now — isn't "do you have a performance metric?" OpenAI just showed the industry you can publish one. The question is: "can someone other than the vendor measure performance on my actual workload?" That's independent evaluation on the specific task distribution the agent is being paid to do. Not a synthetic benchmark. Not the vendor's own support line. The real work.
+
+That capability doesn't exist at scale yet. OpenAI eating its own dog food and publishing 75% is the clearest signal yet that the market is ready for it. The vendor's honest number is progress. The independent number is what trust actually looks like.
+
+---
+
+<MatrixPills />
