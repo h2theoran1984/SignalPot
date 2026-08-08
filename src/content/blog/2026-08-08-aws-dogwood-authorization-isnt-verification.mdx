@@ -1,0 +1,68 @@
+---
+title: "AWS Dogwood Closes the Authorization Gap. The Verification Gap Is Still Open."
+date: "2026-08-08"
+description: "AWS shipped Dogwood two days ago — an open-source policy language that governs sequences of AI agent actions instead of individual tool calls. It's a real advance in agent trust infrastructure. It also clarifies, precisely, what authorized agents can still get wrong."
+tags: ["AI agents", "AWS", "agent verification", "agent authorization", "Dogwood", "Bedrock AgentCore", "enterprise AI", "trust", "2026"]
+author: "SignalPot Team"
+slug: "aws-dogwood-authorization-isnt-verification"
+---
+
+The headline from The New Stack captured the problem exactly: *[Your AI agent's next tool call may be valid but wrong](https://thenewstack.io/aws-dogwood-agent-policies/).*
+
+That's a precise description of a specific gap that most enterprise AI governance tools don't address. AWS shipped [Dogwood](https://aws.amazon.com/blogs/opensource/introducing-dogwood-runtime-verification-for-ai-agents/) on August 6. It closes half of it.
+
+## What Dogwood Actually Does
+
+Most agent authorization systems are stateless. They look at a tool call, check it against a permission policy, and return permitted or denied. That works when tool calls are independent. It breaks when they're not.
+
+Consider an agent managing expense approvals. The permission list says: read expense reports, approve expenses under $5,000, escalate expenses over $5,000 for human review. A stateless system can enforce each action in isolation. What it can't enforce: that the agent reviewed the expense *before* approving it. That escalation came after a read. That no more than $50,000 in total was approved across concurrent sessions today.
+
+Dogwood adds temporal context to Cedar — AWS's open-source authorization language — so policies can reference what the agent has already done this session before deciding whether the current action is permitted. The language and reference interpreter are [available under Apache 2.0](https://aws.amazon.com/blogs/opensource/introducing-dogwood-runtime-verification-for-ai-agents/). AWS has integrated Dogwood support into Amazon Bedrock AgentCore Policy, the managed gateway that sits between your agent and the tools it calls.
+
+The enforcement model is worth understanding: Dogwood runs at the gateway, outside the agent's code. It cannot be bypassed by prompt injection. It cannot be circumvented by model behavior. Whatever the model is told to do, the gateway enforces the sequence constraint regardless. That's a meaningful architectural choice — putting authorization outside the thing being authorized.
+
+The patterns Dogwood enables are specific: workflow sequencing (you must call `read_record` before `update_record`), human approval gates (calls over a dollar threshold route to a human before proceeding), aggregate limits (no more than $X transferred in a single session), and data freshness checks (data accessed must be from within the last N hours).
+
+## The Correct Problem Statement
+
+What Dogwood is solving is important and undersolved. The field spent most of 2024 and 2025 building per-action permission systems. The problem was visible: agents could be prompted to call tools they shouldn't. The answer was access control. The gap Dogwood identifies — and partially closes — is that access control without sequence-awareness doesn't govern the *workflow*. It only governs individual steps.
+
+The New Stack's framing is useful: your agent's next tool call may be valid *and* wrong — wrong in the sense of being out of order, premature, unchecked against prior context, or contradicting an aggregate limit accumulated elsewhere. No amount of per-action permission logic catches that.
+
+This is also why the [EU AI Act's August 2 enforcement of high-risk provisions](https://secureprivacy.ai/blog/eu-ai-act-2026-compliance) lands in the same conversation. The act requires not just human oversight but audit trails that trace agent actions in sequence. Temporal policy logs are almost exactly what compliance auditors will ask for: "show me that the agent couldn't have done Y without first doing X, and that it didn't exceed the approved limit." Dogwood generates that trace as a side effect of enforcement.
+
+## What It Doesn't Solve
+
+AWS is direct about the limits of the reference interpreter: it's for exploration and testing, not production use. That's honest and probably right. More importantly, it flags where the category boundary sits.
+
+Authorization policy — even sequence-aware policy — tells you whether the agent played by the rules. It doesn't tell you whether the agent won the game.
+
+An agent can satisfy every temporal policy check and still:
+- Return incorrect data after a valid `read_record` call
+- Approve an expense based on a number it hallucinated from the document
+- Complete a 6-step workflow and miss the actual goal of step 4
+- Operate at 60% task completion rate without any policy being violated
+
+Authorization is necessary infrastructure. It's not sufficient for trust.
+
+The sequence constraints Dogwood enforces describe the *shape* of correct behavior. They don't measure whether behavior produced *correct outcomes*. [Patronus AI raised $50 million in June](https://techcrunch.com/2026/06/25/patronus-ai-lands-50m-to-build-digital-worlds-that-stress-test-ai-agents/) on the pre-deployment side of this problem — stress-testing agents in synthetic environments before production. Their insight is the same thing from a different angle: you can't trust an agent you haven't tested on the scenarios that matter. Dogwood sits on the authorization layer. Patronus sits on the pre-production testing layer. Neither addresses the ongoing question: is this agent actually performing well on the real work it was deployed to do?
+
+That's the measurement gap. [IBM's survey at Think 2026](https://newsroom.ibm.com/2026-05-05-think-2026-ibm-delivers-the-blueprint-for-the-ai-operating-model-as-the-ai-divide-widens) found enterprises will average over 1,600 AI agents by year-end, with 70% of those organizations saying their governance is not fit for purpose. Governance fitness isn't about whether agents have the right permission sets. It's about whether anyone knows how those agents are performing — which ones succeed on which task types, where failure rates are elevated, how the same task class compares across agent versions.
+
+Authorization tells you the actions were allowed. Verification tells you the outcomes were correct. Dogwood advances the first. The second is still largely unmeasured at the scale enterprises are now operating at.
+
+## The Infrastructure Stack Is Filling In
+
+What's notable about August 2026 isn't any single tool. It's the convergence.
+
+AWS ships Dogwood on the authorization layer. Patronus ships synthetic stress-testing on the pre-production layer. The EU AI Act enforcement date on August 2 creates regulatory pressure that makes governance tooling non-optional. [Gartner predicts 40% of enterprise apps will have task-specific agents by end of 2026](https://www.gartner.com/en/newsroom/press-releases/2025-08-26-gartner-predicts-40-percent-of-enterprise-apps-will-feature-task-specific-ai-agents-by-2026-up-from-less-than-5-percent-in-2025) — and IBM's finding that 70% of governance programs aren't ready for that reality creates a gap that multiple infrastructure categories are racing to close simultaneously.
+
+Dogwood closes one of those gaps clearly and well. The authorization layer needed sequence-awareness. It has it now.
+
+What comes next is the measurement layer — the one that answers whether agents operating inside their policy constraints are actually doing what they were deployed to do.
+
+The rules define the corridor. Performance data tells you how far down it you actually got.
+
+---
+
+<MatrixPills />
