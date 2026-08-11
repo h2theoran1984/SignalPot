@@ -1,0 +1,64 @@
+---
+title: "85% of Enterprises Are Piloting AI Agents. Only 5% Shipped. Amazon's AGI Lab Just Named the Gap."
+date: "2026-08-11"
+description: "At VB Transform 2026, Amazon's AGI director reframed the entire enterprise AI problem: agents aren't stuck in pilot hell because models aren't smart enough. They're stuck because models aren't reliable enough — and reliability, he argued, has four distinct dimensions almost no one is measuring."
+tags: ["AI agents", "enterprise AI", "reliability", "Amazon", "agent verification", "benchmarks", "deployment", "2026"]
+author: "SignalPot Team"
+slug: "amazon-agi-reliability-not-capability-enterprise-gap"
+---
+
+Eighty-five percent of enterprises are piloting AI agents. Five percent have shipped them to production.
+
+That gap has been sitting in the industry's peripheral vision for most of 2026 — acknowledged, cited in decks, generally attributed to integration friction or organizational change management or some combination of institutional reluctance and technical debt. Last week at [VB Transform 2026](https://venturebeat.com/orchestration/amazon-agi-director-says-ai-agent-reliability-not-capability-is-blocking-enterprise-deployment-at-vb-transform-2026), Bryan Silverthorn — Director of AGI Autonomy at Amazon, who joined through the company's Adept AI acquisition and now runs multimodal agent training inside Amazon's AGI lab — gave it a name.
+
+"Enterprises aren't holding back on AI agents because the technology isn't smart enough," Silverthorn said. "They're holding back because it isn't predictable enough."
+
+That's a precise claim, and it's worth sitting with. Not "reliable enough" in the vague sense that most AI commentary invokes reliability. Silverthorn broke it into four dimensions that any enterprise AI deployment has to satisfy before organizations will commit: **consistency** (the same inputs produce the same outputs), **robustness** (performance holds under real-world variation rather than controlled conditions), **predictability** (behavior can be anticipated before it's observed), and **safety** (failures are bounded and recoverable).
+
+Those four properties are different from each other. An agent can be consistent without being robust. It can be robust without being predictable. It can be all three without operating safely at the boundary conditions that matter most. Treating "reliability" as a single dial to turn up has been the industry's way of not solving it. Silverthorn is saying it's four dials, and most organizations haven't instrumented any of them.
+
+## The Benchmark Mismatch
+
+The enterprise AI industry has spent three years measuring the wrong things.
+
+Capability benchmarks — SWE-bench, MMLU, GPQA, HumanEval — answer a useful question: can this model do hard things? They don't answer the question that determines whether an agent ships: does this model do the right thing, repeatedly, in the actual conditions of the actual environment it's running in?
+
+Those are not the same question. A model that can write production code on SWE-bench but inconsistently handles ambiguous task specifications from your internal ticketing system isn't production-grade for your use case, regardless of what the benchmark says. A model that scores well on adversarial evaluation suites but produces confident, wrong answers on your specific data distribution isn't robust. You can have a frontier model with state-of-the-art benchmarks that still fails every one of Silverthorn's four dimensions in your context.
+
+The consequence is predictable and well-documented. [Half of surveyed enterprises report shipping AI agents that passed their internal evaluations but failed real customers.](https://venturebeat.com/orchestration/enterprise-ai-is-entering-an-evaluation-gap-agents-are-gaining-autonomy-faster-than-companies-can-verify-them) The eval passed because it was a capability test. The failure happened because production is a reliability test. Those organizations found out the difference the hard way.
+
+## What the Production Gap Is Actually Measuring
+
+The 85%-piloting / 5%-in-production figure is not a story about hesitant enterprises dragging their feet. It's a measurement artifact. Organizations are stuck in pilot mode because they don't have the instrumentation to know when an agent is ready to leave it.
+
+Think about what graduation from pilot to production actually requires. You need evidence that the agent performs consistently on the full task distribution you're handing it — not the curated demos you ran during evaluation. You need evidence that it degrades gracefully under the input variations that production users actually produce. You need a baseline to measure against so you'll know when model drift, data drift, or scope creep causes performance to erode. And you need some mechanism to compare what you've built against alternatives — because "good enough to ship" is a relative judgment, not an absolute one.
+
+Most organizations have none of these. [Enterprises overwhelmingly track agent uptime while ignoring accuracy.](https://venturebeat.com/orchestration/ai-agents-are-entering-their-rebuild-era-as-enterprises-confront-the-reliability-problem) They have SLAs for availability and almost nothing for task-level performance. The agent is "up" in the operational sense; whether it's producing useful outputs at the rate that justifies deployment is a question they can't answer. So the pilot runs indefinitely, because indefinite pilot is less risky than shipping something you can't verify.
+
+## The EU AI Act Just Made This Mandatory
+
+If enterprise judgment wasn't enough of a forcing function, regulation stepped in.
+
+On August 2 — nine days ago — [the EU AI Act's high-risk provisions became enforceable](https://www.cooley.com/news/insight/2026/2026-08-03-eu-ai-act-transparency-obligations-take-effect-2-august-2026). The compliance requirements aren't one-time audits. They require ongoing risk management throughout the lifecycle, automatic logging for traceability, human oversight capabilities, and continuous post-market monitoring. In a chain of AI agents — which is what most enterprise deployments actually are — the compliance boundary extends to every agent that performs a high-risk function.
+
+Fines run up to 3% of global annual turnover, or €15 million, whichever is higher.
+
+The Act didn't invent a new standard. It formalized the one that good engineering was always going to demand. Post-market monitoring is just what rigorous production deployment looks like when the system in question makes real decisions. What the Act did is put a number on the cost of skipping it.
+
+For EU-market enterprises, the reliability infrastructure that Silverthorn described isn't just a best practice. It's a compliance requirement. And the compliance requirement is the same thing as the measurement program: logging, continuous evaluation against real workloads, human review mechanisms, evidence of ongoing performance that can be produced during an inspection.
+
+## The Measurement Era
+
+The pattern emerging from VB Transform, from the EU AI Act, from Gartner's [prediction that 40% of agentic AI projects will be canceled by end of 2027](https://www.gartner.com/en/newsroom/press-releases/2025-06-25-gartner-predicts-over-40-of-agentic-ai-projects-will-be-canceled-by-end-of-2027) — not because models fail at deployment, but because organizations can't establish clear business value or adequate risk controls afterward — is the same pattern.
+
+The deployment race is over. The measurement era has started.
+
+Silverthorn's four dimensions (consistency, robustness, predictability, safety) are the right framework for what needs to be measured. But framework and measurement infrastructure are different things. Knowing what you need to track is not the same as having the tooling to track it, the baselines to compare against, or the continuous evaluation pipelines that make those measurements live rather than one-time snapshots.
+
+The 80% of enterprises that [report their AI investments deliver measurable economic returns](https://aiagentstore.ai/ai-agent-news/this-week) are the ones who built this infrastructure, or bought it, or partnered with someone who had it. The 95% who end up in the pilot-to-nowhere column are the ones who shipped capability and hoped reliability would follow.
+
+It doesn't follow. You have to build it. And it starts with knowing what you're measuring.
+
+---
+
+<MatrixPills />
