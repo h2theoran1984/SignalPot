@@ -1,0 +1,60 @@
+---
+title: "70% of Enterprises Are Running AI Agents Against Business Data. One in Five Are Ready."
+date: "2026-08-23"
+description: "Obsidian Security just closed an $85M Series D at a $1.1B valuation for monitoring AI agents that touch enterprise data. Nearly 70% of their clients are already in that position. Deloitte says only 1 in 5 organizations are prepared for autonomous agents. Put those numbers together and you have the defining tension of enterprise AI right now."
+tags: ["AI agents", "enterprise AI", "agent security", "agent trust", "Obsidian Security", "Deloitte", "deployment", "verification", "2026"]
+author: "SignalPot Team"
+slug: "obsidian-ai-agent-security-readiness-gap"
+---
+
+On August 4, [Obsidian Security closed an $85 million Series D at a $1.1 billion valuation](https://www.obsidiansecurity.com/news/unlocking-ai-potential-securely) — crossing into unicorn territory on the back of a single data point: nearly 70% of their enterprise clients now allow AI agents to interact with business data.
+
+That number deserves more attention than the round.
+
+Obsidian sells security monitoring for non-human identities — the tokens, service accounts, and AI agents that authenticate against enterprise SaaS stacks and act without human hands on the keyboard. The company pulls telemetry from agentic platforms like OpenAI, Anthropic, Cursor, Google Gemini, and AWS Bedrock, sits between agents and the enterprise data they're touching, and flags when agents step outside expected behavior. The raise — led by Crescent Cove Advisors, with Greylock and Menlo Ventures participating — pushes [total funding past $200 million](https://www.unite.ai/obsidian-security-raises-85-million-series-d-at-unicorn-valuation/).
+
+Revenue justified it. Over 100 customers now spend more than $100K annually; 14 cross the $1M mark. When a security vendor gets to unicorn on those economics, it's not a venture bet on a future market. It's a lagging signal that the market arrived without them.
+
+## The 70% Number
+
+The figure Obsidian disclosed alongside the round — nearly 70% of their clients have AI agents touching business data — is a marker of how fast enterprise deployments moved in the last 18 months.
+
+Read that against [Deloitte's survey released this month](https://www.deloitte.com/us/en/about/press-room/deloitte-survey-examines-ai-readiness-agentic-ai-success.html): only 1 in 5 organizations are prepared to redesign processes for autonomous, agentic operation. Only 5% say their business processes are highly prepared. Only 15% have scaled orchestrated, cross-functional multi-agent adoption.
+
+Put those numbers side by side and you have the picture: the agents are already in. Most organizations weren't ready when they got there.
+
+This isn't unusual for a platform shift. Enterprises adopt first and govern second; security infrastructure follows deployment, it doesn't precede it. But with AI agents, the gap between "deployed" and "secured" is unusually wide, and the consequence of leaving it open is unusually high. These are not passive integrations. Agents authenticate, execute, modify, and in some cases delete. An agent with read/write access to your CRM or your document store, misconfigured or compromised, doesn't just expose data — it acts on it.
+
+## What Security Monitoring Actually Solves
+
+Obsidian's product catches behavioral anomalies at the identity layer: an agent authenticating outside expected hours, accessing data it has never touched before, requesting permissions that weren't provisioned for it. That's runtime enforcement — a tripwire that activates when something is wrong.
+
+That's valuable. It's also the minimum viable bar for deploying agents that interact with business data. The JadePuffer attack in July — [the first confirmed end-to-end AI-driven ransomware campaign](https://siliconangle.com/2026/08/04/obsidian-security-raises-85m-ai-agents-create-cybersecuritys-next-major-attack-surface/) — ran entirely through a compromised agent framework, harvesting credentials from environment variables and pivoting to production databases. Monitoring at the data access layer would have caught the lateral movement. The framework vulnerability that opened the door is a different layer and a different problem.
+
+The broader security ecosystem is catching up. Obsidian's round is the clearest sign yet that AI agent security monitoring has moved from optional add-on to recognized infrastructure. But security monitoring answers one specific question: is this agent behaving in unexpected ways? It says nothing about whether the agent is performing correctly, delivering value, or should be trusted to run the workflow it was assigned.
+
+## The Layer Below the Security Layer
+
+Here's the distinction that matters for the organizations now deploying agents at scale.
+
+Security monitoring tells you when an agent deviates from expected behavior. That's a process boundary question. What it cannot tell you is whether the behavior within those boundaries is actually correct — whether the agent's outputs on your actual task distribution are accurate, whether its failure rate is acceptable for the workload it's running, whether a better-calibrated agent would do the same work more reliably.
+
+Deloitte's survey surfaced this from a different angle: 74% of leaders expect nearly half of their business processes will be redesigned around AI agents within four years, yet only 15% have scaled multi-agent adoption today. The organizations planning that redesign are, at current trajectory, going to build on deployment infrastructure and security monitoring — and skip the layer in between.
+
+The missing layer is performance verification: does this agent do what it was deployed to do, at the reliability required for the workflow it's in? That's not behavioral policy. It's not anomaly detection. It's a measurement problem, and it requires baseline data, task-level outcome tracking, and comparative benchmarking against alternatives.
+
+Without it, organizations running 70% business-data exposure on their agents know whether those agents are behaving safely. They don't know whether those agents are working correctly. Those are different questions, and the infrastructure answering them doesn't overlap.
+
+## What Obsidian's Round Says About the Market
+
+The funding signal is unambiguous: AI agent security monitoring is now recognized infrastructure, and the market has priced it at unicorn scale. That's a meaningful milestone. It means one category of trust gap is receiving serious capital and engineering attention.
+
+It also marks an inflection point. Once security monitoring is baseline, the next question every organization with agents in production will face is the harder one: is this agent doing its job? [Deloitte's data](https://www.hrdive.com/news/only-1-in-5-organizations-are-prepared-to-move-toward-autonomous-ai-agents/828324/) suggests most of them don't have an answer. Only 20% are prepared; only 5% have highly prepared processes. Preparation, in this context, isn't just security readiness — it's the capacity to measure and validate what agents are actually accomplishing.
+
+Obsidian's $85M round validates that the security layer is infrastructure. The verification layer — performance baselines, task-level outcome tracking, comparative evaluation across agent options — is the infrastructure that comes next. Deloitte's 80% unpreparedness figure is the market gap it needs to fill.
+
+The agents are already inside. Now comes the work of figuring out whether to trust them.
+
+---
+
+<MatrixPills />
