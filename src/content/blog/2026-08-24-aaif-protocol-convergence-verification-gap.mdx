@@ -1,0 +1,70 @@
+---
+title: "Both Agent Protocols Just Moved Into the Same House. One Crucial Tenant Is Missing."
+date: "2026-08-24"
+description: "On August 20, A2A and MCP officially became roommates at the Linux Foundation's Agentic AI Foundation — completing the connectivity stack for the agent economy. The same month, a security company hit a $1.1 billion valuation monitoring what agents do. Neither milestone answers the question enterprises actually need answered: are the agents any good?"
+tags: ["A2A protocol", "MCP", "AAIF", "agent governance", "agent verification", "enterprise AI", "Obsidian Security", "trust"]
+author: "SignalPot Team"
+slug: "aaif-protocol-convergence-verification-gap"
+---
+
+On August 20, [Google's A2A protocol formally joined the Linux Foundation's Agentic AI Foundation](https://www.axios.com/2026/08/17/a2a-agentic-ai-foundation-open-ai-standards), placing it alongside Anthropic's Model Context Protocol (MCP) under a single, neutral governance body. The AAIF has grown from 49 members to more than 250 in under a year. AWS, Anthropic, Block, Bloomberg, Cloudflare, Google, Microsoft, and OpenAI are all Platinum signatories.
+
+That's the moment when a stack becomes infrastructure.
+
+The connectivity layer — how agents talk to tools (MCP) and how agents talk to each other (A2A) — is now owned by nobody, governed by everybody, and supported by every major player in the market. This is the TCP/IP moment for multi-agent systems. It happened faster than anyone predicted.
+
+And it's almost entirely beside the point.
+
+## What the Consolidation Actually Means
+
+The significance of both protocols sitting under the same roof is less about governance and more about what it signals: the infrastructure wars are over. Nobody is winning the "my proprietary protocol" bet, because there is no proprietary protocol left to bet on. The plumbing is open, neutral, and increasingly well-specified.
+
+[A2A](https://forkast.news/googles-a2a-protocol-joins-aaif-consolidating-the-agent-economys-protocol-layer-under-one-roof/) handles horizontal communication — how two autonomous agents negotiate tasks, exchange identity credentials, and maintain state across organizational boundaries. MCP handles vertical integration — how an agent connects to tools, databases, and data sources. Together they describe the full interaction surface of a production agent stack. With both under AAIF governance, an enterprise can now build a multi-vendor, multi-cloud, multi-framework agent architecture without betting on any one vendor's protocol surviving.
+
+That's genuinely good news. Reduced integration friction means more agents in more places, built faster. Standards always accelerate adoption. This is what mature markets look like before the next competitive axis emerges.
+
+## The Security Bet
+
+Sixteen days before the AAIF consolidation, [Obsidian Security raised $85 million in a Series D round at a $1.1 billion valuation](https://siliconangle.com/2026/08/04/obsidian-security-raises-85m-ai-agents-create-cybersecuritys-next-major-attack-surface/). The thesis: AI agents operating inside enterprise SaaS environments are the next major attack surface, and organizations need runtime visibility into what those agents are accessing, doing, and potentially leaking.
+
+The market agreed. Obsidian has 60 Fortune 500 customers and more than 100 accounts spending over $100,000 annually on the platform. The new capital extends native governance controls to AI coding and development agents — places where agent access to production data is both high-stakes and, until recently, entirely unwatched.
+
+Obsidian's unicorn round is enterprise security following risk into a new surface. When 96% of enterprises are already running agents and 94% are concerned about AI sprawl — [per OutSystems' 2026 State of AI Development research](https://www.businesswire.com/news/home/20260407749542/en/Agentic-AI-Goes-Mainstream-in-the-Enterprise-but-94-Raise-Concern-About-Sprawl-OutSystems-Research-Finds) — there is real demand for a tool that answers "what are these agents touching?"
+
+That's a legitimate question. And it's not the only one.
+
+## Two Milestones, One Missing Layer
+
+Here's the problem. The AAIF consolidation tells you how agents communicate. The Obsidian Security round funds watching what agents access. Neither answers whether agents are performing.
+
+These are different questions, and the gap between them is where most enterprise AI failures actually occur.
+
+A monitoring platform tells you that your agent queried a sensitive database at 3am. It does not tell you whether the answer the agent returned to your sales team was accurate, hallucinated, or subtly wrong in the way that compounds over ten subsequent decisions. A governance standard tells you that two agents can discover and delegate to each other via a common protocol. It does not tell you which of those agents has a 12% task failure rate on the queries your orchestrator is routing to it.
+
+[Gartner has projected that over 40% of agentic AI projects will be canceled by end of 2027](https://www.gartner.com/en/newsroom/press-releases/2025-06-25-gartner-predicts-over-40-percent-of-agentic-ai-projects-will-be-canceled-by-end-of-2027) — not because of security breaches, and not because of protocol mismatches, but because organizations cannot establish clear business value or adequate risk controls. In other words: they can't prove the agents work.
+
+The protocols give agents a common language. The security tools watch what agents do with it. The verification question — are these agents actually performing at the level the vendor claims, on the tasks you're paying them to do? — remains largely unaddressed by both.
+
+## The Agent Card Problem, Revisited
+
+The A2A protocol introduced Agent Cards as a mechanism for capability discovery: a machine-readable description of what an agent does, what it accepts, what it returns. When an orchestrator makes a routing decision — assigning a task to this agent rather than that one — it reads the Agent Card.
+
+Agent Cards are self-descriptions. They describe capability claims. They don't carry verified performance records, failure rates, or adversarial test results. In the current architecture, routing decisions are made from marketing copy, not measurement.
+
+The web solved an analogous problem. HTTP made any server reachable; SSL and certificate authorities were layered on top because connectivity doesn't imply trustworthiness. The agent economy is currently at the HTTP stage. The certificate authority layer — verified trust signals that orchestrators can consume at routing time — doesn't exist yet.
+
+The AAIF controls the protocol. Obsidian Security monitors access at runtime. Neither is building the thing that answers: *before you route this task, has this agent been independently benchmarked against alternatives on workloads like yours?*
+
+## What This Week Actually Tells You
+
+The consolidation of A2A and MCP under the AAIF is a real milestone — infrastructure-layer disputes are expensive, and the industry is better off with a single neutral home for both protocols. The Obsidian Security round reflects legitimate demand for agent-level security visibility.
+
+But taken together, these two events describe what enterprise AI has built in the last eighteen months: excellent plumbing, improving security monitoring, and almost no independent performance verification infrastructure. Enterprises know how to connect agents. They're starting to know how to watch what agents access. They still largely don't know whether the agents they're running are any good at the tasks those agents were deployed to do.
+
+That's the layer the market hasn't priced yet. It's also, not coincidentally, the layer where most of the production failures are happening.
+
+The foundation is poured. The wiring is being inspected. The question of whether the building is doing what it's supposed to do remains open.
+
+---
+
+<MatrixPills />
