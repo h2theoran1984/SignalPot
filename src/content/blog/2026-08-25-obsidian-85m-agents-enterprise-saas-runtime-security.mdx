@@ -1,0 +1,64 @@
+---
+title: "AI Agents Are Already Inside Your Enterprise SaaS. Obsidian's $85M Is the Market Admitting It."
+date: "2026-08-25"
+description: "Obsidian Security closed an $85M Series D at a $1.1 billion valuation to monitor and control what AI agents do inside enterprise SaaS. More than 65% of their customer base has already given agents direct access to Salesforce, Slack, Snowflake, and GitHub. The market just priced what happens when that access goes unmonitored."
+tags: ["AI agents", "enterprise AI", "security", "agent monitoring", "Obsidian Security", "runtime security", "SaaS", "trust", "2026"]
+author: "SignalPot Team"
+slug: "obsidian-85m-agents-enterprise-saas-runtime-security"
+---
+
+More than 65% of the enterprises [Obsidian Security](https://www.citybiz.co/article/883840/obsidian-security-raises-85-million-series-d-to-expand-ai-agent-security-platform/) protects have already given AI agents direct access to data inside third-party SaaS applications.
+
+Not access to a chatbot that answers questions about your Salesforce. Direct access — agents that can read, write, modify, and delete records inside your Salesforce, Slack, Snowflake, Databricks, GitHub, and GitLab simultaneously, typically without a human in the loop.
+
+[Obsidian just closed an $85 million Series D at a $1.1 billion valuation](https://siliconangle.com/2026/08/04/obsidian-security-raises-85m-ai-agents-create-cybersecuritys-next-major-attack-surface/) to solve the governance problem this creates. The round, led by Crescent Cove Advisors, is the market pricing a gap most enterprises haven't confronted: they don't actually know what their agents are doing in there.
+
+## The Access Problem
+
+AI agents in enterprise environments don't operate in sandboxes. They're wired into the same systems humans use — CRM, data warehouse, code repository, communication platform — and they operate with comparable or broader access than the employees they're meant to assist.
+
+The difference is that human employees are observable. They log in. Their activity is timestamped. Their anomalous behavior triggers alerts calibrated over years of enterprise security operations. When a human account reads 50,000 Salesforce records in two hours, something flags.
+
+When an AI agent does the same thing, the security posture is different. Agents were granted broad access because broad access is what makes them useful. They run continuously. Their activity patterns don't map onto any human baseline. And the security tooling built for human identity — the SIEM rules, the DLP policies, the access reviews — wasn't designed for non-human entities that can traverse your entire CRM in the time it takes to brew a coffee.
+
+Obsidian's answer is what they call runtime protection: the ability to detect and block excessive data access, privilege escalation, and policy violations while AI agents are executing tasks, not after. The "runtime" qualifier is doing real work here. Post-hoc detection tells you what happened. Runtime enforcement changes what's permitted to happen.
+
+## Why Pre-Deployment Testing Isn't Enough
+
+The conventional approach to AI agent security runs before agents go live. You test in a controlled environment, check behavior against expected outputs, review access permissions, get sign-off, and ship. If something goes wrong after, you investigate after.
+
+That model was plausible when agents were narrow and bounded — a tool that answered one category of question in one system. It breaks down when agents are autonomous actors with persistent memory, multi-system tool access, and the ability to chain actions across interconnected platforms.
+
+[Research published in early 2026](https://arxiv.org/pdf/2602.16666) found that guardrails recovered 19.9% of AI agent failures — but only if those guardrails are running during execution. Pre-deployment testing surfaces the scenarios you thought to test. It doesn't catch the privilege escalation that only manifests when an agent is networked with two downstream agents handling an edge-case transaction. It doesn't catch the moment a tool-calling error causes an agent to misread its permission scope and start touching files it was never authorized to access.
+
+The enterprise reality is that agents are already in production. They have been for months. The question isn't whether to allow them in — that decision was made, often implicitly, when teams granted OAuth tokens and API keys to the productivity tools that bundle agents by default. The question is what happens inside the systems you assumed were under human stewardship.
+
+## What the Valuation Signals
+
+Obsidian's $85M is not the first institutional signal in this category — it's the latest in a pattern. [Patronus AI raised $50M in June](https://techcrunch.com/2026/06/25/patronus-ai-lands-50m-to-build-digital-worlds-that-stress-test-ai-agents/) for pre-deployment stress testing. Okta launched agent identity as a generally available product in April. Microsoft open-sourced agent governance tooling that blocks dangerous actions in under 100 milliseconds. OPAQUE brought cryptographic identity to agent-to-agent communication.
+
+Each addresses a different layer of the same unsolved problem. And the sequencing matters. You can't build runtime monitoring for an entity that has no identity. You can't govern an agent in real time if you haven't defined what its permitted actions look like in advance. The investment flowing into runtime security signals that identity and policy layers have matured enough that the next unsolved layer — what's actually happening right now, inside the SaaS your agents are running in — has become the thing institutional capital is chasing.
+
+A $1.1B valuation says the market has concluded this gap is real, addressable, and no longer optional.
+
+## What This Doesn't Answer
+
+Here's the distinction worth making clearly: runtime security tells you if something went wrong. It doesn't tell you if the agent is performing well.
+
+Those are different questions. An agent can be fully monitored for security anomalies — no unauthorized data access, no privilege escalation, clean audit trail — while simultaneously completing tasks at 60% accuracy, misrouting queries, or producing outputs that nobody on the receiving team trusts. Security monitoring tells you whether the agent stayed in bounds. It says nothing about whether it did useful work within those bounds.
+
+The enterprise AI trust stack, built correctly, has three layers. Identity: who is this agent, and is it a distinct, auditable entity. Security: what is the agent doing with its access, in real time. Performance: is the agent actually good at the work it's been authorized to do. Obsidian's round funds the second layer.
+
+The third layer — task-level performance verification against real production workloads, comparative benchmarking across agents doing the same job, continuous measurement of accuracy as models update and data drifts — is the one still being underbuilt. Most enterprises today know more about their agents' security profiles than they do about their agents' accuracy rates. That's backwards. A well-monitored agent that consistently produces wrong outputs is not a better agent than an unmonitored one. It's just a worse agent that you can audit.
+
+## The Bottom Line
+
+Obsidian's $85M is not a cybersecurity story with a niche AI angle. It's a diagnostic about where enterprise AI actually stands in August 2026. Agents are inside your SaaS stack. They have broad access. The security tooling built for human employees doesn't cover them. And 65% of enterprises are in this situation right now, without necessarily knowing what they're looking at.
+
+The market just priced the infrastructure needed to watch what agents are doing while they're doing it. What comes next is pricing the infrastructure to tell you whether what they're doing is any good.
+
+Runtime security is table stakes. Performance verification is still the gap.
+
+---
+
+<MatrixPills />
