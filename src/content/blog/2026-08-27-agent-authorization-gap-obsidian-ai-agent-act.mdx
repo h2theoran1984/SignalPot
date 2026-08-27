@@ -1,0 +1,68 @@
+---
+title: "An AI Agent Spent Your Money. Nobody Can Prove You Authorized It."
+date: "2026-08-27"
+description: "Obsidian Security just hit unicorn status policing AI agents at runtime. Congress just introduced a bill requiring verifiable authorization records. Both are responding to the same structural gap: agents are executing real-world actions with no evidence chain tying them back to what humans actually permitted."
+tags: ["AI agents", "agent authorization", "enterprise AI", "agent security", "AI AGENT Act", "Obsidian Security", "agent trust", "verification", "2026"]
+author: "SignalPot Team"
+slug: "agent-authorization-gap-obsidian-ai-agent-act"
+---
+
+On August 4, [Obsidian Security closed an $85 million Series D at a $1.1 billion valuation](https://finance.yahoo.com/technology/ai/articles/obsidian-raises-85-million-series-120000137.html) to police AI agents operating inside enterprise software stacks. Three weeks earlier, Senator Mark Warner introduced [S.5051, the AI AGENT Act](https://www.congress.gov/bill/119th-congress/senate-bill/5051), which would require AI agents to keep real-time records of every action they take and directs NIST to develop technical standards for proving that a human actually authorized what an agent did.
+
+Two different institutions — venture capital and the United States Senate — reached the same conclusion this month. Agents are taking consequential actions in the world. Nobody can prove they were authorized to.
+
+## What Obsidian Is Actually Selling
+
+Obsidian built its business on SaaS security: monitoring who accessed what in your cloud apps, flagging anomalies, detecting credential abuse. That's a solved problem with a well-understood market. So when a company in that space raises a unicorn round, it's worth asking what changed.
+
+What changed: [nearly 70% of Obsidian's enterprise clients now allow AI agents to interact with their business data](https://www.bankinfosecurity.com/obsidian-secures-85m-to-control-ai-agents-in-saas-apps-a-32511). Agents built on Claude, GPT, Copilot Studio — autonomous systems given OAuth tokens, API keys, and delegated access to CRM records, financial systems, HR platforms, and document stores. These agents aren't answering questions. They're taking actions: writing records, scheduling workflows, pulling sensitive data, executing approvals.
+
+The security model most enterprises had in place was built for humans logging in and clicking things. Agents don't log in. They authenticate as service principals, operate across sessions, and take actions at a pace and volume no human could replicate. The monitoring infrastructure that kept human access visible doesn't generalize.
+
+Obsidian's new platform [provides runtime protection](https://www.unite.ai/obsidian-security-raises-85-million-series-d-at-unicorn-valuation/) — detecting excessive data access, privilege escalation, and policy violations while agents are executing, not after. The key phrase in their announcement is "while agents are executing." Not a log review. Not a weekly audit. A live intervention layer that can block an action mid-execution if it exceeds what the agent was supposed to do.
+
+That's the product. The market size behind it is the 70% of enterprises that gave agents access without any equivalent visibility into what those agents are actually doing.
+
+## What Congress Is Recognizing
+
+The AI AGENT Act takes the same observation and draws different consequences.
+
+The bill defines a "custodial user agent" — an agent authorized to act for a user in a transparent, documented, limited, and revocable manner — and [requires those agents to maintain real-time records of actions taken on a user's behalf](https://www.ksnt.com/news/national/an-ai-agent-spent-your-money-can-anyone-prove-you-authorized-it/). It directs NIST to develop technical standards for verifying that a user delegated authority to an agent in the first place, and for maintaining auditable records of what that agent subsequently did.
+
+The underlying problem the bill is trying to solve isn't abstract. Agents are already executing financial transactions, booking travel, managing subscriptions, and making purchasing decisions on behalf of users across consumer and enterprise contexts alike. When something goes wrong — an unauthorized charge, a deleted record, a misconfigured permission — there is currently no reliable mechanism to reconstruct the authorization chain. Did the user explicitly permit this? Did the agent interpret a broad mandate as specific permission? Did the agent chain to another agent that the user never knew existed?
+
+That evidence chain doesn't exist today in any standardized form. The bill is an attempt to mandate it.
+
+There's an important caveat worth noting: [the bill's own critics point out that it doesn't expressly require a verifiable evidence chain across different systems](https://www.wwlp.com/news/national/an-ai-agent-spent-your-money-can-anyone-prove-you-authorized-it/). An agent that executes a task across three platforms might leave records in each, but no mechanism to link them into a coherent audit trail. The authorization standard the bill envisions is aspirational. The technical infrastructure to deliver it doesn't exist yet.
+
+## Monitoring Isn't Authorization
+
+Here's what Obsidian and the AI AGENT Act have in common: they're both accountability-after-deployment frameworks.
+
+Obsidian monitors what agents do after they're running. The AGENT Act mandates records after actions are taken. Both are genuinely valuable — the industry needs accountability infrastructure, and building it now, before catastrophic failures create political pressure for blunt regulatory responses, is the right moment to do it.
+
+But accountability after the fact is not the same as verification before the action.
+
+The harder and less solved problem is: before you let an agent take an action, can you establish that it's trustworthy enough to take it? Not "is it policy-compliant" — policy compliance is a floor. The real question is whether this agent performs reliably on the specific task class it's being handed, at the reliability threshold the task demands. An agent that's 94% accurate on invoice processing might be good enough for internal workflow drafting and completely unacceptable for external vendor payments. Runtime monitoring catches the violation after the 6% failure rate produces a bad outcome. Verification before deployment is what tells you whether 94% is the right threshold to accept in the first place.
+
+The [State of AI Agent Security Report 2026](https://www.gravitee.io/state-of-ai-agent-security) found that active enterprise deployers are now running between 76 and 100 agents each, doubling every quarter. Most of those organizations don't have baselines for what those agents are supposed to accomplish. They can't tell you whether their invoice-processing agent is performing better or worse than it was three months ago, let alone whether it's performing better or worse than an alternative. They don't have the measurement layer to answer those questions.
+
+Obsidian can tell you when an agent misbehaves. The AGENT Act will eventually require a record of what it did. Neither tells you whether what it did was any good.
+
+## The Infrastructure Stack We're Actually Building
+
+The three layers of the agent trust problem are coming into focus:
+
+**Layer one: Authorization.** Did a human permit this agent to act? The AGENT Act is laying the groundwork for what this standard should look like. It's genuinely important and overdue.
+
+**Layer two: Runtime monitoring.** Is the agent operating within its declared scope? Obsidian and a growing category of runtime security platforms are building this. Also important, also overdue.
+
+**Layer three: Performance verification.** Is the agent actually good at the thing it's doing? This is the layer that doesn't yet have a billion-dollar company, a Senate bill, or a standard. And it's the layer without which the first two layers are insufficient.
+
+You can have a perfectly authorized agent — human-approved, policy-compliant, fully audited — that is simply not performing well enough for the work it's been assigned. Authorization tells you it's allowed to run. Monitoring tells you it's behaving. Verification tells you whether it should be running in the first place.
+
+That's the measurement problem the enterprise AI industry is still deferring. The Obsidian round and the AGENT Act are signs the accountability infrastructure is arriving. The performance verification layer — task-level baselines, comparative benchmarks across agents, continuous measurement against real production outcomes — is what arrives next.
+
+---
+
+<MatrixPills />
