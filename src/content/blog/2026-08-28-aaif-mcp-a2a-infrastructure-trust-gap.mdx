@@ -1,0 +1,72 @@
+---
+title: "The Agent Internet Just Got Its Standards Body. That Solves Connectivity. Not Trust."
+date: "2026-08-28"
+description: "MCP and A2A are now governed by the same foundation, with 250+ members and every major AI player signed on. The agent internet's infrastructure layer is effectively done. The selection and trust layer is not — and the $1.1B bet investors just made proves it."
+tags: ["A2A protocol", "MCP", "AAIF", "agent standards", "enterprise AI", "agent trust", "agent verification", "multi-agent systems"]
+author: "SignalPot Team"
+slug: "aaif-mcp-a2a-infrastructure-trust-gap"
+---
+
+On August 17, Google's Agent2Agent protocol [officially became a hosted project of the Agentic AI Foundation](https://aaif.io/blog/a2a-joins-aaif). AAIF, the Linux Foundation-backed standards body, already houses Anthropic's Model Context Protocol. With this move, the two most significant open protocols in the agent economy now share the same governance umbrella: MCP for how agents reach tools and data, A2A for how agents reach each other.
+
+From fewer than 40 members at its December 2025 launch to [more than 250 today](https://www.forbes.com/sites/janakirammsv/2026/08/19/agent2agent-joins-the-agentic-ai-foundation-alongside-mcp/) — including Google, Microsoft, Amazon, Anthropic, OpenAI, Bloomberg, Shopify, and Block — AAIF is no longer a proposal. It's infrastructure.
+
+This is a real milestone. It's also easy to mistake for a solution to a problem it doesn't touch.
+
+## What Consolidation Under AAIF Actually Means
+
+AAIF now governs the two protocols that define how agents interoperate. That's important. Before MCP, the relationship between an agent and its tools was bespoke — every integration was custom, brittle, and impossible to reuse across systems. Before A2A, agents built on different frameworks lived in isolated silos, unable to discover or delegate to each other without proprietary connectors.
+
+Those problems are now solved at the infrastructure layer. Any agent can reach any tool via MCP. Any agent can reach any other agent via A2A. The agent internet has its protocols, and those protocols have a neutral standards body to evolve them without any single vendor owning the roadmap.
+
+The TCP/IP analogy is apt and overused, but it's accurate: this is the moment the protocols that make agents interoperable became public infrastructure rather than competitive moats.
+
+The analogy also tells you exactly what this doesn't solve.
+
+## HTTP Made the Web Connected. It Didn't Make It Trustworthy.
+
+When HTTP became the standard for web communication, it solved the connectivity problem completely. Any browser could reach any server. Information that had been siloed in proprietary networks suddenly became universally accessible.
+
+What HTTP didn't provide: any signal about whether a given server was who it claimed to be, whether the content it returned was accurate, or whether handing it your credit card number was a reasonable thing to do. SSL came later. Certificate authorities came later. The entire infrastructure of web trust — domain verification, reputation signals, fraud detection, phishing blacklists — was built on top of the connectivity layer over years, in response to the problems that universal connectivity made possible.
+
+The AAIF consolidation is the HTTP moment for agents. The connectivity problem is solved. The trust architecture hasn't been built yet.
+
+## The $1.1B Signal That Proves the Gap
+
+On August 4 — two weeks before the AAIF announcement — Obsidian Security [raised $85 million at a $1.1 billion valuation](https://www.obsidiansecurity.com/news/unlocking-ai-potential-securely) to do one thing: watch what your AI agents do after you've deployed them.
+
+Obsidian's platform monitors agents running across Microsoft Copilot Studio, Salesforce Agentforce, Google Vertex, Amazon Bedrock, Anthropic Claude Code, and n8n. It catches privilege escalation, excessive data access, and policy violations at the point of execution — not after the fact. More than 60 Fortune 500 companies are customers. Over 100 now spend more than $100K annually on the product.
+
+That is not a niche security play. That is the market telling you, in the clearest possible financial terms, that enterprises are deploying agents they don't fully trust and building the monitoring infrastructure to compensate.
+
+The protocols are scaling. The capabilities are scaling. The trust baseline that would make monitoring less urgent is not.
+
+## What AAIF Doesn't Govern
+
+Here's the specific gap. A2A's Agent Card format gives an agent a machine-readable way to describe its capabilities: what tasks it accepts, what inputs it expects, what outputs it returns. MCP defines how agents connect to tools and invoke them. AAIF will govern how these standards evolve.
+
+What neither protocol specifies, and what AAIF's charter doesn't address:
+
+**Whether the agent claiming those capabilities is any good at them.** An Agent Card describes. It doesn't certify. When an orchestrator reads a card and routes a task to an agent claiming expertise in financial document processing, it has no AAIF-standardized signal about whether that agent succeeds on that task type 97% of the time or 61% of the time. The card is self-description. At internet scale, unverified self-description is a known failure mode — and we know it because the web already taught us.
+
+**How capabilities degrade over time.** Agents change. Underlying models get updated. Prompts drift. Fine-tuned behaviors shift as the broader model evolves. A capability claim that was accurate at deployment may not reflect the agent running in your environment six months later. AAIF's governance covers protocol evolution, not agent freshness.
+
+**How agents compare on the work that actually matters.** If five agents claim they can do supply chain forecasting, your orchestrator needs to know which one to route to. That decision can't be made from Agent Cards alone. It requires evidence — head-to-head benchmarks on representative task sets, performance data from production deployments, failure mode analysis across edge cases. None of that lives in the protocol layer.
+
+## The Infrastructure Is Done. The Selection Problem Isn't.
+
+AAIF's 250-member coalition means the connectivity layer will be maintained, evolved, and defended as neutral open infrastructure. That's the right outcome. Nobody should want the protocols that make agents interoperable to be owned by any single vendor.
+
+But the enterprises deploying agents inside that infrastructure still face the same decisions they faced before August 17. Which agent do you actually put in the loop? On what evidence? Against which alternatives? At what performance threshold does an agent earn the right to run a workflow without human review?
+
+Those questions belong to practitioners, not to standards bodies. And the fact that Obsidian raised $85M to catch agents going wrong after deployment — [with a platform now used by 60 Fortune 500 companies](https://www.securityweek.com/obsidian-security-raises-85-million-at-1-1-billion-valuation/) — tells you the question isn't being answered early enough in the stack.
+
+Runtime monitoring is the right last line of defense. It shouldn't be the first line. The organizations that win at agent deployment won't be the ones with the best dashboards for catching agents going rogue. They'll be the ones that made the right selection and verification decisions before the agents were deployed, continuously reassessing as the agents and the environments they operate in evolve.
+
+AAIF is the foundation. What gets built on top of it — the agent equivalent of SSL, certificate authorities, and reputation systems — is the work the industry hasn't finished yet.
+
+The infrastructure era is over. The trust era is just starting.
+
+---
+
+<MatrixPills />
