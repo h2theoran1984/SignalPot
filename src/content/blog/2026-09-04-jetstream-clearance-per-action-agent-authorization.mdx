@@ -1,0 +1,68 @@
+---
+title: "You Can't Govern an Agent Action You Already Let Happen"
+date: "2026-09-04"
+description: "JetStream's new Clearance engine evaluates and blocks individual tool calls before they execute — not after. With 88% of enterprise teams reporting AI agent security incidents in the past year, per-action authorization is becoming the design constraint that enterprise AI can't afford to skip."
+tags: ["AI agents", "agent security", "agent governance", "enterprise AI", "JetStream", "agent trust", "authorization", "2026"]
+author: "SignalPot Team"
+slug: "jetstream-clearance-per-action-agent-authorization"
+---
+
+This week, [JetStream debuted a product called Clearance](https://aiagentstore.ai/ai-agent-news/this-week) — a reasoning engine that sits between an AI agent and the tools it can call, evaluating every proposed action before it executes. Not flagging it after. Not logging it for review. Blocking it, or approving it, in real time, before the agent touches anything.
+
+The timing is not coincidental. A [survey published alongside the launch](https://aiagentstore.ai/ai-agent-news/this-week) found that 88% of organizations with AI agents in production reported at least one security incident in the past 12 months. Okta separately flagged surging demand for identity infrastructure specifically to control what agents can access and when.
+
+The industry has been building agent capabilities at speed. It's now beginning to build the containment architecture that those capabilities require.
+
+## The Authorization Gap Nobody Talked About
+
+The standard mental model for AI agent safety focuses on two moments: before deployment (did we test it well enough?) and after failure (what do we roll back?). What Clearance addresses is the moment the industry has been implicitly skipping: during execution, at the action level, before anything irreversible happens.
+
+An AI agent with tool access doesn't do one thing. It does a sequence of things — query a database, write a file, call an API, modify a record, send a message — and the chain is often only legible in retrospect. By the time a human reviews an agent's logs, the action has already been taken. Maybe several actions. Maybe in a production environment, with downstream effects that are genuinely hard to unwind.
+
+Logging what happened is not the same as governing what happens. The industry built robust logging first because logging is architecturally easier. You instrument the agent's outputs and you have a record. But a record of a breach isn't a prevention of one.
+
+Per-action authorization is what prevention looks like: a reasoning layer that evaluates the proposed tool call in context — what the agent was asked to do, what it has done so far, what the proposed action would change — and makes a yes/no decision before the state of the world changes.
+
+This is not a new idea. It's how every serious access control system for human users works. You set permissions. You require reauthentication for sensitive actions. You apply rate limits. You maintain audit trails that reflect decisions made in advance, not just outcomes logged after the fact. The question is why it took this long to apply the same model to agents.
+
+## The Answer Is Scale and Timing
+
+The reason per-action authorization wasn't built first is that agents got capable enough to cause real damage faster than the governance tooling could follow.
+
+A year ago, most enterprise AI agents were tightly scoped: answer a customer support query, generate a draft document, summarize a meeting. The blast radius of a bad action was small. The attack surface was narrow. Logging was probably sufficient.
+
+That's no longer the world the industry is operating in. [Salesforce and Anthropic's expanded partnership this week](https://aiagentstore.ai/ai-agent-news/this-week) — embedding Claude as the default reasoning model across Salesforce's agentic layer — means CRM workflows, pipeline management, and customer data operations are now being routed through agents that have considerably more access and decision-making authority than what came before. That's not a critique. That's the value proposition. But it's also a larger blast radius.
+
+[Cisco's deployment of AI agents to all 90,000 of its employees](https://2026-07-14-cisco-90000-employees-agent-rollout-measurement-gap), which concluded last month, is another example of scale changing the risk calculus. When an agent failure affects one team, you handle it internally. When it affects 90,000 employees simultaneously across all functions, you're dealing with organizational-scale failures that logging-after-the-fact was never designed to contain.
+
+The 88% breach rate is a lagging indicator. It's measuring what happened when capability outpaced containment. Clearance is a leading indicator — it's a bet that per-action authorization is now the architecture that enterprise deployments require.
+
+## What "Per-Action" Actually Means
+
+The distinction worth understanding is between policy-level governance and action-level governance.
+
+Policy-level governance says: "This agent has permission to read customer records, write to the CRM, and send emails on behalf of the sales team." That's role-based access control, applied to agents. It's necessary. It's also insufficient for the way modern agents actually execute tasks.
+
+An agent authorized to "read customer records and send emails" can, in principle, read ten thousand customer records and send ten thousand emails in a single session. The policy doesn't distinguish. It has no mechanism to evaluate whether a particular proposed action — this email, to this recipient, with this content, at this moment in the task sequence — is within the spirit of what it was authorized to do.
+
+Action-level governance evaluates the specific proposed call in context. It's the difference between "you can drive" and "you shouldn't take this specific turn at this speed in these conditions." The first is a policy. The second is a judgment. Clearance is building the machinery to make that judgment automatically, in real time, at scale.
+
+The hard part isn't the idea. It's the latency. Every evaluation that happens between an agent's decision and its action is a millisecond cost on the execution path. If your authorization layer is slow, agents become unusable. If it's fast but shallow, you've recreated the logging problem with extra steps. The value in Clearance's approach is that it uses a reasoning model to evaluate the action in full context — which is also what makes it expensive to get wrong.
+
+## Trust Is Upstream of Governance
+
+Here's the framing that matters for how enterprises should think about this.
+
+Governance tooling — policy files, audit dashboards, compliance frameworks — assumes you have a definition of correct behavior for the agent being governed. It tells you when the agent deviates. It doesn't tell you what the agent's correct behavior actually is.
+
+Per-action authorization is one layer of that problem. It answers the question: should this specific action be permitted right now? That's different from the question of whether the agent is performing well — whether it's accurate, reliable, completing the tasks it's supposed to complete at the quality level the workflow requires.
+
+Both questions matter. The industry is starting to fund serious answers to both. What the 88% figure tells you is that the cost of deferring either answer is no longer theoretical.
+
+The agents causing those security incidents weren't necessarily performing poorly on their stated objectives. They were acting within their authorization boundaries in ways that violated the implicit expectations of the organizations running them. Clearance is designed to catch the gap between what an agent is technically permitted to do and what it should actually do in a given moment.
+
+That gap has a name. It's the trust problem. And it turns out you can't solve it by looking backward at what already happened.
+
+---
+
+<MatrixPills />
