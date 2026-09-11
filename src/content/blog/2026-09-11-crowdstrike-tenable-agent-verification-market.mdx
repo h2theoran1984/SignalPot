@@ -1,0 +1,52 @@
+---
+title: "CrowdStrike and Tenable Just Invented the Same Product. It Tells You Where the Agent Market Is Heading."
+date: "2026-09-11"
+description: "In the same week, CrowdStrike launched a 'Verified Agent' certification track for its Falcon marketplace and Tenable shipped a pre-deployment security inspector for agents and multi-agent playbooks. When two of the largest enterprise security vendors converge on the same gap independently, that's not a product launch. It's a market signal — and it reveals a verification split that the industry hasn't finished building."
+tags: ["agent verification", "CrowdStrike", "Tenable", "enterprise AI", "agent marketplace", "agent security", "AI agents", "2026"]
+author: "SignalPot Team"
+slug: "crowdstrike-tenable-agent-verification-market"
+---
+
+CrowdStrike launched a "Verified Agent" certification track inside its Falcon marketplace this week. Tenable shipped a pre-deployment security inspector for agents, skills, and multi-agent playbooks the same week. Two of the largest enterprise security vendors, without apparent coordination, built the same product category in the same reporting cycle.
+
+When that happens, it's not a coincidence. It's the market telling you where the pressure is.
+
+## What Each Product Actually Does
+
+[CrowdStrike's Verified Agent certification](https://aiagentstore.ai/ai-agent-news/this-week) sits inside its Accelerate Partner Program. Partners who build agents on the Falcon platform can earn a certification tier that signals security posture, integration integrity, and behavioral compliance. The certification is tiered — there are defined tracks for building, reselling, and managing agents — and the "Verified" label functions as the trust signal for enterprise procurement teams deciding which agents to approve for production use.
+
+[Tenable's CyberAgents Exchange AI Inspector](https://aiagentstore.ai/ai-agent-news/this-week) operates at the intake gate. Before an agent, skill, or multi-agent playbook is allowed to run in production, security teams audit it for risky components — exposed permissions, unexpected network calls, behavioral signatures that match known malicious patterns. It's a security scan for agents, run at deployment time, by the team that already owns the vulnerability management stack.
+
+Different mechanisms, same underlying architecture: put a verification layer between the agent and production, and make that layer visible to the enterprise buyers who need a paper trail.
+
+## The Convergence Signal
+
+Security vendors don't build products speculatively. CrowdStrike and Tenable both operate in environments where buying cycles are long, enterprise approval is slow, and product roadmaps are locked well ahead of launch. If both organizations prioritized agent verification in the same cycle, it's because their sales pipelines were both telling them the same thing: enterprise customers are buying agents and have no mechanism to evaluate them.
+
+That's the gap both products are targeting. The agent marketplace has grown fast enough that procurement teams — not just security engineers, but legal, finance, and IT governance — need a trust signal they can present to their own stakeholders. A vendor's benchmark scores and a demo don't fulfill that function. A certification from a named, credible platform that already lives in the enterprise security stack does.
+
+What CrowdStrike is building is a distribution-integrated trust signal: if the agent is verified in the platform your security team already runs, the internal approval path is shorter. What Tenable is building is a pre-deployment gate: if you can't pass the inspector, you don't get to production. One is market-facing; the other is internal control. Both answer the same question enterprise buyers are asking: *who told you this agent is safe to run?*
+
+## What Security Verification Doesn't Cover
+
+Here's the gap in both product narratives, and it matters.
+
+Security verification is a necessary condition for enterprise agent deployment. It is not a sufficient one.
+
+Tenable's inspector can tell you that an agent doesn't have a misconfigured permission set, doesn't exfiltrate data, and doesn't exhibit known malicious behavioral patterns. CrowdStrike's certification can tell you that a partner agent meets Falcon's integration standards and compliance baseline. Neither product can tell you whether the agent actually performs the task it was procured to perform — and at what accuracy rate, against what failure modes, relative to what alternatives.
+
+An agent can be fully verified from a security perspective and still deliver 61% task accuracy on the workflow it was sold to automate. Security posture and operational performance are orthogonal dimensions. The enterprise buyer needs both, and only one of them now has a market with two major vendors racing into it.
+
+[Gartner's projection](https://www.gartner.com/en/newsroom/press-releases/2025-06-25-gartner-predicts-over-40-percent-of-agentic-ai-projects-will-be-canceled-by-end-of-2027) that over 40% of agentic AI projects will be cancelled by end of 2027 cites unclear business value and inadequate governance — not security incidents. [Automation Anywhere's 2026 enterprise evaluation guide](https://www.automationanywhere.com/company/blog/ai-agent-benchmarks) makes the performance gap explicit: public benchmarks are "saturating and gameable," and deployment-context evaluation is what's missing. Security verification was presumably in place for those cancelled projects. Performance verification was not.
+
+## The Market Being Built
+
+The signal from CrowdStrike and Tenable isn't that security verification is the solution. It's that verification as a product category is becoming real, and the first entrants are attacking the side they know best: security posture. That's a rational wedge — security teams have dedicated budget, security concerns block procurement, and both brands carry institutional weight with enterprise security buyers.
+
+The adjacent gap, the performance verification gap, is where the next market builds. The enterprise isn't just asking *is this agent safe?* It's also asking *does this agent work?* Those are different products, different data requirements, and different organizational buyers. The security layer is being built now. The performance layer — task-level evaluation against actual workloads, accuracy baselines before deployment, comparative benchmarking on the specific work the agent is being paid to do — is where the infrastructure is still missing.
+
+The week CrowdStrike and Tenable both ship agent verification products is the week the category becomes official. The question "who verified this agent?" has crossed the threshold from aspiration to vendor offering. The more specific follow-up — "who verified that this agent *performs*?" — is the one that comes next.
+
+---
+
+<MatrixPills />
