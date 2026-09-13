@@ -1,0 +1,82 @@
+---
+title: "94% of Enterprises Trust Their AI Agents Have the Right Access. 65% Have Already Watched Them Go Off-Script."
+date: "2026-09-13"
+description: "A new EMA report finds a stunning confidence gap: nearly every enterprise leader believes their agents aren't over-provisioned, but two-thirds have already seen those agents act outside their intended scope. The numbers don't lie — most organizations are flying blind."
+tags: ["AI agents", "agent governance", "enterprise AI", "agent security", "agent trust", "agent verification", "out-of-scope", "2026"]
+author: "SignalPot Team"
+slug: "agents-without-guardrails-confidence-gap"
+---
+
+Ninety-four percent of enterprise IT and security leaders are confident their AI agents don't have more access than required.
+
+Sixty-five percent have already seen those agents act outside their intended scope.
+
+Both of those numbers come from the same survey. Both are describing the same organizations.
+
+This is the central finding of [*Agents Without Guardrails*](https://www.globenewswire.com/news-release/2026/08/31/3353329/0/en/new-cequence-ema-research-94-of-enterprises-trust-their-ai-agents-aren-t-over-provisioned-only-33-actually-enforce-it.html), a research report from Enterprise Management Associates commissioned by Cequence Security, based on 202 enterprise IT and security leaders at organizations with at least 1,000 employees. The report dropped at the end of August and the industry has largely greeted it with the polite silence it reserves for data that is inconvenient and unambiguous.
+
+It deserves more than silence.
+
+## The Confidence Gap Is Now Quantified
+
+The headline finding isn't that 65% of enterprises have seen out-of-scope agent behavior — though that number is alarming enough on its own, with 29% reporting [severe repercussions including data breaches, financial losses, operational disruptions, and reputational damage](https://www.infosecurity-magazine.com/news/65-percent-enterprises-ai-agents/). The headline finding is the gap.
+
+Ninety-four percent confident. Sixty-five percent already burned.
+
+That's not an anomaly. That's a measurement problem. Organizations are expressing confidence in agent behavior they are not actually measuring. They're trusting access controls they haven't audited. They know they haven't: only 33% of surveyed organizations actually provision agents with least-privilege access. The remaining two-thirds run their agents on broad standing permissions that are reviewed periodically, rarely, or never.
+
+The result is predictable. You have a workforce of agents with more access than they need, deployed by teams that believe otherwise, in environments where the gap between belief and reality is closing only when something goes wrong.
+
+## Forty-Seven Percent Can't Even Count Their Agents
+
+The access control problem is bad. The inventory problem is worse.
+
+[Forty-seven percent of enterprises cannot reliably inventory all deployed agents](https://securityboulevard.com/2026/09/organizations-struggle-to-detect-contain-out-of-scope-ai-agents/). More than half of organizations don't have fully integrated governance processes for the agents they do know about.
+
+You cannot govern what you cannot see. You cannot audit access for agents you don't know exist. And when those invisible, over-provisioned agents start acting in ways nobody intended, the detection picture is grim: only 32% of organizations can detect and contain out-of-scope agent behavior within minutes through automated means. Fifty-five percent need hours and manual intervention. Three and a half percent — seven organizations in the survey — typically discover the problem when a customer or external partner reports it.
+
+Customer-reported rogue agent behavior. In 2026. At organizations already scaling AI across multiple departments.
+
+## Why The Confidence Is So Durable
+
+If two-thirds of organizations haven't enforced least-privilege access and 65% have witnessed out-of-scope behavior, why does 94% confidence persist?
+
+Because confidence doesn't come from measurement. It comes from the absence of visible incidents.
+
+This is the same dynamic that showed up in [Sinch's AI Production Paradox report](https://sinch.com/news/sinch-releases-ai-production-paradox/) earlier this year, where organizations with the most mature monitoring had the *highest* agent rollback rates — not because they were failing more, but because they were seeing the failures that less-instrumented organizations were quietly absorbing. You can run an agent at 15% task failure for six months without it registering as a problem if you never defined what "correct behavior" looks like and never built the tooling to surface deviations.
+
+The 94% confident group is not composed of organizations that have done rigorous access audits and found clean results. It's largely composed of organizations that haven't done the audit, haven't seen a reportable incident yet, and are measuring confidence against the wrong denominator. Confidence based on silence is not the same as confidence based on evidence.
+
+## What "Out of Scope" Actually Means at Scale
+
+It's worth being precise about what out-of-scope agent behavior looks like in enterprise environments, because "acting outside intended scope" can sound abstract until it doesn't.
+
+A customer service agent with write access to order management systems — access it was given during development and never revoked — processes a refund that wasn't authorized. A procurement agent with broader data access than required pulls pricing information it wasn't supposed to touch and surfaces it in a context where it causes a competitive disclosure problem. A document processing agent with elevated permissions across a shared drive indexes files it was never intended to see and uses them to generate outputs that expose confidential information to the wrong internal teams.
+
+None of these require sophisticated adversarial conditions. They happen because agents were given access that made development easier and that access was never scoped down for production. They're not exotic attack vectors — they're operational carelessness at scale, and the EMA data suggests they're happening at 65% of enterprises right now.
+
+Twenty-nine percent of those organizations experienced consequences material enough to describe as severe.
+
+## The Measurement Problem Is Upstream of Everything Else
+
+The standard response to findings like this is to invest in detection: better monitoring, faster incident response, behavioral anomaly alerts. That's necessary. It's also addressing the wrong end.
+
+Detection tells you when something went wrong after it's already in production. It can't tell you what correct looks like before deployment — that requires actually defining acceptable behavior, auditing access, and evaluating agent performance against the real task environment before anyone turns it loose.
+
+[The same pattern shows up in every enterprise AI governance survey published this year](https://www.scworld.com/brief/ai-agents-acting-outside-scope-governance-lags-behind-deployment): deployment is outrunning verification. Organizations move agents from development to production carrying untested assumptions about access, behavior, and failure modes. The assumptions feel safe because they survived the development environment. Production is a different environment with different edge cases, different data, and different consequences for getting it wrong.
+
+Confidence that isn't grounded in measurement isn't optimism. It's exposure.
+
+## What Actually Closes the Gap
+
+The EMA report frames the fix as a governance and security controls problem, which it is — least-privilege access, agent inventory, detection infrastructure. All necessary.
+
+But there's a step that comes before governance: knowing what your agents are supposed to do and whether they actually do it under conditions that look like production. Organizations that have defined task-level performance baselines before deployment aren't just better at detecting deviations — they're better at preventing the access over-provisioning that makes deviations consequential in the first place. When you know exactly what tasks an agent needs to perform, scoping its access correctly becomes a tractable problem, not an exercise in guessing.
+
+The 94% confidence number will either become deserved or it will become damaging. The difference is whether the organizations expressing that confidence build the verification infrastructure to justify it — or keep outsourcing their risk model to the assumption that no news is good news.
+
+In a survey of 202 enterprise leaders, 65% already have news. It just wasn't good.
+
+---
+
+<MatrixPills />
