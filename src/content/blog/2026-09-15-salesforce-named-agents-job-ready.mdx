@@ -1,0 +1,73 @@
+---
+title: "Salesforce Named Its AI Agents. What Makes Any of Them Job-Ready?"
+date: "2026-09-15"
+description: "Salesforce launched seven named AI agents this week — Casey, Paige, Carter, and four others — just ahead of Dreamforce. The naming strategy is deliberate and revealing. But 'job-ready' is a performance claim, and the governance layer that would let you actually verify it doesn't ship until 2027."
+tags: ["Salesforce", "Agentforce", "enterprise AI", "AI agents", "agent verification", "governance", "Dreamforce", "2026"]
+author: "SignalPot Team"
+slug: "salesforce-named-agents-job-ready"
+---
+
+Dreamforce opens today in San Francisco, and Salesforce spent the week before it shipping seven named AI agents to production: [Casey for customer service, Paige for IT and HR, Carter for commerce, Hunter for outbound sales, Marshall for supply chain, Piper for inbound pipeline, and Fin for customer experience](https://www.technobezz.com/news/salesforce-agentforce-seven-ai-agents-launch). Six are generally available. Hunter is in pilot until November.
+
+The naming isn't cosmetic. It's a deliberate framing decision — and it tells you something about where enterprise AI procurement is heading.
+
+## Why Naming Matters
+
+Until recently, enterprise software vendors shipped AI capabilities the way they shipped any other feature: as modules, connectors, add-ons. You bought the AI-assisted forecasting component. You enabled the intelligent routing add-on. The capabilities were features of your existing platform, not entities with roles.
+
+Salesforce is doing something different. [Casey isn't "the AI customer service module." Casey is a hire](https://enterprisedna.co/resources/news/salesforce-agentforce-job-ready-agents-dreamforce-2026/). The framing is deliberately personnel-adjacent — which changes the procurement conversation significantly. When you evaluate a feature, you ask whether it works. When you evaluate a hire, you ask whether they can do the job.
+
+That's not a subtle distinction. It shifts the baseline question from "does this integrate with my stack?" to "does this perform at the level the job requires?" Those are different questions, and the second one is harder to answer.
+
+Salesforce is also shipping a new runtime alongside these agents — one that [allows an agent to hold a goal across days or weeks rather than a single conversation](https://ppc.land/salesforce-agents-gain-a-runtime-that-pursues-goals-over-weeks-not-chats/). Casey can own a service resolution across a multi-day thread. Hunter can work a prospect across multiple touchpoints without resetting context at each session boundary. This is a meaningful architectural advancement over the stateless session model most current agents run on — and it raises the stakes on verification considerably. An agent that can take autonomous action over days is a different kind of risk exposure than one that can only act within a single session.
+
+## The Governance Layer Isn't Here Yet
+
+[The Trusted Enterprise AI Harness](https://www.salesforce.com/news/stories/enterprise-ai-harness/) — Salesforce's six-pillar governance framework for companies running AI agents — was also announced this week. The six pillars are: Trusted Context, Trusted Agency, Trusted Action, Trusted Governance, Trusted Security, and Trusted Models. The Control Plane that governs agents across your entire organization sits at the center of it.
+
+Broad customer availability for the Harness is expected in early 2027.
+
+Let that sit for a moment. The agents ship now. The framework for governing them ships next year.
+
+This is worth pausing on because it's not an unusual pattern — it's the dominant one. Salesforce is doing exactly what SAP did at Sapphire with 200+ Joule agents, what Cisco did with its 90,000-employee rollout, and what nearly every major enterprise platform has done with every major agent announcement in the past eighteen months. The capability arrives; the governance follows. The agents are job-ready; the performance verification infrastructure is roadmap.
+
+The [VentureBeat headline](https://venturebeat.com/orchestration/companies-already-run-3-agent-platforms-salesforces-new-enterprise-ai-harness-wants-govern-all-them) on the Harness announcement is instructive: "Companies already run 3 agent platforms. Salesforce's new Enterprise AI Harness wants to govern all of them." The Harness is designed for the multi-platform reality enterprises have already stumbled into without adequate tooling. That's the right product to build. It's just not available yet.
+
+## "Job-Ready" Needs a Definition
+
+Here's the uncomfortable question the naming strategy creates: job-ready according to whom?
+
+Salesforce's seven agents are job-ready in the sense that they're built for specific functions, they have pre-wired CRM integrations, they've been tested internally, and they're priced as standalone products with defined capability sets. That's a real baseline. It's not nothing.
+
+But it's also not the same as "job-ready for your call center," or "job-ready for your outbound motion," or "job-ready for the specific data distributions and edge cases in your supply chain." Those require performance data against your actual workflows — not a category description and a demo at Dreamforce.
+
+The industry already has evidence that this gap is real. [Enterprise AI projects fail at high rates not because the models are incapable, but because organizations deploy without adequate performance measurement infrastructure](https://www.gartner.com/en/newsroom/press-releases/2025-06-25-gartner-predicts-over-40-of-agentic-ai-projects-will-be-canceled-by-end-of-2027). You get Casey running customer service escalations at your organization, and at some point someone asks: how does Casey compare to what we had before? How does Casey compare to what a competitor's agent would do on the same ticket queue? Is Hunter better at outbound prospecting than our existing AI SDR? What's the failure rate on ambiguous queries?
+
+These questions aren't answerable by a Salesforce product page. They're answerable by measurement — task-level benchmarking against the actual work, in your environment, with your data.
+
+## What to Do Between Now and 2027
+
+The practical challenge for enterprise buyers is that the Harness — Salesforce's own answer to multi-agent governance — isn't available yet, but the agents are. If you're a Salesforce customer evaluating whether to deploy any of these agents, you're in a gap period where the governance infrastructure that would make the decision easier doesn't exist.
+
+That doesn't mean the agents aren't worth evaluating. It means the evaluation has to happen somewhere other than Salesforce's own governance tooling.
+
+The questions worth answering before deployment:
+- What's your baseline? If you're replacing a human role or an existing automation, what are the current performance numbers you're measuring against?
+- What task types matter? Casey handling routine escalations is a different risk profile than Casey handling complex billing disputes. Do you have task-level performance data for the specific work you're assigning?
+- How does this compare? If you're considering Agentforce against a custom agent or a competing platform, the comparison has to be on task performance against your own workload — not on feature lists or Dreamforce demos.
+
+The [Agentforce 360 launch](https://kurums.com/salesforces-seven-named-ai-agents-what-the-september-2026-agentforce-360-launch-and-ai-control-plane-mean-for-enterprise-buyers/) is a real step forward for the category. Named agents, persistent memory, an announced governance framework — these are the right direction. The early 2027 timeline on the Harness just means the verification work falls to you in the interim.
+
+## The Pattern Is Predictable, and So Is the Gap
+
+Salesforce isn't doing anything unusual. Every major platform is shipping agents with marketing names and waiting on the governance infrastructure to catch up. The industry has consistently prioritized capability availability over verification readiness, and the numbers on enterprise AI project failure rates reflect that tradeoff.
+
+What the Salesforce launch makes harder to avoid is the question it implicitly raises: if your agent has a job title, it should be held to job performance. Not demo performance. Not benchmark-on-a-curated-dataset performance. Performance on the actual work you're hiring it to do.
+
+Casey may be genuinely good at customer service. Piper may outperform any alternative on inbound pipeline. The only way to know is to test them on your pipeline, with your data, against a defined baseline.
+
+Job titles are branding. Job-ready is a performance claim. The industry is getting better at the first one. The second still requires work that isn't included in the package.
+
+---
+
+<MatrixPills />
