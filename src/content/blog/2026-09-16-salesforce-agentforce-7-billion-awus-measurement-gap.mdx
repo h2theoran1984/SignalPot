@@ -1,0 +1,61 @@
+---
+title: "Salesforce Just Announced 7 Billion Agent Invocations. Not One Performance Score."
+date: "2026-09-16"
+description: "At Dreamforce 2026, Salesforce reported 7 billion Agentic Work Units delivered and opened its platform to any composable agent via AIforce. The scale is real. But AWUs are page views for AI agents — and in a composable agent economy, activity metrics don't answer the question that matters."
+tags: ["AI agents", "Salesforce", "Agentforce", "enterprise AI", "agent verification", "multi-agent", "agent performance", "2026"]
+author: "SignalPot Team"
+slug: "salesforce-agentforce-7-billion-awus-measurement-gap"
+---
+
+Yesterday at Dreamforce 2026, [Salesforce announced that Agentforce has delivered 7 billion Agentic Work Units](https://siliconangle.com/2026/09/15/salesforce-announces-aiforce-unlocking-the-power-of-its-platform-using-composable-agents/) — 3.2 billion in Q2 alone — and that Multi-Agent Orchestration is now generally available. They also unveiled AIforce, a new interface that exposes Salesforce's business logic, security rules, and CRM data to any external AI agent or assistant. Claudeforce, Slackforce, and a raft of third-party integrations launched the same day.
+
+Seven billion is a number designed to close conversations. It has that effect because it's large, because it's specific, and because it represents genuine adoption at enterprise scale. Salesforce isn't running a demo. Agentforce is handling real sales workflows, real customer service queues, real operational tasks. The Siemens case study announced at the same event — [100% of inbound leads engaged by Agentforce](https://www.salesforce.com/news/press-releases/2026/09/15/siemens-agentforce-redefine-industrial-sales-service/) — is exactly the kind of outcome that makes board decks move.
+
+But here's the thing about Agentic Work Units: they're an activity metric.
+
+An AWU tells you an agent was invoked. It tells you a task was handed to the system and that the system responded. What it doesn't tell you is what percentage of those 7 billion tasks were completed correctly. What the quality was. Whether the Siemens 100% engagement rate produced 100% qualified leads or 100% rejections from leads that felt spammed. What happens when two Agentforce agents orchestrate against each other in a pipeline and one passes garbage downstream to the other.
+
+AWUs are, functionally, page views for AI agents. Sites had billions of those too. Traffic and value were different numbers.
+
+## The Composable Agent Problem
+
+[AIforce is the more important announcement](https://pulse2.com/salesforce-unveils-aiforce-and-koa-expands-google-cloud-aws-and-siemens-partnerships-and-commits-27-million-to-education-at-dreamforce-2026/). What Salesforce is doing — opening the platform so that any external agent can invoke Salesforce's business logic, security rules, and customer data as a service — is the right architecture for the agentic era. The CRM is no longer a monolith. It's a capability surface. You plug in the agent that best solves your specific workflow problem, and it uses Salesforce as infrastructure rather than as the intelligence layer.
+
+This is the composable agent stack that practitioners have been building toward, and Salesforce's willingness to make that structural bet is notable. When a company that owns the dominant enterprise CRM decides to expose itself as an agent substrate rather than insisting all agent work happens inside its own models, it's reading the market correctly. Specialized agents outperform generalist ones on bounded tasks. The enterprise stack is evolving toward many purpose-built agents orchestrating over shared data and business logic. AIforce is an infrastructure play for that world.
+
+The complication: in that architecture, how do you know which external agent to trust with your Salesforce data?
+
+Salesforce can verify that AIforce connections are authorized and that agents are operating within declared security boundaries. That's real — that's identity and policy. But policy compliance and performance are different properties. An agent that is authorized to access your CRM pipeline and reliably produces the wrong next-best action is policy-compliant and operationally worthless. Salesforce's verification surface tells you the agent is allowed to connect. It doesn't tell you the agent is worth connecting.
+
+That distinction matters more when there are hundreds of composable agents available than when there are five.
+
+## Where the Siemens Number Falls Short
+
+The 100% inbound lead engagement figure is the only concrete outcome metric Salesforce published for any Agentforce deployment. Siemens is a real company with a real commercial use case, and 100% engagement sounds like a strong result.
+
+But engagement is upstream of outcome. The questions that determine whether 100% engagement is good news or a liability:
+
+- What percentage of those leads converted?
+- What was the false positive rate — how many non-qualified leads were engaged through a full pipeline sequence?
+- How does the lead quality for Agentforce-handled leads compare to a human-handled baseline?
+- At what point in the workflow does a human review agent-generated outputs before they reach the lead?
+
+None of those numbers appeared at Dreamforce. That's not an accusation — it's an observation about what the industry's largest agent deployment announcement chose to measure publicly. One engagement metric for one use case, against a multi-year platform announcement covering every enterprise workflow class.
+
+Cisco made the same choice when it deployed AI agents to 90,000 employees in July: one strong number from one function (80-90% of the MD&A first draft, from the finance team), nothing published for the other 89 use cases. When the announcement architecture is "one metric, maximum scale," that's a flag about what the rest of the data looks like — or whether it's being collected at all.
+
+## The AWU Economy
+
+The transition Salesforce announced at Dreamforce isn't just a product release. It's the opening of an agent economy. AIforce means that Salesforce's 150,000+ enterprise customers can now mix and match agents from any vendor — their own built on Agentforce, external agents like Claudeforce, third-party vertical agents for specific industries — routing tasks dynamically through whichever agent handles them best.
+
+That's architecturally correct. It's also the point at which you need infrastructure that Salesforce isn't providing: comparative performance benchmarking across agents, task-level accuracy data on your actual workloads, and a principled mechanism for deciding which agent to route which work to — not based on the vendor's AWU count, but based on how the agents actually perform on your data, your users, your workflow.
+
+Seven billion work units means the industry has accepted that agents run production workflows. The next number — the one that will actually drive enterprise decisions about which agents survive and which get replaced — is task accuracy by workflow class, measured independently, against real production distributions.
+
+CrowdStrike understood this at Fal.Con 2026 when it [launched a formal Verified Agent certification inside its marketplace](https://www.crowdstrike.com/en-us/press-releases/crowdstrike-launches-ai-partner-specialization-for-the-agentic-era/) — requiring partner-built agents to pass behavioral and security validation before listing. That's a trust gate. It's the right instinct applied to a security marketplace. The enterprise software stack, now expanding to composable agent architectures at Salesforce scale, needs the same instinct applied at the performance layer, not just the policy one.
+
+The AWU era is here. 7 billion is proof. The verification era — measuring whether those units are worth anything — is the conversation Dreamforce didn't have, and the one that's going to define the next two years of enterprise AI investment.
+
+---
+
+<MatrixPills />
