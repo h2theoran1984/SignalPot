@@ -1,0 +1,66 @@
+---
+title: "The Benchmark AI Agents Actually Need Just Launched"
+date: "2026-09-17"
+description: "Yesterday, a new open-source benchmark called the Agent Effectiveness Index launched measuring three things existing benchmarks don't: trajectory accuracy, proactive capability, and drift resistance. These are the failure modes that break production systems — not labs. The timing matters."
+tags: ["AI agents", "benchmarks", "agent verification", "agent trust", "AEI", "Salesforce", "enterprise AI", "long-horizon agents", "2026"]
+author: "SignalPot Team"
+slug: "agent-effectiveness-index-operational-trust"
+---
+
+Yesterday, a new open-source benchmark called the [Agent Effectiveness Index (AEI) dropped quietly](https://www.globenewswire.com/news-release/2026/09/16/3363212/0/en/new-open-source-benchmark-scores-ai-agents-on-their-ability-to-learn-and-perform-complex-actions), and it measures something that existing evaluations don't: whether your AI agent will still be working correctly three weeks from now.
+
+That's not a marketing claim. The AEI explicitly targets three failure modes that MMLU, GAIA, AgentBench, and their peers leave untested — trajectory accuracy (does the agent reach the right outcome via the right sequence of steps), proactive capability (does the agent act on what it should infer without being told), and drift resistance (does the agent maintain correct behavior as tasks evolve, without human correction forcing it back on track).
+
+Those are the failure modes that break production systems. They're just not the ones that show up in a controlled lab.
+
+## What Existing Benchmarks Actually Measure
+
+The benchmarks the industry treats as authoritative — GAIA, SWE-bench, HumanEval — were designed to answer a specific and genuinely useful question: *is this model capable enough to attempt the task?* That's a necessary filter at model selection time. It's not a measurement of operational reliability.
+
+A model that scores 85% on GAIA under controlled conditions can still fail at 30% on your actual workload, because your actual workload isn't composed of isolated GAIA tasks. It's a dynamic process with intermediate states, dependencies, and context that accumulates across sessions. The capability score tells you the ceiling. It says nothing about what happens as the process changes, as conditions drift, as new edge cases compound.
+
+This is the gap the AEI is trying to close. The three dimensions it measures — trajectory accuracy, proactive action, and drift resistance — are not refinements of existing benchmark categories. They are operationally distinct failure modes that capability benchmarks structurally cannot detect. A high GAIA score is compatible with an agent that wanders through the wrong tool sequence to reach a correct answer (poor trajectory accuracy), waits passively for instructions it should infer (poor proactivity), and degrades silently over time as the process evolves (poor drift resistance).
+
+Those agents are in production right now. Most enterprises running them have no benchmark data that would tell them they're in trouble.
+
+## Why the Timing Matters
+
+The same week the AEI launched, [Salesforce quietly made Hunter generally available](https://aiagentstore.ai/ai-agent-news/this-week) — one of seven named Agentforce agents the company released. Hunter runs on what Salesforce is calling a "long-horizon runtime," designed to let agents pursue goals autonomously across weeks rather than single sessions.
+
+That detail is worth sitting with. An agent that maintains state and pursues objectives over weeks is a fundamentally different operational category than a session-bound assistant. The verification questions are different. Session-bound agents need to be reliable at the task level. Week-spanning agents need to be reliable across changing contexts, process updates, and environmental shifts — the exact conditions that the AEI's drift-resistance dimension is built to measure.
+
+Hunter is one of six Agentforce agents now in general availability. Enterprise customers are deploying them now. If your agent is operating autonomously across weeks, the absence of drift-resistance benchmarks isn't an academic gap. It's a live operational risk.
+
+## The Measurement Gap Is Structural
+
+Here's the uncomfortable reason it took this long to get a benchmark like the AEI.
+
+Capability benchmarks are easier to build because they don't require modeling process dynamics. You define a task, you evaluate the answer, you score it. The evaluation is static, reproducible, and lab-clean. That made them tractable in an era when AI was primarily used as a tool for single-turn tasks.
+
+Operational benchmarks are harder because they require modeling the conditions that actually break agents: task complexity that accumulates across steps, environmental drift that changes the correct answer mid-process, context that requires proactive inference rather than explicit instruction. That complexity is why GAIA is widely cited and why there's no equivalent benchmark for drift resistance — not because drift doesn't matter, but because measuring it is genuinely hard.
+
+The AEI's bet is that "genuinely hard" is now worth solving. The evidence from the deployment side suggests they're right. [MLCommons' Financial Services Working Group spent the past year building an Agent Reliability Profile](https://mlcommons.org/2026/09/agent-reliability-profile-cdir/) specifically around scope adherence under live production conditions — will the agent stay within its authorized boundaries when process constraints shift? The question is different from the AEI's, but the underlying need is identical: measurements that reflect what production demands, not what a lab can cleanly score.
+
+## The Verification Gap It Surfaces
+
+What the AEI launch makes concrete is that the gap between "this agent passed our pre-deployment tests" and "this agent is working reliably in production" isn't primarily a deployment gap or a governance gap. It's a measurement gap. We have been measuring the wrong things.
+
+The industry spent 2025 building deployment infrastructure — model routing, governance toolkits, audit dashboards, forward-deployed engineering units. That infrastructure answers one question: *is the agent running?* The AEI's dimensions — trajectory accuracy, proactivity, drift resistance — are oriented toward a different question: *is the agent working?* Not running. Working. Doing the actual job correctly, across the actual process, under the actual conditions that change over time.
+
+Those questions sound related. They're not the same question.
+
+An agent can be running inside a fully compliant governance framework, with perfect audit logging, on an infrastructure that scales cleanly — and still be accumulating drift errors, executing the wrong tool sequence, and passively waiting for instructions it should infer. The governance layer won't catch any of that. Pre-deployment simulation won't catch what you didn't build a scenario for. The only thing that catches it is operational benchmarking on the actual task distribution, with measurements that reflect whether the agent is staying correct as conditions evolve.
+
+## What Comes Next
+
+Open-source benchmarks for capability have had a useful run. GAIA, SWE-bench, and their peers helped the market understand that models were capable enough to be worth deploying at scale. That mission is largely complete.
+
+The next benchmarking category — operational trust under production conditions — is the one enterprises actually need now. The AEI is an early piece of that infrastructure. MLCommons' scope-adherence profile is another. The emerging pattern is consistent: the industry is building measurement frameworks oriented toward the failure modes that matter when agents are running at scale, not the failure modes that matter when a research team is evaluating models in a lab.
+
+If your AI agents are running in production today — especially long-horizon agents like Hunter that operate across sessions — the question worth asking is not what capability score they achieved at selection time. It's whether you have measurements of how they perform on your actual task distribution, whether they've been evaluated for drift as your processes evolve, and whether their trajectory accuracy reflects the work they were hired for or just the work you tested them on.
+
+The AEI launched yesterday. It's a benchmark, not a verification program. But it points at exactly the right questions. That's usually how the next infrastructure layer starts.
+
+---
+
+<MatrixPills />
