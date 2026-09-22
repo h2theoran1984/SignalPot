@@ -1,0 +1,72 @@
+---
+title: "Salesforce Just Let Everyone Build AI Agents. Nobody Asked Who Verifies Them."
+date: "2026-09-22"
+description: "At Dreamforce last week, Salesforce unveiled AIforce — a system where any employee can compose a live AI agent or custom interface just by describing it. The deployment bottleneck is gone. The verification problem just got significantly larger."
+tags: ["AI agents", "Salesforce", "enterprise AI", "agent verification", "composable agents", "Dreamforce", "agent governance", "2026"]
+author: "SignalPot Team"
+slug: "aiforce-composable-agents-verification-gap"
+---
+
+Last week, Marc Benioff stood on the Dreamforce stage and declared that [AI has replaced the UI](https://www.salesforceben.com/salesforce-launches-aiforce-at-dreamforce-26-ai-replaces-the-ui/).
+
+The announcement was called [AIforce](https://www.salesforce.com/news/stories/aiforce-announcement/): a live interface layer that lets any employee compose a customized AI agent, dashboard, or workflow just by describing it in natural language — inside Slack, Claude, or Agentforce Coworker. No code. No IT ticket. No implementation project. You describe what you need, and the platform assembles it from Salesforce's data layer, business logic, permissions, and governance stack.
+
+This is not a feature release. It's a philosophical claim about how enterprise software works. Salesforce is betting its entire product identity on the premise that the era of navigating menus is over, and that composable AI — agents built on the fly from trusted data and predefined logic — will replace every conventional interface they've spent thirty years building.
+
+They may be right. And that's what makes the verification problem it creates so consequential.
+
+## What AIforce Actually Does
+
+The technical foundation is more coherent than most "AI everything" announcements. [AIforce launches with Claudeforce, Slackforce, and Agentforce Coworker](https://siliconangle.com/2026/09/15/salesforce-announces-aiforce-unlocking-the-power-of-its-platform-using-composable-agents/), all wired to a Headless Toolkit that exposes the Salesforce platform via MCPs, APIs, plugins, and skills. When an employee asks for a report, a campaign launch, an account plan, or a workflow adjustment, the system assembles the pieces dynamically. Business data is used to answer the query and not retained by the model provider — the governance controls that already exist inside Salesforce travel with the agent.
+
+That last part matters. Salesforce is threading a real constraint through the composability: agents inherit the permissions and security posture of the platform they're built on. An employee who can't access a specific account record can't build an agent that accesses it either. The data governance layer is load-bearing, not decorative.
+
+The Adecco Group has already committed to [rolling AIforce out across more than 40 countries](https://www.salesforce.com/news/stories/agentforce-job-ready-ai-agents/) after pilots in the UK and France — inside sales, recruitment, and engagement workflows. For a company with over 30,000 employees operating across that many jurisdictions, that's a serious production deployment, not a lighthouse demo.
+
+The architecture is thoughtful. The deployment story is compelling. The problem is downstream.
+
+## The Bottleneck That Just Moved
+
+Until now, enterprise AI deployment has had a clear constraint: getting agents built and integrated. The MIT NANDA study famously found [95% of AI pilots deliver zero measurable P&L impact](https://fortune.com/2025/08/18/mit-report-95-percent-generative-ai-pilots-at-companies-failing-cfo/). The primary failure mode wasn't model quality — it was implementation: brittle integrations, misaligned workflows, the gap between evaluation environments and production. That's why Microsoft, Amazon, Anthropic, and OpenAI collectively committed $9 billion to forward-deployed engineering this summer — to put their own engineers inside enterprises and close the implementation gap by hand.
+
+AIforce eliminates that bottleneck from the Salesforce platform side. If you can describe a workflow, you can build an agent that executes it. The implementation layer compresses from weeks to minutes.
+
+That's a genuine breakthrough. But it also moves the bottleneck rather than removing it. The constraint was never just "can we build this agent." It was always also "is this agent doing what we think it is." The second question didn't get easier. It got much harder.
+
+When 50 people in an organization can spin up a Salesforce agent by describing it, the number of agents in production isn't 20 — it's 200. Each one executes business logic, touches customer data, and produces outputs that downstream decisions depend on. The platform's governance controls ensure those agents operate within declared permissions. They don't tell you whether the agent's actual behavior matches what the person who built it intended — or whether what they intended was correct.
+
+## What Confidence Is Actually Worth
+
+Here's the data point that should be sitting next to every AIforce demo.
+
+A [recent security report](https://www.gravitee.io/state-of-ai-agent-security) found that 94% of enterprises are confident their AI agents are not over-provisioned. Only about a third have actually verified it. The gap between believing an agent is configured correctly and knowing it is configured correctly is enormous — and it applies equally to security, to task accuracy, and to business logic fidelity.
+
+When deployment is slow and technically demanding, that gap stays narrow by friction. You only have 15 agents. Someone reviewed each one. The IT org has a handle on what's running.
+
+When anyone can compose an agent in three sentences, the gap widens by design. Confidence scales with deployment speed. Verification doesn't. [Gartner predicts over 40% of agentic AI projects will be canceled by end of 2027](https://www.gartner.com/en/newsroom/press-releases/2025-06-25-gartner-predicts-over-40-percent-of-agentic-ai-projects-will-be-canceled-by-end-of-2027) — not because models fail at deployment, but because organizations can't establish clear business value or adequate risk controls afterward. The projects got deployed. Nobody could prove they worked.
+
+AIforce will accelerate deployment dramatically. That's the point. But if the ratio of deployed-to-verified agents is already broken at current deployment rates, a step-function increase in deployment speed doesn't improve the ratio. It makes the denominator larger.
+
+## The Composability Paradox
+
+There's a deeper problem with composable agents that doesn't get enough attention.
+
+A traditional software workflow fails deterministically. If a button doesn't work, it doesn't work. You can reproduce the failure, trace it to a line of code, and fix it. An agent executing the same workflow fails probabilistically — and the failure mode changes depending on how the request was phrased, what context was in the session, which underlying model handled the query, and what the data state looked like at invocation time. The same agent, invoked identically two days apart, may produce meaningfully different outputs.
+
+Governance controls handle the permission layer. They don't handle this. Knowing that an agent had access to the right data is not the same as knowing it used that data correctly. When Salesforce says business logic and governance travel with the AIforce agent, they mean the policy layer is consistent. They don't mean the output quality is consistent. Those are different claims.
+
+This is the verification problem in its precise form: what baseline does a composable agent perform against? How do you know the agent someone built by describing their workflow is actually executing that workflow correctly — not sometimes, not on average, but reliably enough to depend on for sales forecasts, candidate screening, and account management?
+
+The answer isn't behavioral monitoring after the fact. Monitoring tells you when something went wrong. Verification tells you what correct looks like before production — and whether your agent actually achieves it. Those are different work, at different points in the process, and one cannot substitute for the other.
+
+## What the Dreamforce Bet Requires
+
+None of this is a critique of AIforce as an architectural choice. The composable agent model is probably correct. The movement toward natural language as the interface layer is probably irreversible. Salesforce has built the governance and data infrastructure that makes this more responsible than equivalent moves from competitors who are wiring agents to less structured data environments.
+
+But the bet only pays off if the agents people build with it are reliably doing what the people who built them think they're doing. That requires task-level evaluation against actual workloads. It requires explicit performance baselines before agents touch production decisions. It requires a way to compare agent behavior across deployment — not against synthetic benchmarks, but against the specific work the agent was built for.
+
+Salesforce has made deployment easy. The organizations that get value from AIforce will be the ones that don't treat easy deployment as a substitute for the verification work that always followed harder deployment. The bottleneck moved. It didn't disappear.
+
+---
+
+<MatrixPills />
