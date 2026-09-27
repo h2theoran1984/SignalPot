@@ -1,0 +1,88 @@
+---
+title: "Salesforce Named Its Agents. Then Invented a Metric That Doesn't Tell You If They're Good."
+date: "2026-09-27"
+description: "At Dreamforce 2026, Salesforce shipped seven named 'job-ready' AI agents and cited 7 billion Agentic Work Units as proof they're working. CIO.com called AWUs 'a shiny new metric that tells CIOs little of value.' Both things are true — and the gap between them is exactly where the next wave of enterprise AI will be won or lost."
+tags: ["Salesforce", "Agentforce", "AI agents", "agent verification", "enterprise AI", "benchmarks", "AWU", "Dreamforce", "2026"]
+author: "SignalPot Team"
+slug: "salesforce-named-agents-awu-metric"
+---
+
+At Dreamforce 2026, Salesforce introduced seven AI agents with names, job titles, and a press release calling them "job-ready."
+
+Meet [Casey, Paige, Carter, Hunter, Marshall, Piper, and Fin](https://www.salesforce.com/news/stories/agentforce-job-ready-ai-agents/). Casey handles help desk. Paige owns IT and HR. Carter runs commerce. Hunter does outbound sales. Marshall manages supply chain. Piper works inbound pipeline. Fin handles customer experience. Six of the seven are generally available now. Hunter goes GA in November.
+
+This is genuinely significant. Salesforce is the largest CRM company in the world. When they ship named, scoped, role-specific agents to their entire customer base — and call them colleagues rather than tools — they're not just releasing software. They're making a statement about how enterprise AI gets deployed: with a face, a function, and an implicit promise about what that function delivers.
+
+Then they cited 7 billion Agentic Work Units as evidence the system is working.
+
+And [CIO.com immediately called AWUs "a shiny new metric that tells CIOs little of value."](https://www.cio.com/article/4138622/awu-by-salesforce-a-shiny-new-metric-that-tells-cios-little-of-value.html)
+
+Both things are true at the same time. That tension is worth sitting with.
+
+## What an AWU Is — and Isn't
+
+An [Agentic Work Unit](https://www.salesforce.com/agentforce/agentic-work-units/) is, by Salesforce's own definition, one discrete task completed by an AI agent. A prompt processed. A reasoning chain completed. A tool invoked. A record updated. A workflow triggered.
+
+The goal behind the metric is defensible. The industry has spent two years measuring AI consumption through tokens — how much the model chewed through, not what it produced. AWUs are an attempt to move up the abstraction layer, from raw compute to completed work. That's the right direction.
+
+The problem is what the metric still doesn't capture. As one analyst put it: [AWUs count actions, not outcomes](https://medium.com/@marc.bara.iniesta/salesforce-just-invented-a-metric-that-counts-actions-not-outcomes-6508e5469fd0). A task invoked is not the same as a task completed correctly. A tool triggered is not the same as a business problem solved. Seven billion AWUs tells you that Agentforce is being used at scale. It doesn't tell you if Hunter qualified the right leads or if Marshall surfaced the right supply chain risks.
+
+This isn't a criticism unique to Salesforce. It's the industry's fundamental measurement problem, right now, at this moment in the deployment curve.
+
+## The Naming Problem
+
+Here's what's interesting about Salesforce's naming convention that hasn't gotten enough attention.
+
+When you give an agent a name — when you call it Casey rather than "help desk agent v2.3" — you're doing something specific. You're anchoring user expectations to a person-shaped frame. Colleagues have accountability. Colleagues have a track record you can evaluate. You have a mental model for what "good at their job" means when the person has a name and a function.
+
+That's a useful trust anchor. But it's also a measurement commitment whether Salesforce intended it that way or not. When you name an AI agent like a hire, your organization implicitly starts treating it like one — which means at some point, someone is going to ask how Casey is performing in the same way they'd ask that about a new employee three months in.
+
+The 7 billion AWU figure is Salesforce's answer to that question. The CIO.com response is what happens when that answer doesn't land.
+
+## Where the Good Numbers Are
+
+To be fair to Salesforce, they did publish outcome data — just not for all seven agents at scale.
+
+[Autism Queensland resolves 70% of administrative requests](https://s2-labs.com/blog/salesforce-agentforce-new-ai-agents-announced-at-dreamforce/) through Paige, their employee service agent. Hibbett handles 90% of core shopper journeys through their Agentforce deployment, and went live in six weeks.
+
+Those numbers are different in kind from AWUs. Seventy percent of administrative requests resolved is a task completion rate against a specific workload. Ninety percent of shopper journeys handled is a coverage metric with a defined scope. You can build on those. You can compare them to the pre-agent baseline. You can look at the 30% or 10% that didn't get resolved and ask why.
+
+That's what agent performance measurement actually looks like — not because Salesforce got lucky with those two customers, but because those customers defined "job-ready" in terms of their actual work, then measured it.
+
+## The Broader Context
+
+This is happening against a backdrop that should concentrate minds.
+
+[Gartner predicts over 40% of agentic AI projects will be canceled by end of 2027](https://www.gartner.com/en/newsroom/press-releases/2025-06-25-gartner-predicts-over-40-percent-of-agentic-ai-projects-will-be-canceled-by-end-of-2027) — not because the technology failed, but because of escalating costs, unclear business value, and inadequate risk controls. The AI agent management gap is growing: [96% of IT decision-makers say they have a complete inventory of AI agents; 67% experienced an agent-related operational consequence in the past year](https://www.globenewswire.com/news-release/2026/09/22/3366611/0/en/the-ai-agent-management-gap-is-growing.html). Only 21% of organizations have a mature governance model for autonomous agents.
+
+The math on Gartner's cancellation prediction is straightforward. The organizations that will cancel their agentic AI projects in 2027 are, most of them, the ones deploying in 2026 with AWU-level metrics and no task-level outcome definition. They don't have a bad agent. They have an agent they can't evaluate. And when the renewal conversation comes and someone asks what value the system delivered, "7 billion work units" won't answer the question.
+
+The organizations that will survive that attrition are the ones that did what Autism Queensland and Hibbett did: defined the job before deploying the agent, measured completion rates against real workloads, and built a performance baseline that makes the next conversation about renewal a data conversation rather than a faith conversation.
+
+## What "Job-Ready" Actually Means
+
+Salesforce's framing is better than they're getting credit for, even if the AWU metric undersells it.
+
+"Job-ready" implies a scoped function with defined work and expected outputs. That's the right frame. The problem is that job-readiness, for an AI agent, is not a property the vendor attests to — it's a property the deploying organization verifies against their actual workload. Casey might be job-ready for a high-volume SaaS help desk and miscalibrated for a manufacturing support desk where the queries are different in structure, volume, and domain.
+
+The agent isn't wrong. The evaluation environment is too generic. That's the verification gap.
+
+The long-horizon runtime Salesforce shipped alongside the named agents is the most interesting technical development here — the ability for an agent to pursue multi-week objectives rather than discrete task invocations. That's a meaningful capability expansion. It also makes the measurement problem substantially harder. If Hunter is pursuing a multi-week sales objective, how do you evaluate performance at the end of week two? AWUs won't tell you. Task completion rates against discrete queries won't scale to a weeks-long reasoning chain. You need outcome-level evaluation tied to the actual goal the agent was pursuing.
+
+Nobody in the industry has fully solved that yet. Salesforce, to their credit, shipped the capability anyway. Someone has to move first. But the measurement infrastructure for evaluating long-horizon agent performance is going to lag the capability by at least a year, and that lag is where a lot of the Gartner 40% will live.
+
+## The Agent Gets the Name. Who Validates It?
+
+Here's the practical question for any organization deploying Agentforce agents in the next six months.
+
+If you're bringing Paige in for IT and HR, what does "job-ready" mean for your specific IT and HR workload? What's your baseline task volume? What's the completion rate you need before you're willing to reduce human coverage? What does failure look like — a wrong answer, an escalation that should have been resolved, a latency spike, something else? Who owns that measurement, and how often does it run?
+
+Those questions are not Salesforce's job to answer for you. They're the deploying organization's job. And they're exactly the questions that don't get asked when the metric on the table is an aggregate AWU count.
+
+Named agents are a meaningful evolution in how enterprise AI gets packaged and communicated. The naming convention is a forcing function toward accountability — it's much harder to ignore the performance of Casey in sales than it is to ignore the performance of "AI assistant deployment 3." That accountability pressure is going to be good for the industry over time.
+
+But a name is a trust commitment, not a trust verification. The seven agents that shipped at Dreamforce are job-ready by Salesforce's definition. Whether they're job-ready for your job is still something you have to determine for yourself.
+
+---
+
+<MatrixPills />
