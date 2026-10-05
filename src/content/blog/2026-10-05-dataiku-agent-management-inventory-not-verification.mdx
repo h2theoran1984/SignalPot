@@ -1,0 +1,68 @@
+---
+title: "Dataiku Just Solved Agent Inventory. That's the Easier Half."
+date: "2026-10-05"
+description: "Dataiku's Agent Management tool launches this month with cross-platform agent discovery across AWS, Azure, Google, Salesforce, and Snowflake. It answers the question enterprises have been asking: what agents do we have? The harder question — do those agents actually perform? — is still open."
+tags: ["AI agents", "agent governance", "enterprise AI", "agent verification", "Dataiku", "agent sprawl", "agent management", "2026"]
+author: "SignalPot Team"
+slug: "dataiku-agent-management-inventory-not-verification"
+---
+
+Fewer than one in five organizations maintain a complete, current inventory of their AI systems.
+
+That number comes from IBM's [AI in Motion research](https://www.ibm.com/thought-leadership/institute-business-value/en-us/report/ai-in-action), and it's the problem [Dataiku is now directly addressing](https://www.hpcwire.com/bigdatawire/this-just-in/dataiku-unveils-agent-management-to-track-enterprise-ai-agents-across-platforms/). Agent Management — going generally available this month — is a standalone product that finds every AI agent running across an enterprise, regardless of which platform built it. AWS Bedrock, Databricks, Google Vertex, Microsoft Copilot Studio, Azure Foundry, Salesforce Agentforce, Snowflake Cortex. All of it. One inventory. One place to see what exists, what it's certified for, what risk tier it falls into, and whether it's been tested.
+
+It's a real product solving a real problem. The question worth asking is which problem it actually solves — and which one it doesn't.
+
+## The Sprawl Problem Is Structural
+
+The agent proliferation curve is brutal. Enterprises that were running pilots a year ago are now running dozens of production agents, often built across three or four different platforms by teams that don't talk to each other. [Dataiku's framing](https://aimagazine.com/news/dataiku-solving-ai-sprawl-and-risk-with-agent-management) is direct: there's a "disconnect between how fast agents are being created and adopted and organizations' ability to observe and manage them."
+
+That's putting it mildly.
+
+In most enterprises today, the agent inventory exists in three forms: the official register that IT maintains (incomplete), the shadow register that exists in someone's Confluence page (more complete but three months stale), and the agents nobody's documented at all (running in production, doing unknown things). Classie launched a real-time tracking product called [Supervise](https://aiagentsdirectory.com/news/ai-agents-news-brief-october-3-2026) this week for the same reason. The market is converging on a shared understanding: you cannot govern what you cannot see.
+
+Dataiku's cross-platform coverage is genuinely valuable here. Most governance tooling assumes agents live inside one ecosystem. Reality doesn't cooperate. Copilot Studio agents and Bedrock agents and Salesforce Agentforce flows are all running inside the same enterprise, making decisions that affect the same customers, using the same data, producing outputs that land in the same processes. A governance layer that only sees part of the stack isn't a governance layer. It's a partial view with the gaps labeled "not our problem."
+
+The risk tiering feature — flagging agents by their exposure to sensitive data, customer-facing decisions, and live transactions — is the right framing. Not all agents carry the same stakes. An agent summarizing internal meeting notes and an agent processing refund requests should be treated differently. Building a prioritized risk layer into inventory is the kind of structural thinking the market has needed for a while.
+
+## What Inventory Doesn't Answer
+
+Here's the thing: knowing an agent exists and knowing whether it performs are different problems. Agent Management tracks certification status, audit trails, and risk factors. What it can't track is whether the agent actually does what it's certified to do — at the task level, against the workload it's deployed on, in production conditions that differ from evaluation environments.
+
+This is not a criticism of Dataiku's product. It's a description of where the infrastructure gap migrates once inventory is solved.
+
+Look at how the rollback data plays out. [Sinch's AI Production Paradox report](https://sinch.com/news/sinch-releases-ai-production-paradox/) found 74% of enterprise AI agents have been pulled from production at least once. The leading rollback trigger wasn't a gap in inventory visibility — organizations knew those agents existed. The trigger was failures that only surfaced under real traffic: customer data exposure, brand risk from inconsistent outputs, infrastructure failures under scale. In 16% of cases, the cause was literally undiagnosable. The agent failed and nobody could explain why.
+
+Knowing the agent exists doesn't help with any of those failures. A risk tier label doesn't prevent a high-stakes agent from underperforming in production. An audit trail documents what happened after the failure, not before.
+
+Inventory tells you *what* you're running. Verification tells you *whether* what you're running actually works.
+
+## Two Different Infrastructure Problems
+
+The market is now building both, but they're at different stages.
+
+The inventory layer — cross-platform discovery, risk tiering, centralized registries — is getting solved in 2026. Dataiku's launch, Classie's Supervise product, GitLab 19.4's governance controls, DigitalOcean's Managed Agents with isolated runtimes: these are all tackling the same root problem from different angles. By early next year, most enterprises of any sophistication will have some version of "what agents do we have and what data can they touch."
+
+The verification layer — task-level performance baselines, workload-specific accuracy benchmarks, coverage of the failure modes that emerge under real traffic — is still largely unsolved. Most enterprises deploying agents today have no documented definition of what correct behavior looks like before production. They have evaluation results from benchmark suites that don't match their actual workload. They have QA processes borrowed from software development that don't account for probabilistic outputs and context-dependent failure modes.
+
+The governance tooling wave assumes a performance baseline exists. It doesn't generate one.
+
+This is the specific gap that Dataiku's risk tier label and Classie's real-time tracking don't close. You can flag an agent as high-risk. You can track every transaction it touches. But if you don't have task-level performance data that tells you what this agent achieves — measured against the actual work it does, not a lab benchmark — your risk tier is informed by what the agent is doing, not how well it's doing it. That distinction matters when the agent is processing customer refunds or generating financial disclosures or routing clinical data.
+
+## Where This Goes
+
+The right interpretation of Dataiku's launch isn't "agent governance is solved." It's "the first layer of agent governance is about to become table stakes."
+
+[According to IBM's research](https://rmaindia.org/dataiku-launches-agent-management-to-tackle-ai-sprawl/), fewer than 20% of enterprises currently have the inventory visibility that Dataiku is now productizing. In 24 months, that number will invert. Having a cross-platform agent registry will be as standard as having a cloud asset inventory. Not having one will be a compliance flag.
+
+The market that opens up on the other side of that transition is the one no current tooling addresses adequately: what are your agents' verified performance characteristics, across their actual deployed workload, against task-level standards that persist through version updates and platform migrations?
+
+That's not a dashboard problem. It's not a risk tier problem. It's a verification infrastructure problem.
+
+Inventory was the necessary first step. Knowing what you're running is a prerequisite for knowing whether it works. Dataiku just made that step significantly easier for every enterprise running agents across multiple platforms.
+
+The harder step is still ahead.
+
+---
+
+<MatrixPills />
