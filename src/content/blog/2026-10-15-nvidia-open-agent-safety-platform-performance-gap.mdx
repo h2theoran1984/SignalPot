@@ -1,0 +1,76 @@
+---
+title: "Nvidia Secured the Agent. Nobody's Proving It Works."
+date: "2026-10-15"
+description: "Nvidia just launched an Open Agent Safety Platform with 100+ partners — Anthropic, Microsoft, JPMorgan, Salesforce. It's real infrastructure solving a real problem. But Gartner says 40% of agentic AI projects will be canceled by end of 2027 — and the reason isn't that agents are doing harmful things. It's that enterprises can't prove they're doing useful ones."
+tags: ["AI agents", "Nvidia", "enterprise AI", "agent safety", "agent verification", "agent trust", "performance", "deployment", "2026"]
+author: "SignalPot Team"
+slug: "nvidia-open-agent-safety-platform-performance-gap"
+---
+
+[Nvidia launched its Open Agent Safety Platform last week](https://technologymagazine.com/news/nvidia-unveils-agent-safety-platform-backed-by-100-partners). More than 100 organizations are already working with its technologies — Anthropic, Microsoft, JPMorgan Chase, Salesforce, Hugging Face, Perplexity, SpaceXAI.
+
+This is serious infrastructure. Not a demo, not a research paper — a hardware-and-software stack for governing what agents can actually do in production. OpenShell, an open-source runtime that sandboxes agents and enforces policy on their actions. Sentry, a hardware watchdog layer running on Nvidia's BlueField-4 data processing units, monitoring agent behavior at the infrastructure level. Salesforce has already connected OpenShell to Slack, so teams can approve or reject requests for additional permissions in real time.
+
+The stated motivation: incidents. Justin Boitano, Nvidia's VP of enterprise AI, said the platform could have [stopped a breach at frontier labs](https://www.darkreading.com/cyber-risk/nvidia-launches-ai-agent-safety-platform-prevent-rogue-activities) if it had been in place during model evaluation. CISA added an AI agent platform to its Known Exploited Vulnerabilities list for the first time in history this summer. The threat model for agentic AI is no longer hypothetical.
+
+So Nvidia built rails. And the rails are good. Here's the problem.
+
+## The Wrong Answer to the Right Question
+
+[Gartner projects that over 40% of agentic AI projects will be canceled by end of 2027](https://www.gartner.com/en/newsroom/press-releases/2025-06-25-gartner-predicts-over-40-percent-of-agentic-ai-projects-will-be-canceled-by-end-of-2027). Not slowed. Not restructured. Canceled.
+
+The reason Gartner gives is not that agents went rogue. Not that they exfiltrated data or executed unauthorized transactions. The reason is: escalating costs, unclear business value, and inadequate risk controls. Enterprises are killing agentic AI projects because they cannot establish that the agents are working.
+
+That's a performance verification problem. Safety infrastructure doesn't touch it.
+
+OpenShell can tell you whether your agent tried to access a service it wasn't supposed to touch. Sentry can tell you whether agent behavior deviated from declared policy at the hardware layer. What neither can tell you is whether the agent completed the task correctly — whether the answers it gave were accurate, whether the workflow it ran produced the right output, whether performance on your actual production task distribution meets the bar you need before you can justify the investment.
+
+These look like related problems. They're not.
+
+Safety is about what agents do. Performance is about how well they do it. A perfectly secured agent can be a perfectly useless one. The guardrails tell you it stayed in bounds. They don't tell you if it won.
+
+## The Number Behind the Number
+
+Five percent. That's the share of organizations that have moved agentic technology into production, per analysis from enterprise AI surveys this month. Eleven to fourteen percent of pilots scale.
+
+Those numbers exist alongside the 100+ partner Nvidia announcement. They exist alongside Oracle's Fusion Claw agent orchestration layer launching inside its ERP suite. They exist alongside [Gartner's 40% cancellation forecast](https://www.ihlservices.com/news/analyst-corner/2026/06/gartner-predicts-40-of-agentic-ai-projects-will-be-canceled-by-2027-heres-what-the-retail-store-level-shows/). And they tell you something about where the friction actually lives.
+
+The deployment problem is real — getting agents from pilot to production is hard. The AI labs have responded with billions in forward-deployed engineering capacity to solve exactly this. But the cancellation problem is different. Projects that make it to production are still being killed. The reason is almost never a safety failure. It's a performance failure: the organization cannot demonstrate that the agent is worth what it costs to run.
+
+[OutSystems surveyed nearly 1,900 global IT leaders](https://www.outsystems.com/news/enterprise-ai-agent-report-2026/) and found 94% report that AI sprawl is increasing complexity, security risk, and technical debt. Only 12% have a centralized platform to manage what they're running. IBM projects enterprises will average over 1,600 deployed agents by year-end. Most can't inventory what they're operating.
+
+Safety platforms address a slice of that. They help you control agents that are running. They don't help you know whether the agents you're running are performing — which is the question that determines whether those 1,600 agents are assets or liabilities.
+
+## What "Risk Controls" Actually Means
+
+Gartner's framing deserves closer reading. "Inadequate risk controls" sounds like a safety problem. It isn't, or at least not primarily.
+
+The risks that kill enterprise AI projects aren't usually agents doing harmful things. They're agents doing nothing reliably. The risk of task completion rates that don't justify the compute cost. The risk of accuracy on ambiguous queries falling below the threshold where human review becomes mandatory — at which point you've deployed an expensive process that generates more work than it replaces. The risk of a model update silently degrading performance on your specific task distribution while aggregate benchmarks hold steady.
+
+These are performance risks. They require measurement infrastructure — baselines, continuous evaluation, comparative benchmarking against alternatives. They require someone asking: not "is this agent behaving?" but "is this agent performing?"
+
+Nvidia's safety platform is a meaningful contribution to the first question. The second question remains almost entirely unanswered across the industry.
+
+## The Asymmetry in Enterprise AI Investment
+
+The current allocation of enterprise AI infrastructure investment is roughly: significant capital to deployment (FDE units, integration layers, orchestration platforms), growing capital to safety and governance (behavioral policy files, audit dashboards, Nvidia's new stack), and marginal capital to performance verification.
+
+That asymmetry is what Gartner's forecast is pointing at. Not a failure to deploy — deployment is accelerating. Not a failure to govern — governance tooling is maturing fast. A failure to measure: the inability to answer, with specificity, whether agents are delivering the value enterprises are deploying them to deliver.
+
+The 40% cancellation rate isn't a prediction about agents going rogue. It's a prediction about CFOs looking at AI spend next year and saying: show me the number. What exactly did this agent accomplish? How does its performance compare to the baseline? Why does this one stay and that one get cut?
+
+If the answer is "our agents are secured and governed," that's a start. If the answer can't include "our agents achieve X on task class Y at Z% success rate," the project is at risk regardless of how good the safety rails are.
+
+## The Missing Layer
+
+Nvidia's announcement is a signal the industry is maturing. The fact that a hardware company is building sandboxing infrastructure for software agents means the problem is real enough to warrant serious engineering. A hundred partners with names like JPMorgan Chase and Salesforce means it's past research and into production.
+
+But safety and performance are different axes. An agent needs both. The industry is building one fast and almost ignoring the other.
+
+The question for every enterprise running agents isn't just "are my agents secured?" It's: "can I prove they're working?" Not in a demo. Not in a pilot. In production, on real workloads, with specific task completion metrics that can answer a CFO's question about what the investment actually bought.
+
+Safety infrastructure tells you the agent stayed in its lane. Verification infrastructure tells you whether the lane was worth driving in. The industry is in the middle of building the first. The second is where the next 40% will be won or lost.
+
+---
+
+<MatrixPills />
