@@ -1,0 +1,64 @@
+---
+title: "AI Agents Just Got Passports. That's Half the Trust Problem."
+date: "2026-10-19"
+description: "ServiceNow's AI Passport gives enterprise agents a signed credential that controls what they can do at runtime. It's the authorization layer the industry needed. What it doesn't solve — what nobody has solved yet — is whether agents do the authorized things correctly."
+tags: ["AI agents", "ServiceNow", "agent governance", "agent verification", "agent trust", "enterprise AI", "authorization", "2026"]
+author: "SignalPot Team"
+slug: "servicenow-ai-passport-agent-trust-half"
+---
+
+On October 15, [ServiceNow announced AI Passport](https://newsroom.servicenow.com/press-releases/details/2026/ServiceNow-advances-its-operational-harness-for-enterprise-AI-with-AI-Passport-and-expanded-governance-capabilities/default.aspx) — a signed credential that defines an agent's identity, permitted actions, accessible systems, and accountable owner. During execution, the system checks those credentials in real time and can pause, restrict, or kill an agent that drifts outside its authorized scope. [The demo](https://siliconangle.com/?p=850534) showed a customer service agent authorized to process refunds under $25. An $18 refund went through. A $40 one got routed to a human reviewer.
+
+That's the right idea. It's also not the hard part.
+
+## What AI Passport Actually Does
+
+AI Passport is an authorization layer. It answers one question: *should this agent be allowed to take this action?* The system checks the credential against the permitted scope, and if the action falls outside it, the agent can't proceed. Graduated responses — pause, restrict, deactivate, kill switch — give operators more than a binary choice.
+
+[ServiceNow built this on open specifications](https://www.helpnetsecurity.com/?p=388116) so third-party enforcement points can issue and verify credentials — not a closed loop. [NVIDIA is the launch partner](https://www.constellationr.com/insights/news/servicenow-launches-ai-passport-ride-along-nvidias-open-agent-safety-platform), tying it into their Open Agent Safety Platform. The connection to the customer's CMDB and GRC policies means the authorization logic is grounded in enterprise policy rather than ad hoc rules someone typed into a prompt.
+
+This is infrastructure the industry needed. The agent deployment wave of the last 18 months created a governance gap that has cost enterprises real money: unauthorized actions, data exposure, and uncontrolled behavior that drove the [74% rollback rate Sinch documented in July](https://sinch.com/news/sinch-releases-ai-production-paradox/). The threat AI Passport addresses is real.
+
+But authorization and verification are not the same thing, and the industry keeps conflating them.
+
+## The Two Kinds of Agent Trust
+
+Authorization answers: *Is this agent allowed to do this?*
+
+Verification answers: *Is this agent doing it correctly?*
+
+ServiceNow's demo illustrates the distinction precisely. An $18 refund went through — the authorization layer approved it. What the demo can't show is whether the agent made the right call on that $18 refund. Did it correctly identify the transaction? Did it process the right customer account? Did it record the outcome accurately? The passport lets the action proceed. Whether the action was *executed well* is an entirely different question.
+
+This distinction matters at scale. [OutSystems' research released this week](https://finance.yahoo.com/technology/ai/articles/agentic-ai-era-enterprise-readiness-030000427.html), alongside KPMG data, found only 26% of enterprises are well prepared to manage agent conflicts. The conflicts they're struggling with aren't primarily authorization failures — they're performance failures. Agents that take the right action, in the right scope, and still get the answer wrong.
+
+An agent authorized to file an expense report can file the wrong expense report. An agent authorized to query a database can return incorrect results. An agent with a valid passport can still be bad at its job.
+
+## Why Authorization Comes First
+
+The industry built authorization infrastructure before verification infrastructure for understandable reasons. Authorization failures are *visible*. An agent accessing a system it shouldn't be in creates a detectable event. The tooling for catching that kind of failure maps cleanly onto existing security infrastructure — identity systems, access logs, policy engines. These are solved problems for human users. Extending them to agents is hard engineering but known territory.
+
+Verification failures are harder. They require knowing what correct looks like — not in policy terms, but in task terms. That means task-level evaluation against the actual workload: accuracy baselines, documented performance expectations, coverage of the failure modes that emerge under real traffic rather than in test cases designed to pass. Organizations have to build that from scratch because there's no common infrastructure for it yet.
+
+[ServiceNow's AI Passport](https://www.infoworld.com/article/4235886/servicenow-makes-it-easier-to-build-ai-agents-gives-them-verifiable-identities-2.html) is credentialing infrastructure. What the industry still lacks is the equivalent of a benchmark that runs alongside the credential — something that attests not just to what an agent is authorized to do, but how reliably it does it.
+
+## The Verification Gap
+
+The data on this is consistent. IBM found 11% of enterprises consider themselves fully ready for agent-scale deployment. OutSystems found 26% prepared to manage agent conflicts. Sinch found 74% have already rolled back live agents. The failure modes driving those numbers aren't overwhelmingly authorization failures. They're performance failures — agents that worked in evaluation environments and degraded under real conditions, with nobody catching the drift until it became a customer problem.
+
+The interesting thing about AI Passport is what it inadvertently signals about where the industry's thinking is: authorization first, performance second. That sequencing is understandable. It's also incomplete.
+
+The organizations navigating this well aren't just asking "what is this agent allowed to do?" They're asking "how do we know it's doing it right?" Those are different questions that require different infrastructure. The first question now has a vendor answer. The second question still doesn't.
+
+## What Follows the Passport
+
+Authorization infrastructure is necessary. The $40 refund getting flagged for human review instead of auto-processed is the right outcome, and having that logic enforced at runtime rather than buried in policy documents nobody reads is progress.
+
+But what comes after the passport is a harder conversation. It requires enterprises to define what correct agent behavior looks like — not at the policy level, but at the task level. It requires building that definition before deployment, not after the first rollback. It requires treating verification as infrastructure rather than as a QA checkbox on the way to shipping.
+
+ServiceNow built the agent ID layer. The performance layer — what tells you whether the agent carrying that ID is actually reliable at the work it's been given — is the next unsolved problem in enterprise AI deployment.
+
+The industry is halfway to trusting its agents. The authorization half is now shipping. The verification half is still waiting.
+
+---
+
+<MatrixPills />
