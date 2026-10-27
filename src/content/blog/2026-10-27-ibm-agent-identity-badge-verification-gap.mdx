@@ -1,0 +1,54 @@
+---
+title: "IBM Gave AI Agents a Badge. Now Someone Needs to Check Their Résumé."
+date: "2026-10-27"
+description: "At TechXchange today, IBM launched agent identity infrastructure via HashiCorp Vault. A SailPoint survey found 79% of enterprises run agents in production but only 2% use purpose-built identity tools. The governance stack is finally getting built — but the piece the industry is still missing isn't access control. It's capability verification."
+tags: ["AI agents", "enterprise AI", "agent identity", "IBM", "agent governance", "agent verification", "2026"]
+author: "SignalPot Team"
+slug: "ibm-agent-identity-badge-verification-gap"
+---
+
+At TechXchange 2026 today, [IBM announced](https://newsroom.ibm.com/2026-10-27-ibm-introduces-identity-and-control-for-ai-agents,-securing-frontier-intelligence-for-the-enterprise) something the enterprise AI industry has needed for a while: a way to give each AI agent a verified identity before it touches production systems.
+
+The technical specifics matter. IBM is extending [HashiCorp Vault](https://www.techzine.eu/news/infrastructure/145292/ibm-deploys-hashicorp-vault-for-ai-agent-identity/) — the enterprise secrets management platform it acquired in 2024 — to issue short-lived, protected credentials to agents. Each agent gets registered in a central inventory with metadata, risk classification, approved tool connections, and lifecycle state. If an agent attempts to exceed its permissions, access is denied and the session terminates immediately. NVIDIA is combining OpenShell's policy-governed runtime with the new agent identity layer, extending the scope to enterprise coding agents.
+
+This is real infrastructure. Not a governance whitepaper. Not a roadmap item. Vault 2.2 and Agent Identity are [generally available today](https://www.unite.ai/ibm-brings-governed-identity-and-credential-controls-to-ai-agents/).
+
+## The 40-to-1 Gap
+
+The timing is not accidental. Three weeks ago, [SailPoint released its fifth annual Horizons of Identity Security report](https://itwire.com/guest-articles/guest-research/sailpoint-report-finds-79-of-enterprises-run-ai-agents-in-production-yet-only-2-have-deployed-purpose-built-security) with numbers that should make any enterprise security team uncomfortable. Seventy-nine percent of organizations surveyed were running AI agents in production. Only 2 percent were using identity security tools specifically designed to govern them.
+
+That's a 40-to-1 gap between deployment and the security infrastructure those deployments need. It's also not surprising. Agent deployment has been driven by productivity pressure and vendor sales cycles. Governance infrastructure requires deliberate investment, cross-functional ownership, and a clear threat model — the kind of work that gets deferred when a line-of-business team just wants to ship the productivity gain.
+
+The result: most enterprise agents right now are running under inherited human credentials, with no unique identity, no credential scoping, and no centralized revocation. They're acting on behalf of whoever provisioned them. If one is compromised, or misbehaves, tracing the action back to a specific agent — rather than the human account it borrowed — is often impossible.
+
+IBM's solution is essentially a digital badge: a cryptographic identity issued to each agent that establishes who it is, what it's permitted to do, and what happens when the session ends. Short-lived credentials limit the blast radius of a misbehaving agent. A central registry means security teams actually know what's running. Real-time revocation means discovered problems can be contained without waiting for a human to cycle credentials manually.
+
+This is how you start building a zero-trust architecture for agents. Not with policy documents — with actual infrastructure.
+
+## What a Badge Doesn't Tell You
+
+Here's the gap the IBM announcement doesn't address, and that the broader governance market hasn't filled.
+
+Identity tells you *who* the agent is. It doesn't tell you *what* the agent can actually do — or how reliably it does it when real enterprise workloads hit it.
+
+This distinction matters more than it sounds. The enterprise agent procurement process today is almost entirely vendor-assertion-driven. An agent vendor tells you their agent handles complex financial data extraction with high accuracy. You sign the contract, provision the credentials, and deploy it. You've now given it a verified identity and scoped its access. What you haven't done is verify whether the vendor's claim is accurate on your use case, with your data, at the volume your operations require.
+
+Identity infrastructure answers the question: is this the agent we think it is, operating within permitted scope? The answer to that question is necessary. But it's not the same question as: does this agent perform reliably enough to run in production at all?
+
+Pre-deployment capability verification sits upstream of everything IBM shipped today. It's the due diligence layer — the check you run before you register the agent in Vault, scope its credentials, and push it into production. You'd want to know whether two competing agents handle your edge cases differently, which one fails less under load, what the accuracy distribution looks like across the task types it will actually encounter. That's not a security question. It's a procurement and engineering question that currently has no standardized answer.
+
+The governance stack is being built layer by layer. Identity is the right foundation — you can't do anything else without knowing what's running and what it should have access to. But a badge doesn't substitute for a track record, and access scoping doesn't substitute for task-level performance data.
+
+IBM built the credentialing infrastructure today. The [SailPoint survey](https://www.channelinsider.com/security/sailpoint-ai-agent-identity-security-gap/) quantified the deployment gap it's meant to close. The market still has a clear vacancy: someone needs to build the layer that answers the question that comes before all of this — not "does this agent have the right credentials" but "should this agent be credentialed at all."
+
+## The Stack Is Assembling
+
+This is the seventh governance-layer product in a ten-day window. Microsoft launched [Guardian Agents](https://techcrunch.com/2026/10/19/microsoft-says-ai-agents-are-like-insider-threats-as-frontier-models-cant-be-trusted/) for runtime monitoring. [Daytona raised $60M](https://tech.eu/2026/10/20/daytona-hits-1b-valuation-with-60m-series-b-for-ai-agent-cloud/) for isolated compute infrastructure. [Opsin raised $21M](https://www.citybiz.co/?p=919256) for behavioral security. ServiceNow shipped an AI Control Tower for orchestration governance. Now IBM has the identity layer.
+
+Each product names a different layer of the same structural problem: agents were deployed faster than the infrastructure to govern them responsibly. The enterprise AI industry is now building that infrastructure in reverse — from the incidents and exposures backward toward what should have been there from the start.
+
+The identity layer is real progress. It's also one layer. The stack is assembling, but it isn't assembled.
+
+---
+
+<MatrixPills />
