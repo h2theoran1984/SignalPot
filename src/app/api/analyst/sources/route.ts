@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext, hasScope } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
+import { log } from "@/lib/logger";
+
+const sourcesLog = log.scope("analyst.sources");
 
 /**
  * GET /api/analyst/sources
@@ -22,7 +25,7 @@ export async function GET(request: NextRequest) {
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("[analyst/sources] GET error:", error.message, error.code);
+    sourcesLog.error("list_query_failed", { err: error });
     return NextResponse.json(
       { error: "Failed to fetch sources", detail: error.message },
       { status: 500 }
@@ -94,7 +97,7 @@ export async function POST(request: NextRequest) {
         { status: 409 }
       );
     }
-    console.error("[analyst/sources] POST error:", error.message, error.code);
+    sourcesLog.error("create_failed", { err: error });
     return NextResponse.json(
       { error: "Failed to create source", detail: error.message },
       { status: 500 }

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { voteSchema } from "@/lib/arena/validations";
+import { log } from "@/lib/logger";
+
+const voteLog = log.scope("arena.matches.vote");
 
 /**
  * POST /api/arena/matches/[id]/vote — Cast a vote (auth required)
@@ -78,7 +81,7 @@ export async function POST(
         { status: 409 }
       );
     }
-    console.error("[arena] Vote error:", voteError);
+    voteLog.error("vote_insert_failed", { err: voteError, matchId: id });
     return NextResponse.json({ error: "Failed to cast vote" }, { status: 500 });
   }
 

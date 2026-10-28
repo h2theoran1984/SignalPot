@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { log } from "@/lib/logger";
+
+const leaderboardLog = log.scope("arena.leaderboard");
 
 /**
  * GET /api/arena/leaderboard — Public arena rankings
@@ -31,7 +34,7 @@ export async function GET() {
     .order("elo", { ascending: false });
 
   if (ratingsErr) {
-    console.error("[arena/leaderboard] Ratings query error:", ratingsErr);
+    leaderboardLog.error("ratings_query_failed", { err: ratingsErr });
     return NextResponse.json(
       { error: "Failed to load rankings" },
       { status: 500 }
@@ -192,7 +195,7 @@ export async function GET() {
     .limit(5);
 
   if (matchErr) {
-    console.error("[arena/leaderboard] Matches query error:", matchErr);
+    leaderboardLog.error("matches_query_failed", { err: matchErr });
   }
 
   // ── 5. Aggregate stats ───────────────────────────────────────────

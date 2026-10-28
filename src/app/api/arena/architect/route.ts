@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAgent, type CreateAgentInput } from "@/lib/architect";
 import { refineAgent, type RefineInput } from "@/lib/architect/refine";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { log } from "@/lib/logger";
+
+const architectLog = log.scope("arena.architect");
 
 export const maxDuration = 300;
 
@@ -56,7 +59,7 @@ async function createJob(
     .single();
 
   if (error || !job) {
-    console.error("[architect] Failed to create job:", error?.message);
+    architectLog.error("job_create_failed", { err: error });
     throw new Error("Failed to create job record");
   }
 
@@ -161,7 +164,7 @@ async function handleCreateAgent(
     jobId = await createJob("create_agent", input);
   } catch {
     // Non-fatal — continue without job tracking
-    console.warn("[architect] Job creation failed, proceeding without tracking");
+    architectLog.warn("job_create_failed_proceeding_untracked", {});
   }
 
   try {
@@ -191,7 +194,7 @@ async function handleCreateAgent(
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error("[architect] create_agent failed:", message);
+    architectLog.error("create_agent_failed", { err });
 
     if (jobId) {
       await completeJob(jobId, { _error: message }, Date.now() - startTime, false);
@@ -257,7 +260,7 @@ async function handleRefineAgent(
   try {
     jobId = await createJob("refine_agent", input);
   } catch {
-    console.warn("[architect] Job creation failed, proceeding without tracking");
+    architectLog.warn("job_create_failed_proceeding_untracked", {});
   }
 
   try {
@@ -289,7 +292,7 @@ async function handleRefineAgent(
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error("[architect] refine_agent failed:", message);
+    architectLog.error("refine_agent_failed", { err });
 
     if (jobId) {
       await completeJob(jobId, { _error: message }, Date.now() - startTime, false);

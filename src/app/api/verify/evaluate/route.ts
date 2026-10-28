@@ -8,6 +8,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateAllChallenges, generateComplianceChallenges } from "@/lib/arena/challenge-generator";
+import { log } from "@/lib/logger";
+
+const verifyLog = log.scope("verify.evaluate");
 
 export async function POST(request: NextRequest) {
   const auth = await getAuthContext(request);
@@ -90,7 +93,7 @@ export async function POST(request: NextRequest) {
   try {
     await generateAllChallenges(admin, agentId, 1);
   } catch (err) {
-    console.warn("[verify] Challenge generation failed:", err);
+    verifyLog.warn("challenge_generation_failed", { err });
     // Non-fatal — we can still try to run matches
   }
 
@@ -128,10 +131,10 @@ export async function POST(request: NextRequest) {
         matchCount++;
       } else {
         const errData = await res.json().catch(() => ({}));
-        console.warn(`[verify] Fight for ${patternId} failed:`, errData);
+        verifyLog.warn("fight_failed", { patternId, response: errData });
       }
     } catch (err) {
-      console.warn(`[verify] Fight for ${patternId} error:`, err);
+      verifyLog.warn("fight_error", { err, patternId });
     }
   }
 
@@ -150,7 +153,7 @@ export async function POST(request: NextRequest) {
   try {
     await generateComplianceChallenges(admin, agentId, 1);
   } catch (err) {
-    console.warn("[verify] Compliance challenge generation failed:", err);
+    verifyLog.warn("compliance_challenge_generation_failed", { err });
   }
 
   for (const patternId of compliancePatterns) {
@@ -176,10 +179,10 @@ export async function POST(request: NextRequest) {
         }
       } else {
         const errData = await res.json().catch(() => ({}));
-        console.warn(`[verify] Compliance fight for ${patternId} failed:`, errData);
+        verifyLog.warn("compliance_fight_failed", { patternId, response: errData });
       }
     } catch (err) {
-      console.warn(`[verify] Compliance fight for ${patternId} error:`, err);
+      verifyLog.warn("compliance_fight_error", { err, patternId });
     }
   }
 

@@ -9,6 +9,7 @@ import { getAuthContext } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
 import { verifyArenaAdminAuth } from "@/lib/arena/admin-auth";
+import { log } from "@/lib/logger";
 import {
   getActivePromptVersion,
   createPromptVersion,
@@ -16,6 +17,8 @@ import {
   revertToVersion,
 } from "@/lib/arena/prompt-manager";
 import { proposeImprovedPrompt, promptDiff } from "@/lib/arena/autotune";
+
+const middleOutLog = log.scope("arena.middle-out");
 import {
   batchScoreOutputs,
   aggregateScores,
@@ -139,7 +142,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
-    console.error("[middle-out] Challenge generation failed:", errMsg);
+    middleOutLog.error("challenge_generation_failed", { err });
     return NextResponse.json({ error: `Failed to generate challenge set: ${errMsg}` }, { status: 500 });
   }
 
@@ -324,7 +327,7 @@ export async function POST(request: NextRequest) {
       // Brief pause for any caching
       await new Promise((r) => setTimeout(r, 1000));
     } catch (err) {
-      console.error("[middle-out] Prompt improvement failed:", err);
+      middleOutLog.error("prompt_improvement_failed", { err });
       iterations.push({
         iteration: iter,
         scores: {
@@ -424,7 +427,7 @@ async function runChallengeSet(
       output = message.content[0].type === "text" ? message.content[0].text : "";
       tokensUsed = (message.usage?.input_tokens ?? 0) + (message.usage?.output_tokens ?? 0);
     } catch (err) {
-      console.error("[middle-out] Agent call failed:", err);
+      middleOutLog.error("agent_call_failed", { err });
     }
 
     runs.push({

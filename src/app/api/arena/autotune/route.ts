@@ -7,12 +7,15 @@ import { getAuthContext } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
 import { verifyArenaAdminAuth } from "@/lib/arena/admin-auth";
+import { log } from "@/lib/logger";
 import {
   getActivePromptVersion,
   createPromptVersion,
   activatePromptVersion,
   revertToVersion,
 } from "@/lib/arena/prompt-manager";
+
+const autotuneLog = log.scope("arena.autotune");
 import {
   analyzeWeaknesses,
   proposeImprovedPrompt,
@@ -240,7 +243,7 @@ export async function POST(request: NextRequest) {
         weaknessReport,
       });
     } catch (err) {
-      console.error(`[autotune] Prompt generation failed:`, err);
+      autotuneLog.error("prompt_generation_failed", { err });
       iterations.push({
         iteration: iter,
         baseline_elo: baselineResult.current_elo ?? baselineElo,
@@ -431,13 +434,13 @@ async function runGrind(
 
     if (!res.ok) {
       const errBody = await res.text();
-      console.error(`[autotune] Grind failed (${res.status}):`, errBody);
+      autotuneLog.error("grind_request_failed", { status: res.status, body: errBody });
       return null;
     }
 
     return (await res.json()) as GrindResult;
   } catch (err) {
-    console.error("[autotune] Grind fetch error:", err);
+    autotuneLog.error("grind_fetch_failed", { err });
     return null;
   }
 }

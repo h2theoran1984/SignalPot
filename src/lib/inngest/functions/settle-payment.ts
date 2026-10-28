@@ -1,5 +1,6 @@
 import { inngest } from "@/lib/inngest/client";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { log } from "@/lib/logger";
 
 // Async settlement function — triggered when a job completes.
 // Moves the settle_job_payment RPC call off the synchronous PATCH /api/jobs/[id] path.
@@ -23,7 +24,7 @@ export const settlePayment = inngest.createFunction(
       if (error) {
         if (error.message?.includes("INSUFFICIENT_BALANCE")) {
           // Non-retriable — caller doesn't have funds. Log and stop.
-          console.warn(`[settle-payment] Insufficient balance for job ${job_id}`);
+          log.warn("settle_payment_insufficient_balance", { jobId: job_id });
           return { settled: false, reason: "INSUFFICIENT_BALANCE" };
         }
         // Any other DB error — throw so Inngest retries

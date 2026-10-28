@@ -5,6 +5,9 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { JudgmentBreakdown, CriterionScore } from "./types";
+import { log } from "@/lib/logger";
+
+const reportLog = log.scope("arena.training-report");
 
 // ============================================================
 // Output Types
@@ -337,7 +340,7 @@ Give 2-3 sentences of specific, actionable coaching advice. Focus on the weaknes
     return text.trim() || "No coaching advice could be generated.";
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("[training-report] Coaching advice generation failed:", msg);
+    reportLog.error("coaching_advice_failed", { err });
     return `Coaching advice unavailable (${msg}). Focus on improving: ${ctx.weaknesses.join(", ")}.`;
   }
 }

@@ -4,6 +4,9 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { log } from "@/lib/logger";
+
+const generatorLog = log.scope("arena.challenge-generator");
 
 // ============================================================
 // Types
@@ -252,8 +255,7 @@ TASK: [The full challenge task text that will be presented to the agent]`;
 
     return { title, task };
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("[challenge-generator] Haiku generation failed:", msg);
+    generatorLog.error("haiku_generation_failed", { err });
 
     // Fallback: generic challenge
     return {
@@ -332,7 +334,7 @@ export async function generateComplianceChallenges(
       const challenge = await getOrGenerateChallenge(admin, agentId, p.id as string, level);
       results.push(challenge);
     } catch (err) {
-      console.error(`[challenge-generator] Compliance pattern ${p.id} failed:`, err);
+      generatorLog.error("compliance_pattern_failed", { err, patternId: p.id });
     }
   }
   return results;
@@ -361,7 +363,7 @@ export async function generateAllChallenges(
       const challenge = await getOrGenerateChallenge(admin, agentId, p.id as string, level);
       results.push(challenge);
     } catch (err) {
-      console.error(`[challenge-generator] Failed for pattern ${p.id}:`, err);
+      generatorLog.error("pattern_generation_failed", { err, patternId: p.id });
     }
   }
   return results;

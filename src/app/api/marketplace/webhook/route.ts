@@ -12,6 +12,9 @@ import {
   getSubscriptionByExternalId,
 } from "@/lib/marketplace/service";
 import type { MarketplaceProvider } from "@/lib/marketplace/types";
+import { log } from "@/lib/logger";
+
+const webhookLog = log.scope("marketplace.webhook");
 
 export async function POST(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -32,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     const verified = await connector.verifyWebhook(rawBody, headers);
     if (!verified) {
-      console.warn(`[marketplace-webhook] Signature verification failed for ${provider}`);
+      webhookLog.error("signature_verification_failed", { provider });
       return NextResponse.json({ error: "Webhook verification failed" }, { status: 401 });
     }
   } else {
@@ -127,12 +130,12 @@ export async function POST(request: NextRequest) {
       }
 
       default:
-        console.warn(`[marketplace-webhook] Unknown action: ${action} from ${provider}`);
+        webhookLog.warn("unknown_action", { action, provider });
         return NextResponse.json({ status: "acknowledged" });
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error(`[marketplace-webhook] Error processing ${action} from ${provider}:`, message);
+    webhookLog.error("handler_error", { err, action, provider });
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

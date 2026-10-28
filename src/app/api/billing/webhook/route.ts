@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { log } from "@/lib/logger";
 import type Stripe from "stripe";
+
+const webhookLog = log.scope("billing.webhook");
 
 // POST /api/billing/webhook — Stripe webhook handler
 // App Router does NOT pre-parse the body, so we can read raw bytes directly.
@@ -20,7 +23,7 @@ export async function POST(request: Request) {
     event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("Stripe webhook signature verification failed:", message);
+    webhookLog.error("signature_verification_failed", { message });
     return NextResponse.json({ error: `Webhook Error: ${message}` }, { status: 400 });
   }
 
@@ -112,7 +115,13 @@ export async function POST(request: Request) {
           });
 
           if (error) {
-            console.error("Failed to add credits:", error);
+            // User paid but credits were not granted — needs human intervention
+            webhookLog.critical("add_credits_failed_after_payment", {
+              err: error,
+              userId,
+              amountMillicents,
+              stripeSessionId: session.id,
+            });
           }
         }
         break;
@@ -184,7 +193,7 @@ export async function POST(request: Request) {
         break;
     }
   } catch (err) {
-    console.error("Webhook handler error:", err);
+    webhookLog.error("handler_error", { err, eventType: event.type, eventId: event.id });
     return NextResponse.json({ error: "Webhook handler failed" }, { status: 500 });
   }
 

@@ -1,4 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { log } from "@/lib/logger";
+
+const auditLog = log.scope("audit");
 
 /**
  * Log an audit event. Uses service_role client (bypasses RLS).
@@ -25,7 +28,15 @@ export async function logAuditEvent(params: {
       ip_address: params.ipAddress ?? null,
     });
   } catch (err) {
-    console.error("[audit] Failed to log event:", err);
+    // A lost audit event is a compliance gap — must be alertable, not just logged
+    auditLog.critical("audit_write_failed", {
+      err,
+      action: params.action,
+      actorId: params.actorId,
+      orgId: params.orgId,
+      targetType: params.targetType,
+      targetId: params.targetId,
+    });
   }
 }
 

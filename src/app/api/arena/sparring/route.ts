@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleSparringRequest, SPARRING_PARTNER_CONFIG } from "@/lib/arena/sparring-partner";
+import { log } from "@/lib/logger";
+
+const sparringLog = log.scope("arena.sparring");
 
 /**
  * POST /api/arena/sparring — The Sparring Partner's A2A RPC endpoint.
@@ -91,7 +94,7 @@ export async function POST(request: NextRequest) {
       error: { code: -32601, message: "Method not found" },
     });
   } catch (err) {
-    console.error("[arena-sparring] Request failed:", err instanceof Error ? err.message : "unknown");
+    sparringLog.error("request_failed", { err });
     return NextResponse.json({
       jsonrpc: "2.0",
       id: 0,
