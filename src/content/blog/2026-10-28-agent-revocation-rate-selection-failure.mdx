@@ -1,0 +1,58 @@
+---
+title: "The 78% Revocation Rate Isn't a Security Metric. It's a Selection Failure."
+date: "2026-10-28"
+description: "A new survey found that 78% of enterprises have pulled permissions from an AI agent already running in production. The market is treating this as a runtime security problem and building credential infrastructure. It's actually a procurement problem — and the fix has to start before deployment."
+tags: ["AI agents", "enterprise AI", "agent governance", "agent verification", "agent security", "procurement", "2026"]
+author: "SignalPot Team"
+slug: "agent-revocation-rate-selection-failure"
+---
+
+A survey released yesterday by Frontegg's Agen.co platform has a number worth sitting with: [78% of CISOs and CSOs at large U.S. enterprises say their organizations have pulled permissions from an AI agent already running in production](https://www.prnewswire.com/news-releases/78-of-enterprises-have-pulled-permissions-from-an-ai-agent-already-in-production-302920128.html).
+
+The survey covered 300 security executives at companies with 500 or more employees. 49% had discovered an agent in production with access it was never supposed to have. Only 37% scope an agent's access down to the task it was actually built for before deployment.
+
+The coverage has framed this as an access control story. It isn't. It's a selection story, and the framing matters for what you decide to build next.
+
+## What "Revocation in Production" Actually Means
+
+When a CISO pulls permissions from a live agent, something specific has already happened: an agent passed through procurement, integration, and whatever pre-deployment review existed — and made it into production with the wrong access. The revocation is a correction to a decision that was already made.
+
+That means the 78% figure isn't measuring how often runtime security fails. It's measuring how often the decision to deploy was wrong. Those are related problems but they require different fixes.
+
+The governance market is responding to this data by building better revocation infrastructure. [IBM launched agent identity credentials via HashiCorp Vault this week](https://www.techzine.eu/news/infrastructure/145292/ibm-deploys-hashicorp-vault-for-ai-agent-identity/) — short-lived, scoped credentials with centralized revocation. [ServiceNow unveiled AI Passport](https://www.hpcwire.com/bigdatawire/this-just-in/servicenow-unveils-ai-passport-to-control-ai-agent-permissions/) to govern runtime permissions across native and third-party agents. Both of these are real progress. They make the correction faster, cleaner, and auditable.
+
+What they don't do is lower the 78%. They improve what happens after you catch the problem. The problem is still happening.
+
+## The Accountability Structure Gives It Away
+
+The survey has a second number that explains why the revocation rate is so high: security is held accountable for agent incidents at 48% of companies, but security owns the agents at only 23%. IT owns them at 41%.
+
+That's not a blame-assignment problem. It's a structural indicator that the teams responsible for evaluating what an agent will do aren't involved in deciding which agent gets deployed or how it gets configured. Security inherits agents they didn't select, at access levels they didn't set, and then gets held responsible when something goes wrong.
+
+This is the same split that produced the SailPoint finding from last week — [79% of enterprises running agents in production, only 2% with purpose-built identity security tools](https://itwire.com/guest-articles/guest-research/sailpoint-report-finds-79-of-enterprises-run-ai-agents-in-production-yet-only-2-have-deployed-purpose-built-security). The security infrastructure gap exists because security wasn't driving the deployment decisions. And now that infrastructure is being built in reverse — after the agents are already running.
+
+[Salt Security's 2026 research](https://www.prnewswire.com/news-releases/nearly-half-of-enterprises-report-an-ai-agent-took-an-unauthorized-action-last-year-salt-security-research-finds-302906338.html) found that nearly half of enterprises experienced an AI agent taking an unauthorized action in the past year. A [Cloud Security Alliance study](https://newclawtimes.com/articles/csa-study-53-percent-enterprises-ai-agent-scope-violations-security-incidents/) found 53% of organizations had agents exceed their intended permissions. These aren't rare failures from outlier implementations. This is standard enterprise AI deployment operating at baseline.
+
+## The Revocation Is Not the Problem. The Deployment Is.
+
+Runtime controls — credential scoping, behavioral monitoring, centralized revocation — are necessary. Without them, you can't manage agents that are already in production, and most enterprises have agents that are already in production. The IBM and ServiceNow infrastructure is genuinely useful.
+
+But a better error-correction system doesn't answer the question that determines whether you need to correct an error: what does this agent actually do when it has a given access level? What happens when it encounters inputs at the edge of its permitted scope? Does the behavior match the vendor's description under the conditions your production environment actually runs?
+
+These questions are pre-deployment questions. They require testing the agent against real task conditions with controlled access configurations before it touches production systems. That test is what the current procurement process skips. The vendor provides the benchmark. The vendor describes the capability. The enterprise provides the contract and the API keys.
+
+[VentureBeat's research](https://venturebeat.com/resources/agentic-security-enterprises-enforce-agent-permissions-two-thirds-of-the-time-and-isolate-high-risk-agents-less-than-one-in-five) found that only 18% of enterprises isolate their highest-risk agents. Which means most enterprises have no pre-deployment signal about what those agents actually do with consequential access — and no isolation boundary when they do something unexpected.
+
+## The Governance Stack Keeps Building Backward
+
+The week's governance announcements are the seventh and eighth infrastructure products in a ten-day window. Identity credentials. AI Passports. Guardian Agents. Behavioral monitoring platforms. Isolated compute sandboxes. The enterprise AI governance stack is assembling, layer by layer, from the incidents backward.
+
+Each layer is useful. Each layer starts after the deployment decision has already been made.
+
+The 78% revocation rate will stay high as long as the procurement process stays unchanged: vendor-supplied benchmarks, demos against curated inputs, SOC 2 certificates, and a signed contract. What changes it is introducing an independent evaluation step between "we've selected a vendor" and "it's in production" — one that tests behavior at the task level, against real access configurations, under conditions the vendor didn't control.
+
+That's not a security function. It's an engineering and procurement function. And it's the piece that none of this week's announcements actually built.
+
+---
+
+<MatrixPills />
