@@ -1,0 +1,64 @@
+---
+title: "Salesforce Says Agents Tripled. The EU Says Prove It."
+date: "2026-08-18"
+description: "The EU AI Act's high-risk enforcement went live on August 2. Sixteen days later, Salesforce's Agentic Enterprise Index shows agent deployments nearly tripling year-over-year. These two facts are in direct collision — because what the EU requires isn't governance or audit logs. It's evidence that the agents actually work."
+tags: ["EU AI Act", "AI agents", "enterprise AI", "agent verification", "compliance", "Salesforce", "Agentforce", "2026"]
+author: "SignalPot Team"
+slug: "eu-ai-act-enforcement-agents-prove-it"
+---
+
+On August 2, the EU AI Act stopped being a compliance deadline and became enforcement reality. High-risk AI provisions — covering agents that make or materially influence decisions about employment, credit, healthcare, housing, insurance, and public services — are now live, with fines up to €35 million or 7% of global revenue for the most serious violations.
+
+Sixteen days later, [Salesforce released its 2026 Agentic Enterprise Index](https://www.salesforce.com/agentforce/agentic-enterprise-index/). The data: organizations running Agentforce increased their activated agents by nearly 3x over the past year. Agents are now producing [734 million discrete work units per month](https://enterprisedna.co/resources/news/salesforce-agentic-enterprise-index-agent-deployments-double-2026/), growing at 15% month-over-month. High-volume, multi-step deployments are now standard in manufacturing and public sector — precisely the regulated domains the EU AI Act targets hardest.
+
+This is not a coincidence you can manage by ignoring one of the two data points.
+
+## What the Number Hides
+
+The Salesforce data looks like good news, and in the narrow sense it is. Agent deployments are growing. Weekly employee usage has tripled. Customer escalation rates have held steady even as the agent surface area expanded. That's evidence the technology is maturing.
+
+But aggregate metrics hide the thing the EU AI Act requires organizations to answer at a much more granular level: *which agents, doing which tasks, at what accuracy rate, for which population of users?*
+
+The EU's high-risk framework doesn't ask whether your agents are broadly useful. It asks whether the specific agents making consequential decisions about specific people are accurate, equitable, and robust. [Conformity assessments under Articles 9–17](https://olakai.ai/blog/eu-ai-act-enforcement-august-2026/) require technical documentation, demonstrated accuracy and robustness, and human oversight mechanisms — not as one-time proofs, but as continuously maintained operational controls throughout the agent's lifecycle.
+
+Three times more agents in production means three times more compliance surface area. Most of that surface area is currently uncharacterized.
+
+## The 78% Problem
+
+[As of April 2026, 78% of organizations had not taken meaningful steps toward EU AI Act compliance](https://labs.cloudsecurityalliance.org/research/csa-research-note-eu-ai-act-high-risk-compliance-deadline-20/). That was four months before enforcement went live. The industry consensus at the time was that this figure would improve as the deadline approached.
+
+It may have. But "meaningful steps" in the compliance literature typically refers to policy documentation, impact assessments, and governance framework adoption — the governance layer. What's systematically missing isn't policy: it's performance evidence. Organizations can point to audit trails, behavioral policy files, and discovery tooling. They cannot point to verified task-level accuracy across the specific decision types their agents are making, on their actual data distributions, against the user populations the Act was written to protect.
+
+That distinction is the one EU regulators will press on. [The Cloud Security Alliance's analysis](https://labs.cloudsecurityalliance.org/research/csa-research-note-eu-ai-act-high-risk-compliance-deadline-20/) makes it explicit: policies and one-time impact assessments without continuous operational controls won't answer the questions reviewers will ask. The Act is outcome-oriented. It asks how risk is managed throughout the agent's operational lifecycle — not whether a risk management document was produced before deployment.
+
+## What Enforcement Actually Looks Like
+
+The first wave of enforcement won't be random sampling. EU authorities will follow visible harms and institutional footprints. The sectors most exposed are the ones with the largest agent deployments in regulated decision categories: financial services making credit or fraud determinations, healthcare systems routing triage or administrative decisions, insurers pricing or approving coverage, public sector entities handling benefits or housing applications.
+
+These are also the sectors with the most mature enterprise AI deployments — often the organizations that adopted Agentforce, Microsoft Copilot, or homegrown orchestration the earliest. Early mover advantage in deployment is a compliance liability if verification infrastructure didn't keep pace.
+
+The question regulators will ask first isn't "does your agent have an audit log?" It's "show me how you know this system is accurate and fair for the population it's affecting." That requires task-level performance data on real production workloads — not vendor benchmarks, not pilot evaluation data, not aggregate usage metrics.
+
+[Experian's launch of Agent Trust](https://www.hpcwire.com/bigdatawire/this-just-in/experian-announces-agent-trust-to-power-trusted-ai-driven-commerce/) — a framework establishing verifiable identity and accountability links between consumers and AI agents — signals that identity verification infrastructure for agents is arriving. That addresses the "who is making the decision" question. The "how well is the decision being made" question requires something different: independent evaluation against task-specific performance baselines, maintained as the model and data evolve.
+
+## The Gap Between Governance and Proof
+
+The infrastructure the enterprise AI industry built in 2025 and early 2026 was mostly governance infrastructure: discovery layers to find what agents are running, policy engines to constrain their behavior, audit dashboards to log what they did. That layer was necessary. It's also not sufficient for compliance.
+
+An agent can be fully discovered, policy-compliant, and thoroughly logged — and still be making systemically wrong decisions about a protected class of users. The audit trail proves the agent ran and output a result. It doesn't prove the result was correct.
+
+The EU AI Act's continuous monitoring requirement closes this gap in law. What it doesn't provide is the tooling. Organizations are responsible for building or acquiring independent evaluation capability: structured performance measurement against their actual task distribution, their actual data, their actual user population. And maintaining it — not as a pre-deployment checkpoint, but as an ongoing operational function that regenerates evidence as models update, data drifts, and scope expands.
+
+That's the infrastructure the enforcement era is now demanding. Salesforce's data shows how many agents are running. The EU Act is now asking whether organizations can prove they're running correctly.
+
+## The Market That's Forming
+
+The deployment era created demand for implementation infrastructure — FDE units, agent orchestration platforms, integration tooling. The enforcement era is creating demand for verification infrastructure: the ability to produce credible, auditable, task-specific performance evidence for every high-risk agent in your environment.
+
+This isn't a compliance team problem. It's an engineering and measurement problem, and it sits immediately downstream of every large enterprise AI deployment. The organizations that solve it first — that build continuous agent evaluation into their operational stack before the first enforcement action, not after — will have something the rest of the market is currently racing to acquire.
+
+The agents tripled. Now comes the part where someone has to prove they work.
+
+---
+
+<MatrixPills />
