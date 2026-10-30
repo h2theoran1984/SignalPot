@@ -1,0 +1,68 @@
+---
+title: "Enterprises Know What Safe Agents Look Like. They Just Can't Scale That Judgment."
+date: "2026-10-30"
+description: "A new ISG report found that enterprises restrict agents to 'bounded tasks' — defined work where decisions are observable and exceptions are manageable. That's the right framework. It's also one that falls apart completely at the deployment pace the industry is running."
+tags: ["AI agents", "enterprise AI", "agent governance", "agent verification", "deployment", "ISG", "2026"]
+author: "SignalPot Team"
+slug: "isg-bounded-tasks-deployment-scale-gap"
+---
+
+An [ISG report released this week](https://www.stocktitan.net/news/III/enterprises-empower-ai-agents-for-bounded-qpc40itmkyw9.html) put words around something most enterprise AI teams already sense but haven't articulated cleanly. Before handing an agent consequential responsibility, the enterprises that are deploying agents well apply three filters: Is the decision bounded? Can the outcome be observed? Can exceptions be managed when the agent gets it wrong?
+
+If all three answers are yes, the agent gets the role. If not, it stays in advisory mode or doesn't get deployed at all.
+
+This is a rational framework. It's also the first time a major research firm has articulated what pre-deployment agent evaluation looks like in operational terms — not benchmark scores, not SOC 2 certificates, but a concrete set of conditions that determine whether an agent belongs in production. The actual question isn't "is this agent good?" It's "will a mistake here be catchable before it compounds?"
+
+That framing is more useful than anything the vendor ecosystem has offered. It's also one that breaks down completely at the pace the industry is currently running.
+
+## The Numbers Don't Fit
+
+The same week ISG published its bounded-task framework, separate research [forecasts that 40% of enterprise applications will embed AI agents by December](https://brickresearch.substack.com/p/40-of-enterprise-apps-will-have-ai).
+
+Sit with that for a moment. Forty percent of enterprise apps is not a niche deployment. It's nearly half the software stack. For a company with 200 production applications, it means 80 agent-embedded systems in roughly the next two months.
+
+The ISG framework requires someone to evaluate each agent deployment against three specific criteria before it goes live. That's the right process. It's also a per-agent, per-use-case judgment that has to happen before every deployment decision. Eighty times.
+
+Nobody is doing that 80 times in two months. What actually happens is: the line of business team wants the feature, the vendor says it's production-ready, procurement runs the standard checklist, and the agent goes live. The bounded-task filter exists in theory. It doesn't survive contact with the deployment calendar.
+
+## Why This Is Different From the Previous Governance Gap
+
+This isn't the same story as the identity and access control gap — the [78% revocation rate](https://www.prnewswire.com/news-releases/78-of-enterprises-have-pulled-permissions-from-an-ai-agent-already-in-production-302920128.html), the [SailPoint finding](https://itwire.com/guest-articles/guest-research/sailpoint-report-finds-79-of-enterprises-run-ai-agents-in-production-yet-only-2-have-deployed-purpose-built-security) that 79% of enterprises run agents in production with essentially no purpose-built identity infrastructure. Those problems are real and they're getting infrastructure: IBM shipped [HashiCorp Vault-based agent identity credentials](https://www.techzine.eu/news/infrastructure/145292/ibm-deploys-hashicorp-vault-for-ai-agent-identity/) last week, ServiceNow shipped [AI Passport](https://www.hpcwire.com/bigdatawire/this-just-in/servicenow-unveils-ai-passport-to-control-ai-agent-permissions/), the stack is assembling.
+
+The bounded-task problem is upstream of all of that. It's not about whether you can revoke an agent's credentials after something goes wrong. It's about whether you had any systematic basis for deciding the agent could handle the task before you gave it credentials at all.
+
+ISG's three criteria — bounded decisions, observable outcomes, manageable exceptions — are essentially a description of what you'd need to know about an agent to trust it with a production role. They're also not things a vendor demo tells you. A demo is a curated sample of the agent performing well on inputs the vendor selected. It doesn't tell you what the output distribution looks like on your edge cases, at your data volumes, with your specific task configurations.
+
+The reason enterprises are defaulting to bounded tasks is that they don't have better information. It's a risk management heuristic that compensates for absent pre-deployment data. Which works fine when you're deploying carefully, one agent at a time, in a context where someone has thought carefully about scope. It stops working when you're at 40% of the application stack on a two-month timeline.
+
+## What the Judgment Actually Requires
+
+The three criteria in ISG's framework aren't vague. "Decisions are bounded" means there's a defined task scope the agent operates within, with identifiable inputs and outputs. "Outcomes can be observed" means you can verify what the agent actually did — not just that it completed, but that it completed correctly. "Exceptions can be managed" means you know what the agent does at the edges of its scope and have a recovery path.
+
+Each of those conditions requires pre-deployment empirical data. You can't answer "can outcomes be observed?" in the abstract. You need to know what the agent's output looks like on the specific task type you're deploying it for — including outputs on inputs it hasn't seen before. You can't answer "are decisions bounded?" without knowing what the agent does when it encounters an input that sits at the boundary of its intended scope. Does it stop? Ask for clarification? Proceed with the nearest interpretation?
+
+This is testable information. It's just not the information that the standard vendor procurement process generates. The vendor's benchmark tells you how the agent performs on a standardized task set under controlled conditions. Your procurement team's due diligence checks the vendor's compliance posture, pricing, and SLA. The three things ISG says you need to know — scope behavior, output observability, edge case handling — are evaluated by essentially nobody before deployment.
+
+## The Tools Problem Isn't Tools
+
+There's going to be a wave of "AgentOps" products in the next six months. [CompTIA is already developing an AgentOps+ credential](https://aiagentsdirectory.com/news/ai-agents-expand-capabilities-across-development-enterprise-workflows-and-security) for practitioners who deploy and govern agents. Monitoring platforms, behavioral security tools, and orchestration governance layers are multiplying. All of this is aimed at the problem of managing agents that are already in production.
+
+None of it changes the selection decision.
+
+The governance stack is being built in the right order for the industry's current state — post-deployment first, because that's where the pain is. But it doesn't close the gap ISG's framework actually describes. An enterprise could deploy full identity infrastructure, behavioral monitoring, real-time revocation, and a named supervisor for every agent, and still have no systematic pre-deployment basis for knowing whether the agent's decisions are bounded, its outputs observable, or its edge case behavior manageable.
+
+The three criteria describe what you need to know. The infrastructure being built addresses what you do after you find out the agent doesn't meet them.
+
+## What Scales
+
+Manual, per-deployment judgment works at low agent volume. It's how enterprises are doing it now, and it's why ISG found that agentic AI technology is "advancing faster than companies are handing agents responsibility." Companies that are doing this carefully are going slow precisely because they have no better tool.
+
+The only thing that scales the ISG framework is systematic pre-deployment evaluation at the task level — independent testing that measures scope behavior, output accuracy distribution, and edge case handling under conditions the vendor didn't design. Not one evaluation per vendor relationship. One evaluation per deployment configuration, because the same agent behaves differently on different task types, at different data volumes, in different environments.
+
+That's a more demanding standard than the current process. It's also the only version of the bounded-task framework that survives contact with 40% of the enterprise application stack.
+
+The enterprises that are going slow right now understand something that the deployment forecast doesn't account for: without a scalable pre-deployment evaluation process, "going fast" doesn't mean deploying more safely — it means deploying the same way, at higher volume, with proportionally more agents that were never properly scoped.
+
+---
+
+<MatrixPills />
