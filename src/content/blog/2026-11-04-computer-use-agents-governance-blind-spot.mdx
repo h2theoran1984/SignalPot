@@ -1,0 +1,64 @@
+---
+title: "You Can't Scope Permissions for a Mouse Click"
+date: "2026-11-04"
+description: "OpenAI just halved the price of GPT-6.1 Terra, its computer-use-optimized model. The governance stack the enterprise AI industry built in October — IBM Vault credentials, Opsin monitoring, Guardian Agents runtime policy — was built for agents that call APIs. Computer-use agents don't call APIs. They click menus and type in forms. The governance infrastructure is partially blind to what they're doing."
+tags: ["AI agents", "computer-use", "agent governance", "agent verification", "enterprise AI", "OpenAI", "2026"]
+author: "SignalPot Team"
+slug: "computer-use-agents-governance-blind-spot"
+---
+
+On October 27, [OpenAI halved the API price of GPT-6.1 Terra](https://plainenglish.io/openai/openai-gpt-6-1-terra-api-price-cut-computer-use), its model positioned explicitly for computer-use and agentic workloads. At roughly $1 per million input tokens and $5 per million output, it now undercuts alternatives by a wide margin while [posting OSWorld computer-use scores close to OpenAI's top-tier models](https://www.datastudios.org/post/gpt-6-1-terra-vs-gpt-5-6-terra-comparison) at a fraction of the cost.
+
+[ServiceNow embedded OpenAI's computer-use model into its Now Platform](https://www.channelinsider.com/ai/llms-chatbots-and-agents/servicenow-openai-partnership/) earlier this year, specifically to reach legacy systems where no API exists — mainframes, older ERPs, internal tools with UIs but no structured interface. Those agents don't call an endpoint. They see a screenshot of the application, navigate it like a person would, and act. The October partnership expansion deepened that integration.
+
+The price drop is good news for the people building these systems. It's also a stress test for an enterprise governance infrastructure that wasn't designed for agents that work this way.
+
+## What the Governance Stack Was Built For
+
+Look at what the enterprise AI industry built in October. [IBM launched Agent Identity via HashiCorp Vault](https://newsroom.ibm.com/2026-10-27-ibm-introduces-identity-and-control-for-ai-agents,-securing-frontier-intelligence-for-the-enterprise): short-lived cryptographic credentials issued to each agent, scoped to permitted tool connections, with real-time revocation if the agent exceeds its permissions. [Microsoft shipped Guardian Agents](https://techcrunch.com/2026/10/19/microsoft-says-ai-agents-are-like-insider-threats-as-frontier-models-cant-be-trusted/): runtime oversight that enforces dynamic permission scopes and flags up to 60 agent types already operating inside a corporate tenant. [Opsin raised $21 million](https://www.citybiz.co/?p=919256) to discover, monitor, and contain autonomous agents inside enterprise environments. ServiceNow shipped an [AI Control Tower](https://newsroom.servicenow.com/press-releases/details/2026/ServiceNow-launches-AI-Workflow-Factory-to-turn-workflow-improvement-into-a-continuous-agentic-AI-powered-loop/default.aspx) for orchestration governance.
+
+Each of these products shares a core architectural assumption: the agent interacts with enterprise systems through APIs and tool calls. The credential IBM issues controls which API endpoints the agent can reach. Opsin's behavioral monitoring watches the tool calls the agent makes. Guardian Agents enforces policy on the structured actions the agent can execute. The audit trail is built from structured inputs and outputs that can be observed, logged, and compared against a policy.
+
+That assumption is correct for most of the agents currently running in enterprise production. It's not correct for computer-use agents.
+
+## What Changes When the Agent Uses a Mouse
+
+Computer-use agents don't negotiate permissions at an API boundary. They see a screenshot of a screen and decide what to click.
+
+This isn't a hypothetical. The cases ServiceNow and OpenAI describe explicitly involve navigating software that has no API layer: legacy systems, older ERP interfaces, internal tools where the only integration path is a human sitting at a keyboard. The agent substitutes for the human. It reads the screen, identifies where to click, and acts.
+
+Consider what that means for the governance infrastructure.
+
+IBM's Vault credentials say "this agent is permitted to call these tool endpoints." If the agent logs in to your internal system by filling in a username and password on a login screen rather than through an OAuth exchange, the credential scoping model doesn't apply the same way. There's no tool endpoint to permit or deny. There's a screenshot and a decision about what to type.
+
+Guardian Agents can flag when an agent's structured API calls exceed its approved permissions. If the agent navigates to a payroll screen by clicking through a menu, the navigation isn't an API call. There's no structured action to intercept. The agent arrived at a screen it may not have been intended to reach, and the runtime enforcement layer didn't see it happen.
+
+Opsin's monitoring watches behavioral patterns in tool calls. Computer-use produces a behavioral trace of screenshots and UI interactions. That's a different kind of trace with different anomaly detection requirements. The models that catch deviations in API call patterns don't translate directly to deviations in screen-interaction patterns.
+
+This isn't a criticism of any of these products. They were built for the agents that existed and were being deployed in volume at the time. But computer-use agents are a structurally different kind of entity, and cheaper models mean faster adoption.
+
+## The Verification Problem Gets Harder, Not Easier
+
+[OpenAI's OSWorld benchmark scores](https://realpython.com/ai-news-weekly-2026-10-30/) for GPT-6.1 Terra are genuinely good. At extra-high effort, it hits 60.5% — close to larger models at a fraction of the cost.
+
+But sit with that number for a moment. A 60% OSWorld score means the agent completes roughly 60% of computer tasks in a controlled benchmark environment. The tasks in that benchmark were designed by researchers. They don't look like your production ERP workflows, your legacy mainframe procedures, or the specific sequence of clicks your finance team uses to run end-of-month reports.
+
+Verification of computer-use agents is harder than verification of API-calling agents for a structural reason: you can't mock a UI the way you mock an API. Testing whether an agent correctly calls a payments API endpoint can be done against a sandbox with predictable inputs and outputs. Testing whether an agent correctly navigates your internal expense submission workflow requires either a full replica of the environment or a live test on the actual system. Neither option is cheap or fast.
+
+The result is that computer-use agents tend to get tested in the demo environment, then deployed into production, with the gap between the two environments discovered over time rather than before deployment. The governance tools installed on top can tell you when something went wrong. They can't tell you what should have happened before the agent ran — and for computer-use, the "before" is harder to construct.
+
+## The Adoption Curve Is Coming Regardless
+
+[Enterprise AI deployment spending reached an estimated $176 billion by September 2026](https://www.tokenpost.com/news/business/48305), up from $33 billion a year earlier. The majority of that is not computer-use. But the price trajectory suggests it will be a material fraction in the near term. At half the previous price point, with ServiceNow integrations available and mainframe access as the sales story, the category is accessible to any enterprise IT team looking to automate workflows that currently require a human at a screen.
+
+The governance infrastructure the industry built this October is better than nothing. Identity matters. Runtime enforcement matters. Behavioral monitoring matters. But it was built on a model of how agents interact with systems that computer-use agents partly circumvent.
+
+The specific gap: you can't scope permissions for a mouse click. You can't revoke credentials for a text field. You can't pattern-match behavioral anomalies on a sequence of screenshots the same way you can on a sequence of API calls. The whole architecture assumes the interaction surface is structured and observable. Computer-use moves part of the interaction surface to something that only looks structured if you know what the agent was supposed to do.
+
+That's a verification problem before it's a governance problem. The enterprise organizations deploying computer-use agents in the next twelve months will need an answer to a question the current tooling doesn't quite address: how do you establish a known-good behavioral baseline for an agent that operates by looking at screens, before you give it access to the screens that matter?
+
+The question isn't hypothetical anymore. The price just dropped.
+
+---
+
+<MatrixPills />
