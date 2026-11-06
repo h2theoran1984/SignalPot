@@ -19,6 +19,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { log } from "@/lib/logger";
+
+const trackLog = log.scope("track");
 
 // CORS headers for cross-origin beacon calls
 const CORS_HEADERS = {
@@ -93,7 +96,7 @@ export async function POST(request: NextRequest) {
   });
 
   if (error) {
-    console.error("[track] Insert failed:", error.message);
+    trackLog.error("telemetry_insert_failed", { err: error });
     return new NextResponse(null, { status: 500, headers: CORS_HEADERS });
   }
 

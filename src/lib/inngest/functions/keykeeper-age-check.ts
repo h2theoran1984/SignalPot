@@ -3,6 +3,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { readSecret, storeSecret } from "@/lib/keykeeper/vault";
 import { getProvider } from "@/lib/keykeeper/providers";
 import { notify } from "@/lib/notifications";
+import { log } from "@/lib/logger";
+
+const ageCheckLog = log.scope("inngest.keykeeper-age-check");
 
 /**
  * Daily cron: checks all secrets for rotation based on their rotation_days setting.
@@ -150,8 +153,12 @@ export const keykeeperAgeCheck = inngest.createFunction(
 
           rotated++;
         } catch (err) {
-          const message = err instanceof Error ? err.message : "Unknown error";
-          console.error(`[keykeeper-age-check] Rotation failed for ${secret.name}: ${message}`);
+          ageCheckLog.error("rotation_failed", {
+            err,
+            secretName: secret.name,
+            provider: secret.provider,
+            ownerId: secret.owner_id,
+          });
 
           await notify(
             admin,

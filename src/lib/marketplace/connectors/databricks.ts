@@ -10,6 +10,7 @@
 //   DATABRICKS_WORKSPACE_URL — e.g. https://myworkspace.databricks.com
 //   DATABRICKS_ACCESS_TOKEN — PAT or OAuth token for API calls
 
+import { log } from "@/lib/logger";
 import type {
   MarketplaceConnector,
   MarketplaceAgentProfile,
@@ -62,6 +63,8 @@ interface DatabricksMCPListing {
 // Connector Implementation
 // ─────────────────────────────────────────────────────────────────
 
+const databricksLog = log.scope("marketplace.databricks");
+
 export const databricksConnector: MarketplaceConnector = {
   provider: "databricks",
 
@@ -72,12 +75,12 @@ export const databricksConnector: MarketplaceConnector = {
     const secret = process.env.DATABRICKS_WEBHOOK_SECRET;
 
     if (!secret) {
-      console.warn("[databricks-connector] DATABRICKS_WEBHOOK_SECRET not configured — rejecting webhook");
+      databricksLog.warn("webhook_secret_not_configured", {});
       return false;
     }
 
     if (!signature) {
-      console.warn("[databricks-connector] Webhook missing X-Databricks-Signature header");
+      databricksLog.warn("webhook_missing_signature", {});
       return false;
     }
 
@@ -90,7 +93,7 @@ export const databricksConnector: MarketplaceConnector = {
       if (sigBuffer.length !== expectedBuffer.length) return false;
       return timingSafeEqual(sigBuffer, expectedBuffer);
     } catch (err) {
-      console.error("[databricks-connector] Webhook signature verification error:", err);
+      databricksLog.error("signature_verification_error", { err });
       return false;
     }
   },

@@ -3,6 +3,9 @@ import { getAuthContext } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { enableE2E, disableE2E, getAgentPublicKey } from "@/lib/e2e";
 import { logAuditEvent, getClientIp } from "@/lib/audit";
+import { log } from "@/lib/logger";
+
+const e2eLog = log.scope("agents.e2e");
 
 /**
  * GET /api/agents/[slug]/e2e — Get E2E encryption status and public key.
@@ -100,7 +103,7 @@ export async function POST(
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to enable E2E";
-    console.error("[e2e] Enable failed:", message);
+    e2eLog.error("enable_failed", { err });
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

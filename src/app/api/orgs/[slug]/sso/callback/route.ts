@@ -6,6 +6,9 @@ import { createRemoteJWKSet, jwtVerify } from "jose";
 import { verifyState } from "@/lib/sso-state";
 import { assertSafeUrl } from "@/lib/ssrf";
 import { getAppOrigin } from "@/lib/env";
+import { log } from "@/lib/logger";
+
+const ssoLog = log.scope("sso.callback");
 
 interface SsoConfig {
   enabled: boolean;
@@ -36,7 +39,7 @@ async function verifyIdToken(
     });
     return payload as Record<string, unknown>;
   } catch (err) {
-    console.error("[sso] JWT verification failed:", err);
+    ssoLog.error("jwt_verification_failed", { err });
     return null;
   }
 }
@@ -55,7 +58,7 @@ export async function GET(
   // Handle OIDC error responses
   if (errorParam) {
     const desc = url.searchParams.get("error_description") ?? "Authentication failed";
-    console.error(`[sso] OIDC error for ${slug}: ${errorParam} - ${desc}`);
+    ssoLog.error("oidc_error_response", { slug, oidcError: errorParam, description: desc });
     return NextResponse.redirect(new URL(`/login?error=sso_failed`, url.origin));
   }
 
@@ -97,7 +100,7 @@ export async function GET(
   try {
     await assertSafeUrl(discoveryUrl);
   } catch (err) {
-    console.error("[sso] Blocked unsafe discovery URL:", err);
+    ssoLog.error("unsafe_discovery_url_blocked", { err, slug });
     return NextResponse.redirect(new URL(`/login?error=sso_provider_error`, url.origin));
   }
 
@@ -107,7 +110,7 @@ export async function GET(
     if (!res.ok) throw new Error(`Discovery fetch failed: ${res.status}`);
     discovery = await res.json();
   } catch (err) {
-    console.error("[sso] Failed to fetch OIDC discovery:", err);
+    ssoLog.error("oidc_discovery_fetch_failed", { err, slug });
     return NextResponse.redirect(new URL(`/login?error=sso_provider_error`, url.origin));
   }
 
@@ -119,7 +122,7 @@ export async function GET(
     await assertSafeUrl(discovery.token_endpoint);
     await assertSafeUrl(discovery.jwks_uri);
   } catch (err) {
-    console.error("[sso] Blocked unsafe token/JWKS URL:", err);
+    ssoLog.error("unsafe_token_or_jwks_url_blocked", { err, slug });
     return NextResponse.redirect(new URL(`/login?error=sso_provider_error`, url.origin));
   }
 
@@ -136,7 +139,8 @@ export async function GET(
     if (ssoConfig.client_secret) {
       tokenParams.client_secret = ssoConfig.client_secret;
     } else {
-      console.warn("[sso] No client_secret configured for org", slug, "— token exchange may be rejected by strict providers");
+      // Token exchange may be rejected by strict providers without a client_secret
+      ssoLog.warn("no_client_secret_configured", { slug });
     }
     const tokenRes = await fetch(discovery.token_endpoint, {
       method: "POST",
@@ -146,13 +150,13 @@ export async function GET(
 
     if (!tokenRes.ok) {
       const errBody = await tokenRes.text();
-      console.error("[sso] Token exchange failed:", tokenRes.status, errBody);
+      ssoLog.error("token_exchange_failed", { status: tokenRes.status, body: errBody, slug });
       return NextResponse.redirect(new URL(`/login?error=sso_token_error`, url.origin));
     }
 
     tokenData = await tokenRes.json();
   } catch (err) {
-    console.error("[sso] Token exchange error:", err);
+    ssoLog.error("token_exchange_error", { err, slug });
     return NextResponse.redirect(new URL(`/login?error=sso_token_error`, url.origin));
   }
 
@@ -173,7 +177,7 @@ export async function GET(
 
   // Validate nonce — prevents token replay attacks
   if (claims.nonce !== state.nonce) {
-    console.error("[sso] Nonce mismatch: ID token nonce does not match state nonce");
+    ssoLog.error("nonce_mismatch", { slug });
     return NextResponse.redirect(new URL(`/login?error=sso_nonce_mismatch`, url.origin));
   }
 
@@ -187,13 +191,14 @@ export async function GET(
 
   // Require verified email from the IdP to prevent account takeover
   if (emailVerified === false) {
-    console.error("[sso] Email not verified by IdP:", email);
+    ssoLog.error("email_not_verified_by_idp", { email, slug });
     return NextResponse.redirect(new URL(`/login?error=sso_email_not_verified`, url.origin));
   }
 
-  // Verify email domain against allowed_domains
+  // Verify email domain against allowed_domains (normalize both sides — legacy configs may have mixed case)
   const emailDomain = email.split("@")[1]?.toLowerCase();
-  if (!emailDomain || !ssoConfig.allowed_domains.includes(emailDomain)) {
+  const allowedDomains = ssoConfig.allowed_domains.map((d) => d.trim().toLowerCase());
+  if (!emailDomain || !allowedDomains.includes(emailDomain)) {
     return NextResponse.redirect(new URL(`/login?error=sso_domain_not_allowed`, url.origin));
   }
 
@@ -215,7 +220,7 @@ export async function GET(
     });
 
     if (createErr || !newUser.user) {
-      console.error("[sso] Failed to create user:", createErr);
+      ssoLog.error("user_create_failed", { err: createErr, slug });
       return NextResponse.redirect(new URL(`/login?error=sso_user_create_failed`, url.origin));
     }
 
@@ -239,8 +244,8 @@ export async function GET(
       });
 
       if (memberErr) {
-        console.error("[sso] Failed to auto-provision member:", memberErr);
         // Don't fail the login — they can be added manually
+        ssoLog.error("member_autoprovision_failed", { err: memberErr, slug });
       } else {
         logAuditEvent({
           orgId: org.id,
@@ -265,7 +270,7 @@ export async function GET(
   });
 
   if (linkErr || !linkData?.properties?.action_link) {
-    console.error("[sso] Failed to generate session link:", linkErr);
+    ssoLog.error("session_link_generation_failed", { err: linkErr, slug });
     return NextResponse.redirect(new URL(`/login?error=sso_session_failed`, url.origin));
   }
 
@@ -275,7 +280,7 @@ export async function GET(
   const otpType = (actionUrl.searchParams.get("type") ?? "magiclink") as "magiclink";
 
   if (!tokenHash) {
-    console.error("[sso] No token_hash in generated magic link");
+    ssoLog.error("magic_link_missing_token_hash", { slug });
     return NextResponse.redirect(new URL(`/login?error=sso_session_failed`, url.origin));
   }
 
@@ -288,7 +293,7 @@ export async function GET(
   });
 
   if (verifyErr) {
-    console.error("[sso] Server-side OTP verification failed:", verifyErr.message);
+    ssoLog.error("otp_verification_failed", { err: verifyErr, slug });
     return NextResponse.redirect(new URL(`/login?error=sso_session_failed`, url.origin));
   }
 

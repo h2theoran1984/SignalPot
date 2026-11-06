@@ -10,6 +10,9 @@ import {
   activateSubscription,
 } from "@/lib/marketplace/service";
 import type { MarketplaceProvider } from "@/lib/marketplace/types";
+import { log } from "@/lib/logger";
+
+const activateLog = log.scope("marketplace.activate");
 
 export async function POST(request: NextRequest) {
   const auth = await getAuthContext(request);
@@ -79,7 +82,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error(`[marketplace-activate] Error:`, message);
+    activateLog.error("activation_failed", { err });
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

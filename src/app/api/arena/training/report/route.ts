@@ -6,6 +6,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateTrainingReport } from "@/lib/arena/training-report";
+import { log } from "@/lib/logger";
+
+const reportLog = log.scope("arena.training.report");
 
 export async function GET(request: NextRequest) {
   // ── Auth ───────────────────────────────────────────────────────────
@@ -62,7 +65,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(report);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error("[arena/training/report] Error:", message);
+    reportLog.error("report_generation_failed", { err });
 
     // Surface user-friendly errors (no matches, agent not found, etc.)
     if (

@@ -1,4 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { log } from "@/lib/logger";
+
+const notifyLog = log.scope("notifications");
 
 /**
  * Create a notification for a user.
@@ -22,6 +25,6 @@ export async function notify(
   });
 
   if (error) {
-    console.error(`[notify] Failed to create notification: ${error.message}`);
+    notifyLog.error("notification_create_failed", { err: error, ownerId, type });
   }
 }

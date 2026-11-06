@@ -5,6 +5,9 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { JudgmentBreakdown, CriterionScore } from "./types";
+import { log } from "@/lib/logger";
+
+const reportLog = log.scope("arena.extract-report");
 
 // ============================================================
 // Output Types
@@ -676,8 +679,7 @@ MARKETING: ...`;
       marketing: sections.marketing ?? fallback.marketing,
     };
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("[extract-report] Recommendation generation failed:", msg);
+    reportLog.error("recommendation_generation_failed", { err });
     return fallback;
   }
 }

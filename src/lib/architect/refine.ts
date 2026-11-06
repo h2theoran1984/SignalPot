@@ -12,6 +12,9 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ARCHITECT_MODEL } from "./constants";
+import { log } from "@/lib/logger";
+
+const refineLog = log.scope("architect.refine");
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -85,13 +88,18 @@ async function fireMatch(
     });
 
     if (!res.ok) {
-      console.error(`[architect-refine] Fight failed (${res.status}):`, await res.text().catch(() => ""));
+      refineLog.error("fight_request_failed", {
+        status: res.status,
+        body: await res.text().catch(() => ""),
+        agentSlug,
+        capability,
+      });
       return null;
     }
 
     return (await res.json()) as MatchResponse;
   } catch (err) {
-    console.error("[architect-refine] Fight fetch error:", err);
+    refineLog.error("fight_fetch_failed", { err, agentSlug, capability });
     return null;
   }
 }
@@ -382,7 +390,7 @@ async function rollbackToVersion(
 ): Promise<void> {
   const targetRecord = history.find((h) => h.version === targetVersion);
   if (!targetRecord) {
-    console.error(`[architect-refine] Cannot rollback — version ${targetVersion} not found in history`);
+    refineLog.error("rollback_version_not_found", { agentId, targetVersion });
     return;
   }
 

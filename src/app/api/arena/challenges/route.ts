@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { log } from "@/lib/logger";
+
+const challengesLog = log.scope("arena.challenges");
 
 /**
  * GET /api/arena/challenges — List challenge prompts (public)
@@ -41,7 +44,7 @@ export async function GET(request: NextRequest) {
   const { data: challenges, count, error } = await query;
 
   if (error) {
-    console.error("[arena] Challenges list query failed");
+    challengesLog.error("list_query_failed", { err: error });
     return NextResponse.json({ error: "Failed to list challenges" }, { status: 500 });
   }
 

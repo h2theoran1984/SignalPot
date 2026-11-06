@@ -5,6 +5,9 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk";
+import { log } from "@/lib/logger";
+
+const syntheticLog = log.scope("arena.synthetic");
 
 // ---------------------------------------------------------------------------
 // Static fallback pools (used when Claude API is unavailable)
@@ -219,7 +222,7 @@ async function generateWithClaude(
       description: typeof parsed.description === "string" ? parsed.description : `Test ${capability}`,
     };
   } catch (err) {
-    console.warn("[synthetic] Claude generation failed, using fallback:", (err as Error).message);
+    syntheticLog.warn("claude_generation_failed_using_fallback", { err });
     return null;
   }
 }

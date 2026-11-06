@@ -6,6 +6,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { wrapRequest, wrapResponse } from "@/lib/envelope";
 import Anthropic from "@anthropic-ai/sdk";
 import type { DisputeEvidence, PanelVote } from "./types";
+import { log } from "@/lib/logger";
+
+const panelLog = log.scope("dispute.panel");
 
 const PANEL_TIMEOUT_MS = 15_000;
 
@@ -51,7 +54,7 @@ export async function callPanelAgent(
     .single();
 
   if (jobError || !job) {
-    console.warn(`[panel] Failed to create job for ${agentSlug}:`, jobError?.message);
+    panelLog.error("job_create_failed", { err: jobError, agentSlug, disputeId: evidence.dispute_id });
     return callPanelFallback(agentId, agentName, evidence);
   }
 
@@ -147,7 +150,7 @@ export async function callPanelAgent(
     }
 
     // Invalid vote format — fall back
-    console.warn(`[panel] Unexpected vote format from ${agentSlug} — using fallback`);
+    panelLog.warn("unexpected_vote_format_using_fallback", { agentSlug, disputeId: evidence.dispute_id });
     return callPanelFallback(agentId, agentName, evidence);
   } catch (err) {
     const durationMs = Date.now() - startTime;
@@ -161,8 +164,7 @@ export async function callPanelAgent(
       })
       .eq("id", jobId);
 
-    const message = err instanceof Error ? err.message : "Agent unreachable";
-    console.warn(`[panel] MCP call to ${agentSlug} failed (${message}) — using fallback`);
+    panelLog.warn("mcp_call_failed_using_fallback", { err, agentSlug, disputeId: evidence.dispute_id });
     return callPanelFallback(agentId, agentName, evidence);
   }
 }

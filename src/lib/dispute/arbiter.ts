@@ -8,6 +8,9 @@ import { validateOutput } from "@/lib/schema-validator";
 import Anthropic from "@anthropic-ai/sdk";
 import type { Agent } from "@/lib/types";
 import type { DisputeEvidence, ArbiterResponse } from "./types";
+import { log } from "@/lib/logger";
+
+const arbiterLog = log.scope("dispute.arbiter");
 
 const ARBITER_SLUG = "the-arbiter";
 const ARBITER_CAPABILITY = "signalpot/arbitrate@v1";
@@ -37,7 +40,7 @@ export async function callArbiter(
     .single();
 
   if (!arbiter || !arbiter.mcp_endpoint) {
-    console.warn("[arbiter] The Arbiter agent not found or no endpoint — using fallback");
+    arbiterLog.warn("arbiter_unavailable_using_fallback", { disputeId: evidence.dispute_id, tier });
     return callClaudeFallback(evidence, tier);
   }
 
@@ -64,7 +67,7 @@ export async function callArbiter(
     .single();
 
   if (jobError || !job) {
-    console.error("[arbiter] Failed to create job:", jobError?.message);
+    arbiterLog.error("job_create_failed", { err: jobError, disputeId: evidence.dispute_id });
     return callClaudeFallback(evidence, tier);
   }
 
@@ -183,7 +186,7 @@ export async function callArbiter(
     }
 
     // Valid response but unexpected format — fall back
-    console.warn("[arbiter] Unexpected response format — using fallback");
+    arbiterLog.warn("unexpected_response_format_using_fallback", { disputeId: evidence.dispute_id, jobId });
     await admin
       .from("jobs")
       .update({ verified: false })
@@ -202,8 +205,7 @@ export async function callArbiter(
       })
       .eq("id", jobId);
 
-    const message = err instanceof Error ? err.message : "Arbiter unreachable";
-    console.warn(`[arbiter] MCP call failed (${message}) — using fallback`);
+    arbiterLog.warn("mcp_call_failed_using_fallback", { err, disputeId: evidence.dispute_id, jobId });
     return callClaudeFallback(evidence, tier);
   }
 }

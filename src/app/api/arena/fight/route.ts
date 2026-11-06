@@ -18,6 +18,9 @@ import { checkArenaRateLimit } from "@/lib/rate-limit";
 import { getArenaLimitForPlan, type Plan } from "@/lib/plans";
 import { assertSafeUrl } from "@/lib/ssrf";
 import { verifyArenaAdminAuth } from "@/lib/arena/admin-auth";
+import { log } from "@/lib/logger";
+
+const fightLog = log.scope("arena.fight");
 import { getActiveProcessors, getProcessorById } from "@/lib/arena/processor-manager";
 
 const AGENT_TIMEOUT = 45_000; // 45s — Opus-level prompts at L3/L4 can be slow
@@ -345,7 +348,7 @@ export async function POST(request: NextRequest) {
       actualPrompt = generated.prompt;
     } catch (err) {
       // Fallback to legacy synthetic generation if pattern system fails
-      console.warn("[arena-fight] Pattern generation failed, falling back to synthetic:", err instanceof Error ? err.message : err);
+      fightLog.warn("pattern_generation_failed_using_synthetic", { err });
 
       const challengerCaps = (
         challengerAgent as Record<string, unknown>
@@ -377,7 +380,7 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (matchError || !match) {
-    console.error("[arena-fight] Match insert failed");
+    fightLog.error("match_insert_failed", { err: matchError });
     return NextResponse.json({ error: "Failed to create match" }, { status: 500 });
   }
 
@@ -581,7 +584,14 @@ export async function POST(request: NextRequest) {
             p_amount_millicents: providerCut,
           });
           if (creditError) {
-            console.error(`[arena-fight] BILLING ERROR: Failed to credit provider ${agent.owner_id} for agent ${slug}, match ${matchId}, amount ${providerCut} millicents:`, creditError.message);
+            // Provider earned money that was never credited — needs manual reconciliation
+            fightLog.critical("provider_credit_failed", {
+              err: creditError,
+              ownerId: agent.owner_id,
+              agentSlug: slug,
+              matchId,
+              amountMillicents: providerCut,
+            });
             billingErrors.push({ op: "provider_credit", agent: slug, amount: providerCut, error: creditError.message });
           }
         }
@@ -598,7 +608,14 @@ export async function POST(request: NextRequest) {
             p_amount_millicents: costMillicents,
           });
           if (refundError) {
-            console.error(`[arena-fight] BILLING ERROR: Failed to refund creator ${effectiveProfileId} for agent ${slug}, match ${matchId}, amount ${costMillicents} millicents:`, refundError.message);
+            // Creator paid for a failed agent and was never refunded — needs manual reconciliation
+            fightLog.critical("creator_refund_failed", {
+              err: refundError,
+              profileId: effectiveProfileId,
+              agentSlug: slug,
+              matchId,
+              amountMillicents: costMillicents,
+            });
             billingErrors.push({ op: "creator_refund", agent: slug, amount: costMillicents, error: refundError.message });
           }
         }

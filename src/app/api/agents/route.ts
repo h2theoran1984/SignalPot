@@ -10,6 +10,9 @@ import {
 import { getAgentLimitForPlan, type Plan } from "@/lib/plans";
 import { canManageAgent } from "@/lib/rbac";
 import { logAuditEvent, getClientIp } from "@/lib/audit";
+import { log } from "@/lib/logger";
+
+const agentsLog = log.scope("agents");
 
 // GET /api/agents — Search/filter agents
 export async function GET(request: Request) {
@@ -248,7 +251,7 @@ export async function POST(request: Request) {
     );
   }
   if (!input.goal || !input.decision_logic) {
-    console.warn(`[agents] Registration without goal/decision_logic — slug: ${input.slug}`);
+    agentsLog.warn("registration_missing_identity_fields", { slug: input.slug });
   }
 
   // Private agents must belong to an org

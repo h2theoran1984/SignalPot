@@ -216,7 +216,15 @@ export const ssoConfigSchema = z.object({
     .url()
     .refine((url) => url.startsWith("https://"), { message: "Issuer URL must use HTTPS" }),
   allowed_domains: z
-    .array(z.string().min(3).max(253).regex(/^[a-z0-9.-]+\.[a-z]{2,}$/, "Invalid domain"))
+    .array(
+      z
+        .string()
+        .trim()
+        .toLowerCase()
+        .min(3)
+        .max(253)
+        .regex(/^[a-z0-9.-]+\.[a-z]{2,}$/, "Invalid domain"),
+    )
     .min(1, "At least one allowed domain is required")
     .max(20),
   auto_provision: z.boolean().optional().default(false),

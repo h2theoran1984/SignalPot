@@ -1,5 +1,8 @@
 import { createHash, timingSafeEqual } from "crypto";
 import { checkAdminAuthRateLimit } from "@/lib/rate-limit";
+import { log } from "@/lib/logger";
+
+const adminAuthLog = log.scope("arena.admin-auth");
 
 /**
  * Verify an internal admin request using a dedicated ARENA_ADMIN_SECRET.
@@ -25,7 +28,7 @@ export async function verifyArenaAdminAuth(request: Request): Promise<boolean> {
   // Rate limit admin auth attempts
   const rl = await checkAdminAuthRateLimit(ip);
   if (!rl.success) {
-    console.warn(`[arena-admin] Rate limited admin auth attempt from ${ip}`);
+    adminAuthLog.warn("admin_auth_rate_limited", { ip });
     return false;
   }
 
@@ -33,7 +36,7 @@ export async function verifyArenaAdminAuth(request: Request): Promise<boolean> {
   const secret = process.env.ARENA_ADMIN_SECRET;
 
   if (!secret) {
-    console.warn("[arena-admin] ARENA_ADMIN_SECRET not set — internal admin auth disabled");
+    adminAuthLog.warn("admin_secret_not_set", {});
     return false;
   }
 
@@ -46,7 +49,7 @@ export async function verifyArenaAdminAuth(request: Request): Promise<boolean> {
   if (valid) {
     console.log(`[arena-admin] Successful admin auth from ${ip}`);
   } else {
-    console.warn(`[arena-admin] Failed admin auth attempt from ${ip}`);
+    adminAuthLog.warn("admin_auth_failed", { ip });
   }
 
   return valid;

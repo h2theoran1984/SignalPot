@@ -7,6 +7,9 @@ import { generateSyntheticPrompt } from "@/lib/arena/synthetic";
 import { inngest } from "@/lib/inngest/client";
 import { getArenaLimitForPlan, type Plan } from "@/lib/plans";
 import { logAuditEvent, getClientIp } from "@/lib/audit";
+import { log } from "@/lib/logger";
+
+const matchesLog = log.scope("arena.matches");
 
 /**
  * POST /api/arena/matches — Create a new arena match (auth required)
@@ -173,7 +176,7 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (insertError || !match) {
-    console.error("[arena] Insert error:", insertError);
+    matchesLog.error("match_insert_failed", { err: insertError });
     return NextResponse.json({ error: "Failed to create match" }, { status: 500 });
   }
 
@@ -255,7 +258,7 @@ export async function GET(request: NextRequest) {
   const { data: matches, count, error } = await query;
 
   if (error) {
-    console.error("[arena] List matches query failed");
+    matchesLog.error("list_query_failed", { err: error });
     return NextResponse.json({ error: "Failed to list matches" }, { status: 500 });
   }
 

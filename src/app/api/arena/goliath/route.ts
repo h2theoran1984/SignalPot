@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { log } from "@/lib/logger";
+
+const goliathLog = log.scope("arena.goliath");
 
 // Allow up to 5 minutes for Opus to think
 export const maxDuration = 300;
@@ -147,7 +150,7 @@ CRITICAL: winners, losers, competitive_dynamics, and recommendations MUST be arr
     });
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : "Unknown Anthropic error";
-    console.error("[goliath] Anthropic API error:", errMsg);
+    goliathLog.error("anthropic_call_failed", { err });
     return NextResponse.json({ error: `Anthropic API failed: ${errMsg}` }, { status: 500 });
   }
 
@@ -157,7 +160,7 @@ CRITICAL: winners, losers, competitive_dynamics, and recommendations MUST be arr
 
   const content = message.content[0];
   if (content.type !== "text") {
-    console.error("[goliath] Unexpected content type:", content.type);
+    goliathLog.error("unexpected_content_type", { contentType: content.type });
     return NextResponse.json({ error: "Unexpected response type" }, { status: 500 });
   }
 
@@ -194,7 +197,7 @@ CRITICAL: winners, losers, competitive_dynamics, and recommendations MUST be arr
       data = JSON.parse(repaired);
       console.log("[goliath] Repaired truncated JSON successfully");
     } catch {
-      console.error("[goliath] JSON parse failed even after repair. Raw text:", text.slice(0, 500));
+      goliathLog.error("json_parse_failed_after_repair", { raw: text.slice(0, 500) });
       return NextResponse.json({ error: "Failed to parse response as JSON", raw_preview: text.slice(0, 200) }, { status: 500 });
     }
   }

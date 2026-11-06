@@ -3,6 +3,9 @@ import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { decryptRequest, encryptResponse } from "@/lib/e2e/middleware";
+import { log } from "@/lib/logger";
+
+const customLog = log.scope("arena.custom");
 
 export const maxDuration = 300;
 
@@ -207,8 +210,8 @@ Respond with ONLY valid JSON matching the output schema. No markdown, no explana
     try {
       responseData = await encryptResponse(data, e2eSenderKid, e2eSenderJwk, metadata);
     } catch (err) {
-      console.warn(`[custom/${slug}] E2E response encryption failed:`, err);
       // Fall back to cleartext
+      customLog.warn("e2e_response_encryption_failed", { err, slug });
     }
   }
 

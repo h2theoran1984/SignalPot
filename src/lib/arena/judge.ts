@@ -10,6 +10,9 @@ import type { Agent } from "@/lib/types";
 import type { ArenaJudgment, ArenaRubric } from "./types";
 import { inferRubric, buildJudgePrompt, assembleBreakdown } from "./rubric";
 import { LEVEL_CONFIGS, type ArenaLevel } from "./levels";
+import { log } from "@/lib/logger";
+
+const judgeLog = log.scope("arena.judge");
 
 const ARBITER_SLUG = "the-arbiter";
 const ARBITER_CAPABILITY = "signalpot/arbitrate@v1";
@@ -62,7 +65,7 @@ export async function callArenaJudge(
     .single();
 
   if (!arbiter || !arbiter.mcp_endpoint) {
-    console.warn("[arena-judge] The Arbiter not found or no endpoint — using fallback");
+    judgeLog.warn("arbiter_unavailable_using_fallback", { matchId: input.matchId });
     return callJudgeFallback(input, rubric);
   }
 
@@ -89,7 +92,7 @@ export async function callArenaJudge(
     .single();
 
   if (jobError || !job) {
-    console.error("[arena-judge] Failed to create job record");
+    judgeLog.error("job_create_failed", { err: jobError, matchId: input.matchId });
     return callJudgeFallback(input, rubric);
   }
 
@@ -210,7 +213,7 @@ export async function callArenaJudge(
     }
 
     // Valid response but unexpected format — fall back
-    console.warn("[arena-judge] Unexpected response format — using fallback");
+    judgeLog.warn("arbiter_bad_response_using_fallback", { matchId: input.matchId, jobId });
     await admin.from("jobs").update({ verified: false }).eq("id", jobId);
     return callJudgeFallback(input, rubric);
   } catch (err) {
@@ -225,7 +228,7 @@ export async function callArenaJudge(
       })
       .eq("id", jobId);
 
-    console.warn("[arena-judge] MCP call failed — using fallback");
+    judgeLog.warn("arbiter_call_failed_using_fallback", { err, matchId: input.matchId, jobId, durationMs });
     return callJudgeFallback(input, rubric);
   }
 }
@@ -342,7 +345,7 @@ async function callJudgeFallback(
     };
   } catch (err) {
     const message = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
-    console.error("[arena-judge] Fallback Claude call failed:", message);
+    judgeLog.error("fallback_judge_failed", { err, matchId: input.matchId });
     return {
       winner: "tie",
       reasoning: `AI judge could not render a verdict — defaulting to tie. (${message})`,

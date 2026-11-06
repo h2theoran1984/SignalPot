@@ -6,6 +6,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateExtractReport } from "@/lib/arena/extract-report";
+import { log } from "@/lib/logger";
+
+const extractLog = log.scope("arena.extract");
 
 export async function GET(request: NextRequest) {
   // ── Auth ───────────────────────────────────────────────────────────
@@ -45,7 +48,11 @@ export async function GET(request: NextRequest) {
     .single();
 
   if (agentErr || !agent) {
-    console.error(`[arena/extract] Agent lookup failed: query=${isUuid ? "id" : "slug"}=${agentId}, error=${agentErr?.message ?? "no data"}, code=${agentErr?.code ?? "none"}`);
+    extractLog.error("agent_lookup_failed", {
+      err: agentErr,
+      agentId,
+      queryField: isUuid ? "id" : "slug",
+    });
     return NextResponse.json({ error: "Agent not found" }, { status: 404 });
   }
 
@@ -62,7 +69,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(report);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error("[arena/extract] Error:", message);
+    extractLog.error("report_generation_failed", { err });
 
     if (message.includes("not found") || message.includes("No completed")) {
       return NextResponse.json({ error: message }, { status: 404 });

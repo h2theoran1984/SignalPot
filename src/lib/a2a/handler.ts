@@ -3,6 +3,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { wrapRequest } from "@/lib/envelope";
+import { log } from "@/lib/logger";
 import {
   A2AErrorCodes,
   type AgentCard,
@@ -492,7 +493,7 @@ export async function dispatchPushNotifications(
           body: JSON.stringify(event),
         });
       } catch (err) {
-        console.error(`[a2a] Push notification failed for ${config.url}:`, err);
+        log.scope("a2a").error("push_notification_failed", { err, url: config.url, taskId });
       }
     })
   );
