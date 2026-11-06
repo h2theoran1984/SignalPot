@@ -1,0 +1,60 @@
+---
+title: "Wells Fargo Isn't Blocking AI Agents. It's Doing Something More Consequential."
+date: "2026-11-06"
+description: "While JPMorgan and Citi blocked third-party AI agents, Wells Fargo took a different path: allow agents, but make customers legally liable for everything they do. That shift — from blocking to liability transfer — is going to change how the entire industry thinks about agent authorization."
+tags: ["AI agents", "agent trust", "agent verification", "banking", "liability", "enterprise AI", "agent authorization", "2026"]
+author: "SignalPot Team"
+slug: "wells-fargo-agent-liability-authorization-gap"
+---
+
+[Five days ago, we wrote about JPMorgan, Citi, and Morgan Stanley blocking third-party AI agents from customer accounts.](/blog/banks-blocking-ai-agents-verification-gap) The argument was simple: the banks aren't wrong to block. They can't verify agent behavior before granting access, so the conservative move is to not grant it.
+
+This week, Wells Fargo took a different path. And it's the more consequential one.
+
+[The bank's updated Online Access Agreement](https://www.americanbanker.com/news/wells-fargo-wants-customers-to-prove-theyve-revoked-ai-agents), effective November 24, doesn't block third-party AI agents. It allows them — and then transfers essentially all liability for what they do onto the customer. Under the new terms, any instruction or transaction executed by an AI agent operating with a customer's credentials is treated as authorized by that customer. Full stop. The bank has no obligation to investigate the validity or scope of what the agent actually did.
+
+There's more. [Customers must revoke access properly and promptly, and must keep proof of that revocation.](https://www.cutoday.info/Fresh-Today/Wells-Fargo-Tells-Customers-If-Your-AI-Agent-Goes-Rogue-You-May-Be-Liable) If an agent acts after a customer claims to have revoked it — and the customer can't demonstrate that revocation to the bank's satisfaction — the customer remains responsible. Wells Fargo will not monitor, screen, or review agent activity in the meantime.
+
+The blocking strategy says: we can't verify agents, so we won't allow them. The Wells Fargo strategy says: we can't verify agents either, so if you use one, whatever it does is yours.
+
+## This Is Not a Customer-Friendly Policy
+
+It's worth being direct about what the new terms actually describe. If a customer connects a financial AI agent to their Wells Fargo account, and that agent executes a transaction the customer didn't intend — in a way that falls within the agent's technical permissions — the bank has contractually established that the customer authorized it. If the customer later disputes the transaction, the bank's position is: you authorized an agent, the agent acted, that's your authorization in action.
+
+[The EU's PSD2 framework](https://www.accountsrecovery.net/2026/11/03/wells-fargo-makes-customers-liable-for-ai-agent-transactions-including-unintended-ones/) puts the burden of disputed transactions on the bank, not the customer. The U.S. hasn't codified equivalent protections for AI-executed transactions. Wells Fargo's terms are filling that vacuum with a default: absent a legal requirement otherwise, the customer owns what their agent does.
+
+This is a rational business decision. It is not a framework designed to make AI agents safer or more trustworthy. It's a framework designed to make Wells Fargo's liability exposure manageable while the regulatory picture remains unclear.
+
+## The Gap It Exposes
+
+Here's the thing: the Wells Fargo policy creates a problem that neither the bank nor the customer can currently solve with available infrastructure.
+
+If an agent executes a transaction the customer claims was outside its authorized scope, the customer now needs to demonstrate what the agent was actually authorized to do — not what they intended, but what they can prove they authorized. That means maintaining a record: when access was granted, what permissions were assigned, what the agent's declared scope was, and when access was revoked.
+
+Most customers authorizing AI agents today don't maintain that record. The agent developer might. The bank won't. The customer usually just clicks "connect" and assumes the agent will behave within the scope the product advertised.
+
+That assumption is about to become a legal liability in a way it wasn't last week.
+
+[Enterprises are sitting in a sharper version of this same problem.](https://www.aimmediahouse.com/banking/wells-fargo-just-made-customers-liable-for-their-ai-agents) If you're a corporate customer running treasury management agents, procurement agents, or cash sweep agents connected to your Wells Fargo accounts, the new terms put your organization on the hook for every action those agents take. The larger the agent fleet, the larger the exposure. The less systematically you've documented what each agent was authorized to do, the harder it becomes to defend against a disputed transaction.
+
+## The Template Is Already Here
+
+Wells Fargo's approach will not stay in banking. The same logic — allow agents, transfer accountability to whoever authorized them — is going to appear in cloud provider terms, in SaaS platform agreements, in enterprise software licenses. The legal infrastructure for "who is responsible when an AI agent acts" is being written now, institution by institution, in the absence of a broader regulatory framework.
+
+The answer each institution lands on will be some version of the same thing: the organization or individual who authorized the agent is responsible for what it does. That's not surprising. It's how authorization has always worked for delegated human authority.
+
+The difference with AI agents is that "what the agent was authorized to do" is often not documented anywhere that could serve as evidence. No signed authorization record. No versioned permission log. No contemporaneous record of what behavioral scope the customer was relying on when they connected the agent.
+
+The Wells Fargo policy is the first major institutional demand that this record exist. Not as best practice. As a condition of your ability to dispute a transaction.
+
+## What the Banking Sector Is Telling the Rest of the Industry
+
+Taken together, the last two weeks of bank policy announcements describe a convergence: some banks are blocking agents, others are allowing them with strict liability transfer. What none of them are doing is accepting agents on trust. The question of "how was this agent authorized, and what was it authorized to do?" is becoming a question with legal teeth.
+
+The enterprises and developers who will navigate this environment successfully are the ones who treat agent authorization as a documentation problem, not a deployment checkbox. That means verifiable records of what each agent was scoped to do before it was given access — records that can be audited, examined in a dispute, and updated when scope changes.
+
+The blocking strategy buys time. The liability transfer strategy requires infrastructure. The industry is now getting the signal — from actual bank terms of service, effective in three weeks — that the infrastructure question is no longer optional.
+
+---
+
+<MatrixPills />
