@@ -1,0 +1,62 @@
+---
+title: "IBM and Microsoft Put 6,000 Agents in a Catalog. Now Comes the Hard Part."
+date: "2026-11-11"
+description: "IBM and Microsoft's Imagine Enterprise platform launched yesterday with more than 6,000 pre-built agents for financial services, insurance, and retail. The catalog solves one problem. It surfaces a harder one."
+tags: ["AI agents", "enterprise AI", "agent verification", "agent selection", "agent marketplace", "benchmarking", "2026"]
+author: "SignalPot Team"
+slug: "ibm-microsoft-imagine-enterprise-agent-selection-gap"
+---
+
+Yesterday, IBM and Microsoft [announced Imagine Enterprise](https://news.microsoft.com/source/2026/11/10/ibm-and-microsoft-announce-a-new-ai-agent-platform-designed-for-industry-specific-transformation/) — a joint platform for building, running, and governing industry-specific AI agents. The headline number is 6,000: more than 6,000 pre-built IBM Consulting agents and assets, integrated with Microsoft Foundry, Copilot Studio, GitHub Copilot, Azure, Purview, and Defender. Launch targets are financial services, insurance, and retail, with manufacturing, energy, public sector, and mobility queued behind.
+
+This is a serious announcement by two companies that move slowly and announce carefully. The fact that they built this together — not competing, not selling their own separate catalogs — signals that neither company thinks it can win the enterprise agent market alone.
+
+That part makes sense. The catalog problem, though, is different from the catalog itself.
+
+## 6,000 Agents Is Not a Selection Framework
+
+A catalog of 6,000 agents is a procurement surface, not a performance surface. When IBM says the platform includes pre-built agents for financial services, the natural question is: pre-built to do what, exactly, and how well?
+
+The press release answers the first part loosely. The second part — how well — is structurally absent from the launch. No benchmarks were published. No named production customers were cited. No performance data appeared in the coverage. [The 6,000 figure itself counts agents *and* assets](https://aiweekly.co/alerts/ibm-microsoft-launch-imagine-enterprise-with-6000-agents) — not exclusively deployable agents — which makes the catalog count impressionistic rather than actionable.
+
+This isn't a criticism of the launch. That's how platforms launch: with inventory counts, not verification results. The issue is what happens after a customer picks three insurance underwriting agents from a catalog of several hundred and tries to decide which one fits their actual claims workflow.
+
+That decision can't be made from a category label. It requires performance data under conditions that resemble the actual deployment.
+
+## The Governance Architecture Is About Monitoring, Not Selection
+
+IBM is pitching Imagine Enterprise specifically at regulated industries — companies that need built-in controls, observability, and AI compliance support. Microsoft is contributing Entra, Purview, and Defender to the security and governance stack. The pitch is that you don't have to build the governance layer yourself.
+
+That's real value. Governance infrastructure is expensive to build, and most enterprises building agent deployments from scratch are under-investing in it. If Imagine Enterprise makes it easier to log what agents do, audit their decisions, and demonstrate compliance, that's a meaningful step forward.
+
+But observability after deployment is a different instrument than verification before deployment. The governance layer tells you *what happened*. It doesn't tell you, before you go live, whether the agent you selected will perform to the standard your SLA requires.
+
+[Last week, Capgemini reported](https://www.capgemini.com/news/press-releases/financial-institutions-accelerate-transition-to-multi-agent-ai-in-drive-for-bottom-line-value/) that 59% of financial institutions are running multi-agent AI, but only 5% have institutionalized it in a way that consistently demonstrates returns. That gap is not primarily a governance gap — it's a measurement gap. Organizations can't tell whether their agents are performing well enough to extend their scope and trust them with more decisions.
+
+A catalog platform with better governance infrastructure does not close that gap. It makes the gap more legible.
+
+## The Selection Problem Gets Harder as the Catalog Gets Larger
+
+The intuition that more agents means more options is correct. The less obvious corollary is that more options means a harder selection problem — particularly when agents have similar category labels but meaningfully different behavior in production.
+
+Consider the financial services use case. If you're a bank deploying an agent for complex mortgage document review, the relevant question is not whether the catalog includes mortgage document review agents. It's which of those agents, under your document complexity distribution, your exception rate, your volume pattern, and your regulatory requirements, actually meets your quality bar.
+
+That's a comparison question. It requires evaluation data.
+
+Right now, the enterprise buying motion for AI agents looks like enterprise software procurement in 2005: vendors publish categories, customers evaluate in pilots, everyone moves slowly and renegotiates once it doesn't quite work as advertised. IBM and Microsoft are building at scale inside that buying motion, not transforming it.
+
+The transformation happens when agents come with verified performance claims — not marketing claims, not sandbox benchmarks, but performance data from comparable production environments. That's what makes "6,000 agents" useful to a practitioner rather than a CFO building a deck about market participation.
+
+## What This Launch Signals for the Market
+
+The IBM-Microsoft partnership is the most significant agent catalog move in 2026. Two of the largest enterprise technology vendors are jointly building agent infrastructure at scale, with a governance pitch aimed directly at the regulated industries most likely to generate real revenue from production deployments.
+
+The implication for the rest of the market: the catalog problem is solved, or close to it. Major catalogs with real assets, backed by real governance infrastructure, will be available to enterprise customers. The platforms that follow this model will give buyers the inventory they need to start.
+
+What they won't give buyers — what no catalog platform has given buyers yet — is the ability to compare agents by performance before committing to deployment. That problem is structurally outside the catalog product. It requires independent evaluation: test suites that don't belong to the vendor, comparison against alternatives, and results that don't disappear when the sales engagement ends.
+
+The platforms are coming. The selection infrastructure is not there yet. That gap will determine which of those 6,000 agents earns actual trust — and which ones just take up catalog space.
+
+---
+
+<MatrixPills />
