@@ -1,0 +1,70 @@
+---
+title: "IBM and Microsoft Just Put 6,000 Agents on a Shelf. Now Who Picks?"
+date: "2026-11-12"
+description: "IBM and Microsoft's Imagine Enterprise launches with a catalog of 6,000 prebuilt agents and assets. No production customers yet, no pricing, no per-agent audit trail. The catalog is the easy part."
+tags: ["AI agents", "enterprise AI", "agent verification", "agent benchmarking", "IBM", "Microsoft", "agent marketplace", "2026"]
+author: "SignalPot Team"
+slug: "ibm-microsoft-imagine-enterprise-6000-agents"
+---
+
+[On Monday, IBM and Microsoft announced Imagine Enterprise](https://news.microsoft.com/source/2026/11/10/ibm-and-microsoft-announce-a-new-ai-agent-platform-designed-for-industry-specific-transformation/), a joint platform for building, running, and governing AI agents for industry-specific business processes. The headline number: more than 6,000 prebuilt agents and assets from IBM Consulting, running on Microsoft's cloud and AI stack. The press release is confident. The fine print is instructive.
+
+No production customers are named. Pricing is undisclosed. And [coverage noting the 6,000 figure counts agents alongside other assets](https://www.intelligenthq.com/ibm-microsoft-imagine-enterprise-ai-agents-platform-2026/) — not all deployable agents — suggests the number is chosen for impressiveness, not precision. The platform targets regulated industries. How individual agent actions are logged for auditors is not detailed in any of the launch materials.
+
+This is not a takedown. The scale of what IBM and Microsoft are attempting is real, and the market pull for pre-built enterprise agents is real. But the launch exposes a problem the industry keeps building toward and not past: a large catalog of agents creates a selection problem the catalog itself doesn't solve.
+
+## What Imagine Enterprise Actually Is
+
+The platform pairs IBM Consulting's agent catalog — built on IBM Consulting Advantage — with Microsoft's infrastructure layer: [Microsoft Foundry, GitHub Copilot, Copilot Studio, Microsoft Fabric, Entra for identity, Purview for data governance, and Defender and Azure for security](https://www.prnewswire.com/news-releases/ibm-and-microsoft-announce-a-new-ai-agent-platform-designed-for-industry-specific-transformation-302934280.html).
+
+IBM's forward-deployed consultants help customers move from pilots to production. Microsoft handles the cloud, coordination, and compliance infrastructure. The pitch is that regulated enterprises — financial services, insurance, retail — can skip the from-scratch build and deploy proven agents faster.
+
+The word "proven" is doing significant work in that pitch.
+
+## The Catalog Is Not a Leaderboard
+
+The selection problem is not new. [SAP launched 200 agents last spring](https://signalpot.dev/blog/sap-200-agents-selection-problem) and immediately discovered that an enterprise with 200 agents to choose from is not better positioned than an enterprise with five — unless it has a framework for evaluating which agent performs best against its specific requirements. [UBS is reportedly running 12,700 agents across its infrastructure](https://signalpot.dev/blog/ubs-12700-agents-governance-gap). That number describes an inventory, not a managed fleet.
+
+Imagine Enterprise enters this landscape with a catalog of roughly 6,000. The same question that faced SAP's customers and UBS's operators faces every Imagine Enterprise buyer: which agent do I use for my use case, and how do I know it will perform well enough to trust with a production workflow?
+
+IBM Consulting's answer is the consulting relationship: they help you pick, configure, and deploy. That's a reasonable model for the enterprise accounts IBM Consulting can staff. It doesn't scale across the mid-market, and it doesn't solve the ongoing measurement problem once an agent goes live.
+
+[The Capgemini World Cloud Report, published last week](https://www.capgemini.com/news/press-releases/financial-institutions-accelerate-transition-to-multi-agent-ai-in-drive-for-bottom-line-value/), found that 59% of financial institutions are deploying multi-agent AI — and only 5% have institutionalized the capabilities to actually operate it at enterprise scale. That gap isn't a skills problem. It's a measurement problem. Organizations that can't evaluate whether an agent is performing well enough to extend its scope don't get from "this is running" to "this is reliable enough to depend on."
+
+An IBM consulting relationship gets you to "running." It doesn't get you to "reliable enough to depend on."
+
+## Governance as Infrastructure, Not Checkpoint
+
+The Imagine Enterprise launch includes what IBM calls built-in controls, observability, and AI compliance support. The specifics are vague — but the gesture toward observability is worth noting because it identifies where the real infrastructure gap is.
+
+Governance is usually treated as a deployment checkpoint: does this agent meet the bar to go live? Imagine Enterprise, like most enterprise platforms, frames it that way. But governance at scale is a continuous operation. Agents drift. Models get updated. Workflows change. The agent that passed your internal review in Q2 is not necessarily the same agent running against your production data in Q4.
+
+[Microsoft's Guardian Agents, announced last month](https://signalpot.dev/blog/microsoft-guardian-agents-frontier-models-trust), represent an attempt to address exactly this — agents that watch other agents in real-time and flag behavioral drift. That work is happening in parallel with Imagine Enterprise, and it's the more technically interesting piece: not building a larger catalog, but building the infrastructure layer that keeps any catalog honest over time.
+
+The governance gap in the Imagine Enterprise launch is that the catalog and the continuous-evaluation infrastructure aren't presented as a unified system. You get the agents. You get some observability tooling. The continuous performance benchmarking — the question of which agent is reliably better for your specific workflow, six months into production — is still largely left as an exercise for the buyer.
+
+## The Regulated Industry Problem
+
+Imagine Enterprise targets financial services, insurance, and retail first. That's a reasonable priority order: these sectors have the deployment budgets and the most pressure to automate workflows at scale.
+
+They also have the most to lose from agent failures with no audit trail.
+
+[Wells Fargo's updated Online Access Agreement](https://signalpot.dev/blog/wells-fargo-agent-liability-authorization-gap), effective November 24, establishes that any transaction an AI agent executes with customer credentials is treated as authorized by that customer — full stop, no investigation obligation on the bank's side. That policy is downstream of the same problem Imagine Enterprise leaves unresolved: when an agent acts in a regulated workflow, is there a clear record of what it was authorized to do, what it actually did, and whether its behavior was within expected parameters?
+
+Regulated enterprises buying into the Imagine Enterprise catalog will face that question. The more agents they deploy, the sharper the question gets.
+
+## What the Launch Signals
+
+IBM and Microsoft building a joint enterprise agent platform is a meaningful moment, independent of the launch materials' gaps. It signals that the major technology vendors have concluded that agent catalogs — not point solutions, not standalone chatbots — are the enterprise deployment model. The investment both companies are making in joint go-to-market is a bet on that conclusion being correct.
+
+That's probably the right bet. The enterprises buying AI capability don't want to evaluate fifty different agent frameworks. They want something that integrates with their existing infrastructure, comes with a support relationship, and works out of the box. A catalog from IBM and Microsoft — with Azure, Entra, Purview, Fabric — hits most of those requirements.
+
+The piece that's underdeveloped isn't the catalog. It's the selection layer on top of it. When you have 6,000 agents and assets, the question "which one should we use?" doesn't get answered by the platform. It gets punted to the consulting relationship, to internal evaluation cycles that aren't standardized, to a pilot period that may or may not generate usable performance data.
+
+The enterprises that move fastest through that gap won't be the ones with the biggest consulting contracts. They'll be the ones that treat agent selection as a measurement problem — continuous, verifiable, comparable across options — rather than a one-time procurement decision.
+
+A catalog of 6,000 is the starting line, not the finish. The finish is knowing which three of those 6,000 actually perform best for what you need to do.
+
+---
+
+<MatrixPills />
