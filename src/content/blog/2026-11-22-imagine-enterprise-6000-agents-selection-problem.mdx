@@ -1,0 +1,64 @@
+---
+title: "IBM and Microsoft Just Put 6,000 Agents on a Shelf. Now Who Checks If They Work?"
+date: "2026-11-22"
+description: "IBM and Microsoft launched Imagine Enterprise with 6,000-plus pre-built AI agents for financial services, insurance, and retail. The deployment problem is being solved. The selection problem just got a lot harder."
+tags: ["AI agents", "enterprise AI", "agent verification", "agent selection", "IBM", "Microsoft", "agent marketplace", "benchmarking", "2026"]
+author: "SignalPot Team"
+slug: "imagine-enterprise-6000-agents-selection-problem"
+---
+
+[On November 10, IBM and Microsoft announced Imagine Enterprise](https://www.pymnts.com/news/artificial-intelligence/2026/ibm-and-microsoft-launch-ai-agent-platform/) — a joint platform for building, running, and governing AI agents in regulated industries. The catalog they're shipping with it contains more than 6,000 pre-built agents and assets, drawn from IBM Consulting's internal Consulting Advantage library. The first vertical targets are financial services, insurance, and retail. Both companies will deploy forward engineers to help qualifying customers get agents into production.
+
+This is a real distribution milestone. For the last two years, one of the biggest practical obstacles to enterprise AI deployment has been procurement and integration friction: how do you go from "we want agents" to "agents are running in production" without six months of custom development? The IBM + Microsoft answer is a catalog: here are 6,000 things. Pick the ones relevant to your workflow. We'll help you stand them up.
+
+That answer is useful. It also surfaces a question the catalog itself can't answer.
+
+## The Deployment Problem Is Not the Only Problem
+
+The agent catalog model assumes that the main obstacle to enterprise AI deployment is access. If you can lower the barrier to getting agents into enterprise environments — through pre-built templates, pre-integrated tooling, identity and governance infrastructure — adoption will follow.
+
+That assumption is probably right as a first approximation. And the IBM + Microsoft stack addresses it seriously. [Microsoft Foundry, Copilot Studio, and the full Azure layer](https://www.storagereview.com/news/ibm-microsoft-imagine-enterprise-ai-agent-platform) handle agent deployment, identity, security, and data governance. Each published agent in Foundry gets its own Microsoft Entra identity — a named, credentialed entity with its own permissions and an accountable manager. That's a real governance advance. It tells you who the agent is, what it's authorized to access, and who owns it.
+
+What it doesn't tell you is whether the agent is any good.
+
+The Entra identity tells you the agent exists and has a credential. It says nothing about how the agent performs on the task it was built for — accuracy under real conditions, failure modes in edge cases, error rates across the workflow you're deploying it into. Those aren't identity questions. They're verification questions, and they require a different kind of infrastructure.
+
+## A Catalog of 6,000 Is a Selection Problem
+
+[The count in the IBM + Microsoft announcement mixes agents with other assets](https://www.pymnts.com/news/artificial-intelligence/2026/ibm-and-microsoft-launch-ai-agent-platform/), so the actual number of deployable, standalone agents is smaller than 6,000. But even if the real figure is in the hundreds for a given vertical, it creates a problem the catalog model hasn't solved: how does an enterprise choose between them?
+
+When there are three procurement agents in a catalog, you can run a manual comparison. When there are thirty, you need a methodology. When there are three hundred — across contract analysis, cash flow forecasting, compliance flagging, invoice processing, and every other financial services workflow IBM Consulting has ever touched — you need infrastructure. Something that tells you, before you deploy, how Agent A compares to Agent B on the specific task you're running, against something closer to your actual data than the vendor's demo.
+
+The IBM + Microsoft announcement says nothing about this. The launch materials describe what agents are available and how to deploy them. They don't describe how the agents in the catalog were evaluated before being listed, what performance claims are verifiable, or how a buyer should distinguish between agents built to similar specs.
+
+That gap isn't a criticism of the platform. It's a description of where the enterprise AI problem currently lives.
+
+## The 59% / 5% Problem Is Still Running Underneath This
+
+[Capgemini's World Cloud Report for Financial Services, published two weeks ago](https://www.capgemini.com/news/press-releases/financial-institutions-accelerate-transition-to-multi-agent-ai-in-drive-for-bottom-line-value/), put the state of multi-agent AI in the exact industries IBM and Microsoft are targeting: 59% of financial institutions are piloting or running multi-agent AI in production. 10% have achieved real orchestration. 5% have institutionalized the capabilities required to operate agentic AI at scale.
+
+The Imagine Enterprise launch is designed to move firms from 0% to 59% faster. That's the access problem, and it's worth solving.
+
+The gap between 59% and 5% is a different problem. Capgemini found that nearly half of the organizations building multi-agent systems within core banking and insurance workflows cannot consistently demonstrate returns on those investments. These are live production deployments — agents that cleared procurement, got integrated, and went live. The organizations running them can't show that they work.
+
+The IBM + Microsoft catalog makes the first step easier. It doesn't address the gap between deploying and working. That gap, in financial services specifically, is not primarily a technical complexity problem. It's a measurement problem: enterprises are deploying agents they haven't evaluated against the standard that matters, which is whether the agent performs reliably enough in this workflow to be trusted with real decisions.
+
+## Identity Is Not Performance
+
+Microsoft's decision to give agents their own Entra identities is worth acknowledging. It's the right architectural move. An agent that has a stable identity, assigned permissions, and an accountable owner is easier to govern than one that doesn't. When something goes wrong, you can trace it. When an agent needs to be deprovisioned, there's a record. The [Wells Fargo liability-transfer approach](https://www.americanbanker.com/news/wells-fargo-wants-customers-to-prove-theyve-revoked-ai-agents) that the banking sector is building toward requires exactly this kind of auditability — who authorized what, when, with what scope.
+
+But identity tells you about authorization. Performance verification tells you about capability. These are orthogonal, and the enterprise AI market tends to conflate them. A well-credentialed agent that performs poorly is still a liability. An identity record that proves authorization doesn't substitute for a behavioral record that proves reliability.
+
+What the Imagine Enterprise launch is missing — and what IBM, Microsoft, and every enterprise buyer pulling agents off that catalog will eventually need — is a performance record for each agent. Not the vendor's claim. Not the internal test run against clean sample data. A verified record of how the agent behaves under realistic conditions, against realistic edge cases, in the kind of workflow it's actually being deployed into.
+
+## The Catalog Is the Market; Verification Is What Differentiates It
+
+The IBM + Microsoft launch is a distribution play at scale. It will work. Enterprises that have been hesitating on agent deployment will find the access barrier lower, the integration friction reduced, and the governance story more credible than any point-solution vendor can offer.
+
+What it creates, in doing that successfully, is a downstream market: agents proliferating faster than enterprises can evaluate them, in regulated verticals where the cost of deploying the wrong agent is real and measurable. Financial services, insurance, retail — these are industries where bad agent behavior shows up in quarterly results, regulatory findings, and customer harm, not just in a failed demo.
+
+The moment you can get 6,000 agents off a shelf is the moment you need verified performance records most. The catalog solves for access. The question that determines whether the 59% becomes the 5% is the question it doesn't answer: which of these agents are actually fit for the task you're putting them into?
+
+---
+
+<MatrixPills />
