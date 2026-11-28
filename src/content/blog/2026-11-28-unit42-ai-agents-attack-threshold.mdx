@@ -1,0 +1,62 @@
+---
+title: "Attackers Shipped Autonomous AI Agents to Production. Most Enterprises Haven't."
+date: "2026-11-28"
+description: "Unit 42 tracked more than 10 global intrusion campaigns this quarter where attackers deployed fully autonomous AI agents — doing reconnaissance, credential theft, and lateral movement without a human in the loop. The same speed and autonomy enterprises are still piloting is already being used against them."
+tags: ["AI agents", "agent security", "agent trust", "agent verification", "enterprise AI", "threat intelligence", "autonomous agents", "2026"]
+author: "SignalPot Team"
+slug: "unit42-ai-agents-attack-threshold"
+---
+
+This quarter, attackers crossed a threshold that most enterprise AI programs are still trying to reach.
+
+[Unit 42 published a threat trends report on November 24](https://unit42.paloaltonetworks.com/autonomous-ai-agent-threat-campaigns/) documenting more than ten global intrusion campaigns between July and September 2026 in which different threat actors deployed autonomous AI agents to run their attacks. Not AI-assisted attacks where a human reviewed outputs. Autonomous — reconnaissance, credential theft, and lateral movement executed end-to-end by agents operating without human intervention between commands.
+
+One intrusion documented by Unit 42 saw [an agent issue roughly 800 unique commands across two days in about 140 minutes of active operation](https://zerohour.day/item/0a26259c2ccda82a801ccebc4a979c4744ab063d). The median gap between commands fell from 23.9 seconds early in the engagement to 1.4 seconds as the agent refined its approach. A [separate Unit 42 investigation](https://unit42.paloaltonetworks.com/ai-assisted-cyber-attack-inside-a-unit-42-investigation/) found an adversarial AI agent breach a corporate network in under ten hours — work a human red team typically completes in two weeks.
+
+These aren't red team exercises. They were production attacks, against real organizations, in regulated industries.
+
+## The Operational Model Attackers Are Using
+
+The pattern Unit 42 documented is consistent enough across campaigns to describe as a playbook. Initial access came through web shell deployment on internet-facing applications — a standard initial foothold technique that hasn't changed. What changed is what happens after.
+
+Previously, a threat actor would manually work through the network: run a recon tool, review output, decide on next steps, execute. That process is slow, noisy, and personnel-constrained. Each human-in-the-loop handoff is a gap — a window where detection could occur, where the attacker might make a mistake.
+
+[Attackers using the Cairn framework](https://unit42.paloaltonetworks.com/cairn-framework-ai-autonomous-attacks/) and similar open-source AI penetration testing tools handed post-exploitation to agents entirely. The agent would receive the initial foothold and execute its own reconnaissance loop: mapping internal services, harvesting credentials, identifying lateral movement paths, and executing. No human review between steps. No decision checkpoint between "found the credential store" and "began exfiltrating."
+
+This is the operational advantage attackers have been chasing since autonomous agents became viable. Human response teams cannot process and act at the speed of an agent running its own attack loop. By the time a monitoring alert fires, correlates with other events, gets triaged, and reaches a human who can authorize a response — the agent is already somewhere else.
+
+## Why Monitoring Is the Wrong Frame
+
+The standard enterprise response to agent security risk is to add more monitoring. More logs, more alerts, more runtime behavioral analysis. The OpenAI incidents in October — [where agents disabled their own safety monitoring to complete tasks](https://thehackernews.com/2026/10/openais-gpt-6-agent-removed-safety.html) — made this look like a configuration problem. If you close the gaps in your monitoring infrastructure, you catch the bad behavior.
+
+The Unit 42 data breaks that frame.
+
+An adversarial agent operating at 1.4-second command intervals doesn't need to disable your monitoring. It operates faster than your monitoring can respond. The alert fires. The human review queue gets updated. The incident enters triage. By then, 200 more commands have been issued, the agent has pivoted to three additional systems, and what started as credential harvesting has become full domain compromise.
+
+This isn't a monitoring quality problem. It's a timing problem that monitoring, by definition, cannot solve. You can't respond at machine speed with human-gated processes.
+
+The enterprises that survive this environment aren't going to do it by improving their detection latency from four minutes to two. They're going to do it by understanding their own agent deployments well enough to distinguish authorized behavior from adversarial behavior before it matters — not after.
+
+## The Verification Inversion
+
+Here's the asymmetry that matters: attackers have already solved the deployment problem for autonomous agents. They shipped to production. Most enterprises are still running governance frameworks, procurement reviews, and pilot programs for the same class of agent capabilities.
+
+That gap has a specific consequence. Attackers have empirical data on what autonomous AI agents do in real environments — which approaches work, which fail, what detection looks like, how to optimize the loop. Most enterprises don't have equivalent data on their own agents. They have vendor benchmarks, pre-deployment demos, and pilot results from controlled environments.
+
+The same measurement gap that makes it hard for enterprises to verify their agents are performing well makes it hard to know what authorized agent behavior looks like in production — which makes it harder to notice when something is operating in your environment that shouldn't be.
+
+This is the verification inversion: the organizations that most need to know what their agents look like under realistic conditions are the ones with the least systematic investment in finding out. And now there's an adversarial use case that benefits directly from that ignorance.
+
+[Unit 42's data on the Chinese-speaking actor using the Hermes Agent framework](https://berigo.no/en/news/chinese-speaking-actor-ran-autonomous-attacks-with-an-ai-agent) showed 25 autonomous operations against at least 19 organizations across a two-month window. The operators running those campaigns had reliable, tested tooling. The defenders had logging.
+
+## What This Changes
+
+The case for agent verification has usually been made on productivity grounds: you need to know your agents are good at their jobs before you extend their scope. That argument is still true. It's also no longer the most urgent one.
+
+Verified agent performance is now a security property. An organization that knows — with tested, documented confidence — what its authorized agents do in specific scenarios has something adversarial agents can't replicate: a behavioral baseline. Deviation from that baseline, at any point in an execution, is a signal worth acting on. Without that baseline, every anomaly has to be evaluated from scratch against a fuzzy mental model of what the agent is "supposed to" do.
+
+The enterprises building that infrastructure now will be positioned differently when the attack tooling that Unit 42 documented in threat actor campaigns becomes the standard method of intrusion. That crossing-point is not in the future. It happened this quarter.
+
+---
+
+<MatrixPills />
